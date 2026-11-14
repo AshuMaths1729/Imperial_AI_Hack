@@ -1,0 +1,120 @@
+{
+  "graph_id": "g_demo_lecture",
+  "kind": "lecture",
+  "nodes": [
+    {
+      "id": "n1",
+      "kind": "concept",
+      "label": "Multivariable Chain Rule",
+      "summary": "Computes derivatives of composite functions along directed computation graphs via Jacobian products.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 4
+      }
+    },
+    {
+      "id": "n2",
+      "kind": "concept",
+      "label": "Reverse-Mode AutoDiff (Backprop)",
+      "summary": "Propagates sensitivity dL/dh backward from scalar loss L in O(1) passes regardless of parameter count.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 11
+      }
+    },
+    {
+      "id": "n3",
+      "kind": "concept",
+      "label": "Vanishing & Exploding Gradients",
+      "summary": "Repeated multiplication by weight matrices W^L causes gradients to shrink exponentially when singular values σ(W) < 1.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 19
+      }
+    },
+    {
+      "id": "n4",
+      "kind": "concept",
+      "label": "Stochastic Gradient Descent (SGD)",
+      "summary": "Updates parameters θ_{t+1} = θ_t - η ∇L_B(θ_t) using mini-batch estimates, introducing isotropic gradient noise.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 25
+      }
+    },
+    {
+      "id": "n5",
+      "kind": "concept",
+      "label": "Polyak Heavy-Ball Momentum",
+      "summary": "Accumulates velocity v_{t+1} = β v_t + ∇L(θ_t) to damp oscillations across high-curvature ravines.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 32
+      }
+    },
+    {
+      "id": "n6",
+      "kind": "concept",
+      "label": "Adam Optimizer (Adaptive Moments)",
+      "summary": "Combines first-moment momentum (m_t) with per-parameter second-moment RMS scaling (v_t) and bias correction.",
+      "source_ref": {
+        "doc_id": "lecture_demo",
+        "page": 40
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "n1",
+      "target": "n2",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    },
+    {
+      "id": "e2",
+      "source": "n2",
+      "target": "n3",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    },
+    {
+      "id": "e3",
+      "source": "n2",
+      "target": "n4",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    },
+    {
+      "id": "e4",
+      "source": "n4",
+      "target": "n5",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    },
+    {
+      "id": "e5",
+      "source": "n3",
+      "target": "n6",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    },
+    {
+      "id": "e6",
+      "source": "n5",
+      "target": "n6",
+      "type": "prerequisite",
+      "evidence": [],
+      "confidence": 0.95
+    }
+  ],
+  "meta": {
+    "extractor_used": "frontier",
+    "created_at": "2026-11-14T09:00:00Z"
+  }
+}
