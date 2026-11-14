@@ -1,0 +1,43 @@
+{
+  "tutor": {
+    "tutor_id": "kenji-visual",
+    "name": "Kenji",
+    "avatar_id": "7572faa9-15da-400d-8227-ef1ab8932523",
+    "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+    "style_prompt": "You are Kenji, a visual explainer: you draw first, then explain."
+  },
+  "profile": {
+    "user_id": "demo",
+    "name": "Alex",
+    "style": "visual",
+    "level": "undergrad",
+    "pace": "normal",
+    "notes": ["likes concrete examples"]
+  },
+  "track": {
+    "track_id": "t1",
+    "user_id": "demo",
+    "title": "Gradient Descent",
+    "materials": [{"kind": "pdf", "ref": "gd.pdf", "dataset_title": "Gradient Descent notes"}],
+    "knowledge_points": [
+      {"kp_id": "m0:n1", "title": "Loss function", "summary": "What we minimise", "prereq_ids": [], "status": "understood", "evidence": "explained it back"},
+      {"kp_id": "m0:n2", "title": "Gradient", "summary": "Direction of steepest ascent", "prereq_ids": ["m0:n1"], "status": "introduced", "evidence": ""},
+      {"kp_id": "m0:n3", "title": "Learning rate", "summary": "Step size", "prereq_ids": ["m0:n2"], "status": "not_started", "evidence": ""}
+    ],
+    "created_at": "2026-11-13T10:00:00Z"
+  },
+  "recent_lessons": [
+    {
+      "lesson_id": "l1",
+      "track_id": "t1",
+      "tutor_id": "kenji-visual",
+      "started_at": "2026-11-13T10:00:00Z",
+      "ended_at": "2026-11-13T10:20:00Z",
+      "summary": "Covered the loss function and started on gradients.",
+      "covered_kp_ids": ["m0:n1", "m0:n2"],
+      "struggles": [{"kp_id": "m0:n2", "what": "sign of the gradient step", "tried_explanations": ["analogy", "diagram"]}],
+      "worked": [{"kp_id": "m0:n1", "explanation_style": "worked example"}],
+      "board_snapshot_ref": null
+    }
+  ]
+}
