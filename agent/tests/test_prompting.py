@@ -39,3 +39,15 @@ def test_greeting_mentions_last_lesson_when_absent():
 def test_rules_explain_hidden_steps():
     text = build_instructions(CTX)
     assert "HIDDEN" in text and "reveal_step" in text and "group" in text
+
+
+def test_rules_speak_before_drawing_and_keep_board_calls_small():
+    # A long board_write with no speech first meant ~7 s of silence, and at max_tokens it was cut off entirely.
+    from prompting import RULES
+    assert "say one short sentence before calling board_write" in RULES
+    assert "at most 8 ops" in RULES
+
+
+def test_voice_llm_has_room_for_step_by_step_board_calls():
+    import agent
+    assert agent.VOICE_MAX_TOKENS >= 2000

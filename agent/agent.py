@@ -38,6 +38,9 @@ logger = logging.getLogger("tutor")
 
 SUMMARY_ID = "lesson-summary"
 AVATAR_JOIN_TIMEOUT = 12  # plugin default 30 s; a student should not wait that long for voice-only
+# A step-by-step board_write (5+ LaTeX steps) needs ~800+ tokens; at the limit the tool call is cut off and
+# LiveKit drops it, so the tutor silently says and draws nothing. Only generated tokens count, so headroom is cheap.
+VOICE_MAX_TOKENS = 2000
 
 
 class RoomTutorIO:
@@ -188,7 +191,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     session = AgentSession(
         stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
-        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=800),  # 300 cut board_write calls off mid-JSON
+        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
         tts=elevenlabs.TTS(voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5"),
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced tutor captions
