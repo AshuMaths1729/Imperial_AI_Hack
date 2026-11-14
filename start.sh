@@ -17,7 +17,7 @@ trap cleanup INT TERM EXIT
 echo "Starting FastAPI backend on http://127.0.0.1:8000 ..."
 (
   cd "$BACKEND_DIR"
-  .venv/bin/uvicorn main:app --reload --port 8000
+  uv run uvicorn app.main:app --reload --port 8000
 ) &
 BACKEND_PID=$!
 

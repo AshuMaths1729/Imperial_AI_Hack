@@ -1,0 +1,45 @@
+{
+  "spoken_answer": "This red edge shows Porz and Bruce, 2022, refuting dendrite suppression above 0.8 milliamps per square centimetre. Lithium nucleates inside microscopic grain-boundary flaws, whatever the bulk shear modulus. Notice the dashed gap below it: sub-1 MPa pulse annealing remains completely untested.",
+  "segments": [
+    {
+      "text": "This red edge shows Porz and Bruce, 2022, refuting dendrite suppression above 0.8 milliamps per square centimetre.",
+      "ui_annotations": [
+        {
+          "type": "pulse_node",
+          "id": "h3",
+          "label": "Contradicting evidence"
+        },
+        {
+          "type": "highlight_edge",
+          "id": "he2"
+        }
+      ]
+    },
+    {
+      "text": "Lithium nucleates inside microscopic grain-boundary flaws, whatever the bulk shear modulus.",
+      "ui_annotations": [
+        {
+          "type": "show_card",
+          "card": "evidence",
+          "id": "he2"
+        }
+      ]
+    },
+    {
+      "text": "Notice the dashed gap below it: sub-1 MPa pulse annealing remains completely untested.",
+      "ui_annotations": [
+        {
+          "type": "pulse_node",
+          "id": "h6",
+          "label": "Untested gap"
+        },
+        {
+          "type": "highlight_edge",
+          "id": "he5"
+        }
+      ]
+    }
+  ],
+  "follow_up": null,
+  "avatar_state": "questioning"
+}

@@ -1,0 +1,45 @@
+{
+  "spoken_answer": "In the region you circled, the trajectory shows underdamped ringing. Momentum carries theta past the minimum at zero before friction dissipates the kinetic energy. Raise the damping slider and watch the ringing disappear.",
+  "segments": [
+    {
+      "text": "In the region you circled, the trajectory shows underdamped ringing.",
+      "ui_annotations": [
+        {
+          "type": "circle_region",
+          "space": "data",
+          "x": 1.4,
+          "y": -1.47,
+          "w": 1.2,
+          "h": 0.5,
+          "label": "Overshoot"
+        }
+      ]
+    },
+    {
+      "text": "Momentum carries theta past the minimum at zero before friction dissipates the kinetic energy.",
+      "ui_annotations": [
+        {
+          "type": "draw_arrow",
+          "space": "data",
+          "x": 2.0,
+          "y": -1.2167,
+          "label": "Overshoot peak"
+        }
+      ]
+    },
+    {
+      "text": "Raise the damping slider and watch the ringing disappear.",
+      "ui_annotations": [
+        {
+          "type": "callout_box",
+          "space": "view",
+          "x": 0.7,
+          "y": 0.1,
+          "label": "Raise γ to damp the overshoot"
+        }
+      ]
+    }
+  ],
+  "follow_up": null,
+  "avatar_state": "emphatic"
+}
