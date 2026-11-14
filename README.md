@@ -1,13 +1,15 @@
 # ScholarTwin — Imperial AI Hackathon
 
-An interactive multimodal AI research & learning workspace that unifies **LectureGraph**, **Paper2Sim**, and **HypothesisGraph** into a single 3-pane canvas with **Circle-to-Ask** spatial tutoring and a reactive digital avatar.
+An interactive multimodal AI research & learning workspace with a 3-mode entry hub (**LectureUnderstanding**, **PaperSim**, and **HypothesisGraph**), **Circle-to-Ask** spatial tutoring, and a reactive **LiveKit + Synthesia** digital avatar.
 
-## Core Modules (Unified 3-Pane Workspace)
+## Core Modules & UI Flow
 
-- **LectureGraph (Understand):** Concept & prerequisite knowledge graph with slide/timestamp anchors and adaptive MCQs.
-- **Paper2Sim (Reproduce):** Extracts paper equations into sandboxed Python simulations with live parameter sliders and interactive plots.
-- **HypothesisGraph (Verify):** Maps supporting vs. contradictory claims across papers (`supports`, `contradicts`, `gap`) and surfaces untested research gaps.
-- **Circle-to-Ask Avatar:** Toggle the lasso overlay on any graph or plot, circle a region, and ask via voice or text for synchronized explanations and UI annotations.
+The landing hub (`HomeHub`) routes into three dedicated workflows:
+
+- **LectureUnderstanding (Understand):** Opens a **Library** of saved lecture conversations and a **New Conversation** floating toast for PDF/URL ingestion, leading into a **2-pane** avatar + interactive concept graph workspace (`AvatarDock`, `GraphCanvas`, `LassoOverlay`) with **Circle-to-Ask** spatial tutoring.
+- **PaperSim (Reproduce):** Opens a **Library** of saved paper simulations and a **New Conversation** PDF/URL toast, leading into a **tabbed interactive visualisation** workspace (`PaperSimTabsView`) with live parameter-sweep plots, concept & parameter graphs, series breakdowns, and extracted Python equations.
+- **HypothesisGraph (Verify):** A dedicated **Topic-to-Graph** generator (`HypothesisChatView`) with text + mic input and saved topic history. Queries grounded papers across **Semantic Scholar → OpenAlex (with 429/5xx retry) → arXiv → Europe PMC** and renders a full-viewport graph with per-node citations, grayed-out detached nodes, click-to-zoom neighbourhoods, and click-to-inspect edge explanation cards (`supports`, `contradicts`, `gap`).
+- **Circle-to-Ask & Live Avatar Tutor:** Toggle the lasso overlay on the lecture canvas to circle a region and ask via voice or text, or launch `/tutor` for a live Synthesia/LiveKit avatar call.
 
 ## Quick Start
 
@@ -55,10 +57,11 @@ cd frontend && npm run gen:types                         # writes src/api/types.
 
 ## Project Structure
 
-- `backend/app/` — FastAPI app: `main.py` (`create_app()`, auto-discovers `modules/*`), `settings.py`, `deps.py`, `schemas/` (shared contracts), `core/` (cache, jobs, errors), `llm/`, `tools/` (broker, registry), `modules/` (one package per feature; `legacy` holds the Phase-1 prototype routes, `fixtures_api` serves the shared fixtures).
+- `backend/app/` — FastAPI app: `main.py` (`create_app()`, auto-discovers `modules/*`), `settings.py`, `deps.py`, `schemas/` (shared contracts), `core/` (cache, jobs, errors), `llm/`, `tools/` (broker, registry, and `scholarly/` multi-source search across S2, OpenAlex, arXiv, and Europe PMC), `modules/` (one package per feature; `legacy` holds the Phase-1 prototype routes, `fixtures_api` serves the shared fixtures).
 - `fixtures/` — shared JSON samples (lecture/hypothesis graphs, simulation, ask-spatial answers, job events) validated against the schemas by the tests.
 - `schemas/openapi.json` — generated OpenAPI document (source of the frontend types).
-- `frontend/` — Next.js + Tailwind CSS + React Flow 3-pane workspace (`AvatarDock`, `GraphCanvas`, `PaperSimCanvas`, `LassoOverlay`, `InspectorPane`).
+- `frontend/` — Next.js 16 + Tailwind CSS + React Flow workspace (`HomeHub`, `LibraryView`, `UploadModal`, `AvatarDock`, `GraphCanvas`, `PaperSimTabsView`, `PaperSimCanvas`, `HypothesisChatView`, `LassoOverlay`, and `src/api/adapters.ts`).
+- `DESIGN.md` / `design.JPG` — System & UI architecture documentation and diagram.
 - `start.sh` / `start.ps1` — Launch backend and frontend together with clean `Ctrl+C` shutdown.
 - `implementation_guide.md` — Full hackathon architecture and phase roadmap.
 
