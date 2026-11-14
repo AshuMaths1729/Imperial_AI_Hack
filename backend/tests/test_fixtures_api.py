@@ -32,7 +32,9 @@ def test_get_graph(client, graph_id, kind):
 def test_get_sim(client):
     r = client.get("/api/sim/sim_heavy_ball")
     assert r.status_code == 200
-    assert SimPayload.model_validate(r.json()).params.keys() == {"gamma", "eta", "theta0"}
+    body = r.json()  # the real sim route returns a superset (sim_id, validation, ...)
+    fields = {k: v for k, v in body.items() if k in SimPayload.model_fields}
+    assert SimPayload.model_validate(fields).params.keys() == {"gamma", "eta", "theta0"}
 
 
 @pytest.mark.parametrize("path", ["/api/graphs/nope", "/api/sim/nope", "/api/jobs/nope/events"])

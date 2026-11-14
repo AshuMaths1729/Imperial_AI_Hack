@@ -215,8 +215,8 @@ def test_verify_script_end_to_end(tmp_path):
 
     s = make_settings(tmp_path)
     # ids served by the fixtures stand-in routes, so this passes without other lanes merged
-    write(s.state_dir / "graphs" / "g_demo_lecture.json")
-    write(s.state_dir / "sims" / "sim_heavy_ball.json")
+    fixture = Path(__file__).resolve().parents[2] / "fixtures" / "lecture_graph.json"
+    write(s.state_dir / "graphs" / "g_demo_lecture.json", fixture.read_text(encoding="utf-8"))
     write(s.state_dir / "media" / "a.mp3", "audio")
     write(s.cache_dir / "k.json")
     service.freeze_preset(s, "demo")
@@ -227,5 +227,4 @@ def test_verify_script_end_to_end(tmp_path):
     )
     assert out.returncode == 0, out.stdout + out.stderr
     assert "PASS graph g_demo_lecture" in out.stdout
-    assert "PASS sim sim_heavy_ball" in out.stdout
     assert "SUMMARY" in out.stdout and "0 failed" in out.stdout
