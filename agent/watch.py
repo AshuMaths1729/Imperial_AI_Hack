@@ -158,9 +158,8 @@ async def _correct(session, tools, region: dict, result: dict, say: str) -> None
     ops = [{"op": "annotate", "id": f"fix_mark_{tag}", "mark": "circle", "region": mark, "color": "red"}]
     latex = str(result.get("correction_latex") or "").strip()
     if latex:
-        below = _clip({"x": mark["x"], "y": mark["y"] + mark["h"] + 10, "w": max(mark["w"], 240), "h": 70})
-        ops.append({"op": "write_math", "id": f"fix_{tag}", "latex": latex,
-                    "place": f"region:{below['x']},{below['y']},{below['w']},{below['h']}"})
+        # natural size, under the red circle (a fixed region box scaled long corrections down to unreadable)
+        ops.append({"op": "write_math", "id": f"fix_{tag}", "latex": latex, "place": f"below:fix_mark_{tag}"})
     drawn = await tools.board_write(ops)
     logger.info("idle: correction ops %s", drawn[:200])
     if drawn.startswith("ok"):

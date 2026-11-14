@@ -157,8 +157,8 @@ async def test_mistake_circles_red_writes_below_then_explains():
     r = mark["region"]
     assert r["x"] <= 300 <= 460 <= r["x"] + r["w"] and r["y"] <= 1300 <= 1380 <= r["y"] + r["h"]
     assert fix["op"] == "write_math" and fix["latex"] == "w = 3 - 3 = 0"
-    x, y, w, h = map(int, fix["place"].removeprefix("region:").split(","))
-    assert y >= r["y"] + r["h"] and x == r["x"]  # beneath the circled part, left-aligned with it
+    # beneath the circled part at its natural size (a fixed region box shrank it to unreadable live)
+    assert fix["place"] == f"below:{mark['id']}"
     [reply] = session.replies
     assert "0.5 times 6 is 3" in reply["instructions"] and fix["id"] in reply["instructions"]
 

@@ -1,6 +1,6 @@
 import type { Caption } from "./session";
 
-/** Last two caption lines over the stage, like Zoom's CC. */
+/** Last two caption lines over the stage, like Zoom's CC; sits above the board's pen toolbar and the slide controls. */
 export function CaptionsOverlay({ captions, tutorName }: { captions: Caption[]; tutorName: string }) {
   const last = captions.slice(-2);
   if (!last.length) return null;
@@ -8,7 +8,7 @@ export function CaptionsOverlay({ captions, tutorName }: { captions: Caption[]; 
     <div
       data-testid="captions-overlay"
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center px-4"
+      className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center px-4"
     >
       <div className="max-w-2xl space-y-1 rounded-xl bg-slate-950/80 px-4 py-2.5 text-[15px] leading-snug shadow-lg backdrop-blur">
         {last.map((c) => (
