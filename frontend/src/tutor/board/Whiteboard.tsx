@@ -1,10 +1,12 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import { Tldraw, type Editor, type TLShape } from "tldraw";
+import { Box as PageBox, DefaultColorStyle, Tldraw, type Editor, type TLDefaultColorStyle } from "tldraw";
 import "tldraw/tldraw.css";
 import "katex/dist/katex.min.css";
-import type { ApplyResult, BoardHandle, BoardOp, Box, CircleEvent } from "../contracts/types";
+import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, Box, CircleEvent } from "../contracts/types";
+import { downscaleDims, itemsInRegion, lassoRegion } from "./circle";
+import { boardIdOf, describeShapes } from "./describe";
 import { BOARD, resolvePlace } from "./layout";
 import { validateOp } from "./ops";
 import { BOARD_SCALE as S, createShapeId, generateId, imageAsset, imageAssetId, naturalSize, opToShapePartials } from "./toShapes";
@@ -13,31 +15,43 @@ import { PlotShapeUtil, plotYDomain } from "./shapes/PlotShape";
 
 const shapeUtils = [MathShapeUtil, PlotShapeUtil];
 
-/** Board id of a shape: tutor shapes carry it in meta; user shapes use their tldraw id without "shape:". */
-const boardIdOf = (s: TLShape) => (typeof s.meta.boardId === "string" ? s.meta.boardId : s.id.slice("shape:".length));
-const toBoard = (b: { x: number; y: number; w: number; h: number }): Box => ({ x: b.x / S, y: b.y / S, w: b.w / S, h: b.h / S });
+const toBoard = (b: { x: number; y: number; w: number; h: number }): Box =>
+  ({ x: Math.round(b.x / S), y: Math.round(b.y / S), w: Math.round(b.w / S), h: Math.round(b.h / S) });
 const shapesOf = (editor: Editor, id: string) => editor.getCurrentPageShapes().filter((s) => boardIdOf(s) === id);
 
-/** Union bbox (board units) per board id, ignoring highlight overlays. */
-function itemBoxes(editor: Editor): Map<string, { box: Box; kind: string }> {
-  const out = new Map<string, { box: Box; kind: string }>();
-  for (const s of editor.getCurrentPageShapes()) {
-    if (s.meta.part === "highlight") continue;
+function describe(editor: Editor): BoardDescription {
+  return describeShapes(editor.getCurrentPageShapes(), (s) => {
     const b = editor.getShapePageBounds(s);
-    if (!b) continue;
-    const id = boardIdOf(s);
-    const prev = out.get(id);
-    const box = toBoard(b);
-    if (prev) {
-      const x = Math.min(prev.box.x, box.x), y = Math.min(prev.box.y, box.y);
-      prev.box = { x, y, w: Math.max(prev.box.x + prev.box.w, box.x + box.w) - x, h: Math.max(prev.box.y + prev.box.h, box.y + box.h) - y };
-    } else out.set(id, { box, kind: String(s.meta.kind ?? s.type) });
+    return b && toBoard(b);
+  });
+}
+
+/** PNG (base64, no data: prefix) of a board region, long side ≤ 1024 px. */
+async function snapshot(editor: Editor, region: Box = { x: 0, y: 0, w: BOARD, h: BOARD }): Promise<string> {
+  const pw = Math.max(1, region.w * S), ph = Math.max(1, region.h * S);
+  const out = downscaleDims(pw, ph);
+  const ids = [...editor.getCurrentPageShapeIds()];
+  if (!ids.length) {
+    const c = Object.assign(document.createElement("canvas"), { width: out.w, height: out.h });
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, out.w, out.h);
+    return c.toDataURL("image/png").split(",")[1];
   }
-  return out;
+  const { blob } = await editor.toImage(ids, {
+    format: "png", bounds: new PageBox(region.x * S, region.y * S, pw, ph), scale: out.w / pw, pixelRatio: 1, background: true, padding: 0,
+  });
+  const url = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(r.error);
+    r.readAsDataURL(blob);
+  });
+  return url.split(",")[1];
 }
 
 function applyOne(editor: Editor, op: BoardOp): string | undefined {
-  const items = itemBoxes(editor);
+  const items = new Map<string, BoardItem>(describe(editor).items.map((i) => [i.id, i]));
   const page = editor.getCurrentPageShapes();
   switch (op.op) {
     case "erase":
@@ -51,7 +65,7 @@ function applyOne(editor: Editor, op: BoardOp): string | undefined {
       return;
     case "highlight": {
       editor.deleteShapes(page.filter((s) => boardIdOf(s) === op.target_id && s.meta.part === "highlight"));
-      const parts = opToShapePartials(op, items.get(op.target_id)!.box, S, page);
+      const parts = opToShapePartials(op, items.get(op.target_id)!.bbox, S, page);
       editor.createShapes(parts);
       editor.sendToBack(parts.map((p) => p.id));
       return;
@@ -67,7 +81,7 @@ function applyOne(editor: Editor, op: BoardOp): string | undefined {
 
   if (op.op === "draw_arrow") {
     const c = (b: Box) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-    const a = c(items.get(op.from_id)!.box), b = c(items.get(op.to_id)!.box);
+    const a = c(items.get(op.from_id)!.bbox), b = c(items.get(op.to_id)!.bbox);
     const arrowId = createShapeId(id);
     editor.createShapes(opToShapePartials({ ...op, id }, { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y }, S));
     const bind = (terminal: "start" | "end", target: string) => ({
@@ -79,7 +93,7 @@ function applyOne(editor: Editor, op: BoardOp): string | undefined {
   }
 
   // Arrows span other items; don't let them block layout.
-  const occupied = new Map([...items].filter(([, v]) => v.kind !== "arrow").map(([k, v]) => [k, v.box]));
+  const occupied = new Map([...items].filter(([, v]) => v.type !== "arrow").map(([k, v]) => [k, v.bbox]));
   const region = /^region:(\d+),(\d+),(\d+),(\d+)$/.exec(op.place);
   const size = op.op === "draw_shape" && region ? { w: +region[3], h: +region[4] } : naturalSize(op, (l) => toBoard({ x: 0, y: 0, ...measureMath(l) }));
   const box = resolvePlace(op.place, size, occupied);
@@ -112,14 +126,32 @@ function applyOps(editor: Editor, ops: unknown[]): ApplyResult {
 
 type Props = { onCircle?: (e: CircleEvent) => void; className?: string };
 
-export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ className }, ref) {
+/** Shared tldraw board: the tutor writes via `applyOps`; the student draws freely and can circle a region to ask about it. */
+export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ onCircle, className }, ref) {
   const editorRef = useRef<Editor | null>(null);
+  const circling = useRef<{ prevColor: TLDefaultColorStyle } | null>(null);
+  const onCircleRef = useRef(onCircle);
+  onCircleRef.current = onCircle;
+
+  const setCircleMode = (on: boolean) => {
+    const editor = editorRef.current;
+    if (!editor || on === !!circling.current) return;
+    if (on) {
+      circling.current = { prevColor: editor.getStyleForNextShape(DefaultColorStyle) };
+      editor.setStyleForNextShapes(DefaultColorStyle, "violet");
+      editor.setCurrentTool("draw");
+    } else {
+      editor.setStyleForNextShapes(DefaultColorStyle, circling.current!.prevColor);
+      circling.current = null;
+      editor.setCurrentTool("select");
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     applyOps: (ops) => (editorRef.current ? applyOps(editorRef.current, ops) : { ok: false, ids: [], errors: ["whiteboard not ready"] }),
-    describe: () => ({ items: [] }),
-    snapshot: async () => "",
-    setCircleMode: () => {},
+    describe: () => (editorRef.current ? describe(editorRef.current) : { items: [] }),
+    snapshot: (region) => (editorRef.current ? snapshot(editorRef.current, region) : Promise.reject(new Error("whiteboard not ready"))),
+    setCircleMode,
   }), []);
 
   const onMount = (editor: Editor) => {
@@ -136,10 +168,29 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ c
     // Re-fit the whole board when the container resizes (side panels open/close).
     const ro = new ResizeObserver(() => requestAnimationFrame(fit));
     ro.observe(editor.getContainer());
+
     // Anything not created by applyOps is the student's.
-    const off = editor.sideEffects.registerBeforeCreateHandler("shape", (shape) =>
+    const offAuthor = editor.sideEffects.registerBeforeCreateHandler("shape", (shape) =>
       shape.meta.author ? shape : { ...shape, meta: { ...shape.meta, author: "user" } });
-    return () => { off(); ro.disconnect(); editorRef.current = null; };
+
+    // Circle-to-Ask: the first finished stroke in circle mode is a lasso, not ink.
+    const offLasso = editor.sideEffects.registerAfterChangeHandler("shape", (prev, next) => {
+      if (!circling.current || next.type !== "draw" || prev.type !== "draw" || prev.props.isComplete || !next.props.isComplete) return;
+      const b = editor.getShapePageBounds(next);
+      setCircleMode(false);
+      setTimeout(async () => {
+        editor.deleteShapes([next.id]);
+        if (!b) return;
+        const region = lassoRegion({ x: b.x / S, y: b.y / S, w: b.w / S, h: b.h / S });
+        try {
+          const png_b64 = await snapshot(editor, region);
+          onCircleRef.current?.({ png_b64, region, item_ids: itemsInRegion(describe(editor).items, region), source: "board" });
+        } catch (e) {
+          console.error("circle capture failed", e);
+        }
+      });
+    });
+    return () => { offAuthor(); offLasso(); ro.disconnect(); editorRef.current = null; };
   };
 
   return (
