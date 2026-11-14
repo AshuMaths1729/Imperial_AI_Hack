@@ -57,7 +57,7 @@ async def animate(brief: str, board_text: str, *, client=None, timeout_s: float 
     raw = [op for op in raw if isinstance(op, dict)] if isinstance(raw, list) else []
     # model ids (eq1, ...) would replace same-id tutor items already on the board: prefix them with the group
     mine = {op["id"] for op in raw if isinstance(op.get("id"), str)}
-    ren = lambda i: f"{group}_{i}"[:64] if i in mine else i  # noqa: E731
+    ren = lambda i: f"{group}_{i}"[:64] if isinstance(i, str) and i in mine else i  # noqa: E731 (non-str: validator drops op)
     ops = []
     for op in raw:
         if op.get("op") in _NOT_FROM_MODEL:

@@ -146,29 +146,33 @@ class TutorTools:
 
     async def start_visual(self, kind: Literal["illustration", "animation"], brief: str) -> str:
         try:
-            from workers import run_visual  # agent/workers (WS5), optional
+            from workers import is_fallback, run_visual  # agent/workers (WS5), optional
         except ImportError:
             return "not available"
-        task = asyncio.create_task(self._run_visual(run_visual, kind, brief))
+        task = asyncio.create_task(self._run_visual(run_visual, is_fallback, kind, brief))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return "queued"
 
-    async def _run_visual(self, run_visual, kind: str, brief: str) -> None:
+    async def _run_visual(self, run_visual, is_fallback, kind: str, brief: str) -> None:
+        note = f"Visual unavailable: {brief} — explain it in words or draw it yourself with board_write"
         try:
             ops = await run_visual(kind, brief, await self.board_text())
             result = await self.board_write(ops)
             logger.info("visual %s: %s", kind, result)
-            if result.startswith("failed") or self.on_note is None:
-                return
-            note = f"Visual ready: {brief}"
-            stepped = [op for op in ops if op.get("group") and op.get("step")]
-            if stepped:
-                note += (f" (group {stepped[0]['group']}, steps 1..{max(op['step'] for op in stepped)}; "
-                         "reveal later steps with reveal_step as you explain)")
-            await self.on_note(note)
+            if not result.startswith("failed") and not is_fallback(ops):
+                note = f"Visual ready: {brief}"
+                stepped = [op for op in ops if op.get("group") and op.get("step")]
+                if stepped:
+                    note += (f" (group {stepped[0]['group']}, steps 1..{max(op['step'] for op in stepped)}; "
+                             "reveal later steps with reveal_step as you explain)")
         except Exception:
             logger.exception("visual %s failed", kind)
+        if self.on_note is not None:
+            try:
+                await self.on_note(note)
+            except Exception:
+                logger.exception("visual note failed")
 
     def function_tools(self) -> list[llm.FunctionTool | llm.RawFunctionTool]:
         t = self

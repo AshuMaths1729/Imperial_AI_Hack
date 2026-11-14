@@ -121,7 +121,7 @@ async def test_start_visual_returns_immediately(monkeypatch):
         done.set()
         return []
 
-    monkeypatch.setitem(sys.modules, "workers", types.SimpleNamespace(run_visual=run_visual))
+    monkeypatch.setitem(sys.modules, "workers", types.SimpleNamespace(run_visual=run_visual, is_fallback=lambda ops: False))
     tools = TutorTools(FakeIO({"board.describe": {"items": []}}), "L1")
     t0 = time.perf_counter()
     assert await tools.start_visual("illustration", "a ball rolling into a valley") == "queued"
@@ -237,17 +237,22 @@ async def test_look_at_board_accepts_float_region():
     assert ("board.snapshot", {"region": {"x": 10, "y": 20, "w": 301, "h": 200}}) in io.rpcs
 
 
-async def _run_visual_with(monkeypatch, ops, apply=ok_apply):
+UNAVAILABLE_NOTE = ("Visual unavailable: how a stack works — explain it in words or draw it yourself with board_write")
+
+
+async def _run_visual_with(monkeypatch, ops, apply=ok_apply, fallback=False, describe=None):
     async def run_visual(kind, brief, board_text):
         return ops
 
-    monkeypatch.setitem(sys.modules, "workers", types.SimpleNamespace(run_visual=run_visual))
+    monkeypatch.setitem(sys.modules, "workers",
+                        types.SimpleNamespace(run_visual=run_visual, is_fallback=lambda o: fallback))
     notes: list[str] = []
 
     async def on_note(text):
         notes.append(text)
 
-    tools = TutorTools(FakeIO({"board.describe": {"items": []}, "board.apply": apply}), "L1", on_note=on_note)
+    tools = TutorTools(FakeIO({"board.describe": describe or {"items": []}, "board.apply": apply}), "L1",
+                       on_note=on_note)
     assert await tools.start_visual("animation", "how a stack works") == "queued"
     await asyncio.gather(*tools._tasks)
     return notes
@@ -269,7 +274,21 @@ async def test_visual_ready_note_for_illustration(monkeypatch):
     assert notes == ["Visual ready: how a stack works"]
 
 
-async def test_no_visual_note_when_board_write_fails(monkeypatch):
+async def test_unavailable_note_when_board_write_fails(monkeypatch):
     notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "x", "place": "next"}],
                                    apply={"ok": False, "ids": [], "errors": ["nope"]})
-    assert notes == []
+    assert notes == [UNAVAILABLE_NOTE]
+
+
+async def test_unavailable_note_when_worker_fell_back(monkeypatch):
+    notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "(animation unavailable)", "place": "next"}],
+                                   fallback=True)
+    assert notes == [UNAVAILABLE_NOTE]
+
+
+async def test_unavailable_note_when_board_raises(monkeypatch):
+    def boom(payload):
+        raise RuntimeError("the student's page is not connected")
+
+    notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "x", "place": "next"}], describe=boom)
+    assert notes == [UNAVAILABLE_NOTE]

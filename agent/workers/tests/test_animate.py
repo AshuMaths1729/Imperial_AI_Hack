@@ -110,3 +110,19 @@ def test_model_cannot_place_images():
     plan = [{"op": "place_image", "url": "https://evil/x.png", "place": "next", "step": 1}] + GOOD[:1]
     ops = asyncio.run(animate("b", "", client=FakeAnthropic(plan)))
     assert [o["op"] for o in ops] == ["write_text", "reveal_step"]
+
+
+def test_is_fallback_recognises_worker_fallbacks():
+    from workers import is_fallback
+    from workers.illustrate import FALLBACK
+
+    assert is_fallback(UNAVAILABLE) and is_fallback(list(FALLBACK))
+    assert not is_fallback(GOOD)
+
+
+def test_non_string_ids_drop_only_that_op():
+    plan = [{"op": "write_text", "text": "a", "place": "next", "id": 5, "step": 1},
+            {"op": "draw_arrow", "from_id": 3, "to_id": ["x"], "step": 2}] + GOOD[:1]
+    ops = asyncio.run(animate("b", "", client=FakeAnthropic(plan)))
+    assert [o["op"] for o in ops] == ["write_text", "reveal_step"]
+    assert ops[0]["text"] == "Step one"
