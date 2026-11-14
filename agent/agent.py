@@ -127,7 +127,13 @@ async def entrypoint(ctx: JobContext) -> None:
     _, tctx = await asyncio.gather(ctx.connect(), fetch_context())
 
     io = RoomTutorIO(ctx.room, http)
-    tools = TutorTools(io, lesson_id)
+
+    async def add_note(text: str) -> None:  # e.g. "Visual ready: ..." once a background visual is on the board
+        chat = agent.chat_ctx.copy()
+        chat.add_message(role="system", content=text)
+        await agent.update_chat_ctx(chat)
+
+    tools = TutorTools(io, lesson_id, on_note=add_note)
     rolling = RollingSummary(haiku_summarize)
     ender = LessonEnder(io.post, lesson_id)
     tasks: set[asyncio.Task] = set()
@@ -146,7 +152,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     session = AgentSession(
         stt=elevenlabs.STT(model="scribe_v2_realtime"),
-        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=300),
+        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=800),  # 300 cut board_write calls off mid-JSON
         tts=elevenlabs.TTS(voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5"),
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced tutor captions
@@ -214,7 +220,7 @@ if __name__ == "__main__":
         WorkerOptions(
             entrypoint_fnc=entrypoint,
             prewarm_fnc=prewarm,
-            agent_name=os.environ.get("TUTOR_AGENT_NAME", "synthesia-avatar-agent"),
+            agent_name=os.environ.get("TUTOR_AGENT_NAME") or "scholartwin-tutor",
             shutdown_process_timeout=15,  # final summary <= 5 s + /end <= 3 s, with headroom
         )
     )

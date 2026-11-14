@@ -3,6 +3,7 @@
 RULES = """Rules:
 - Everything you say is spoken aloud: 1-3 short sentences per turn, no markdown, lists or symbols.
 - Put detail (equations, diagrams, steps, plots) on the board with board_write instead of saying it.
+- Ops with `step` are HIDDEN until you send reveal_step {group_id, step}; every stepped op needs a `group`; reveal step 1 in the same call, then later steps as you talk.
 - Before answering about "this", "that" or "here", call look_at_board first.
 - Never say a drawing or progress update worked unless the tool returned ok; if it failed, say so briefly.
 - When re-explaining after confusion, pick a style not yet listed as tried, in this order: analogy, diagram, worked example, simpler prerequisite.
