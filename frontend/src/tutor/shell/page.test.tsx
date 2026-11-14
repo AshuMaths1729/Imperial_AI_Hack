@@ -180,6 +180,34 @@ describe("slides", () => {
     expect(pane.className).not.toContain("opacity-0");
   });
 
+  it("switching tabs cross-fades with a short label, then fully hides the old pane", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    const slide = await screen.findByRole("region", { name: /Slide 1 of 7/ });
+    const slidesPane = slide.closest(".absolute.inset-0") as HTMLElement;
+    const boardPane = screen.getByTestId("whiteboard").closest(".absolute.inset-0") as HTMLElement;
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByRole("tab", { name: "Slides" }));
+      screen.getByText("Back to the slides…");
+      expect(slidesPane.className).not.toContain("opacity-0");
+      // the board fades out underneath: still painted, but no longer clickable
+      expect(boardPane.className).toContain("opacity-0");
+      expect(boardPane.className).toContain("pointer-events-none");
+      expect(boardPane.className).not.toContain("invisible");
+      act(() => void vi.advanceTimersByTime(1000));
+      expect(screen.queryByText("Back to the slides…")).toBeNull();
+      expect(boardPane.className).toContain("invisible");
+
+      act(() => stage!.showTab("board")); // the agent switches the same way
+      screen.getByText("Moving to the whiteboard…");
+      act(() => void vi.advanceTimersByTime(1000));
+      expect(slidesPane.className).toContain("invisible opacity-0 pointer-events-none");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("the agent switches tabs and drives the deck through the session's stage handle", async () => {
     session = fakeSession({ status: "live", lessonId: "L1" });
     render(<TutorPage />);

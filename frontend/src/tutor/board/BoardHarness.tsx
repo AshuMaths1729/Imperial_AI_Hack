@@ -31,6 +31,7 @@ export function BoardHarness() {
   const board = useRef<BoardHandle>(null);
   const [log, setLog] = useState<string[]>([]);
   const [crop, setCrop] = useState<string>();
+  const [circleId, setCircleId] = useState<string>();
   const say = (line: string) => setLog((l) => [line, ...l].slice(0, 30));
 
   const playDerivation = async () => {
@@ -60,6 +61,7 @@ export function BoardHarness() {
   const run = (op: object) => say(`${JSON.stringify(op)} → ${JSON.stringify(board.current?.applyOps(Array.isArray(op) ? op : [op]))}`);
   const onCircle = (e: CircleEvent) => {
     setCrop(`data:image/png;base64,${e.png_b64}`);
+    setCircleId(e.circle_id);
     say(`circle ${JSON.stringify({ ...e, png_b64: `${e.png_b64.length} chars` })}`);
   };
 
@@ -77,6 +79,7 @@ export function BoardHarness() {
           <button onClick={async () => { const b = await board.current?.snapshot(); if (b) setCrop(`data:image/png;base64,${b}`); }}>Snapshot</button>
           <button onClick={rpcSnapshot}>Snapshot (RPC)</button>
           <button onClick={() => board.current?.setCircleMode(true)}>Circle to ask</button>
+          <button disabled={!circleId} onClick={() => { board.current?.clearCircle(circleId!); setCircleId(undefined); }}>Clear circle</button>
         </div>
         {crop && <img src={crop} alt="Last snapshot or circled crop" style={{ maxWidth: "100%", border: "1px solid #e5e7eb" }} />}
         <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{log.join("\n")}</pre>

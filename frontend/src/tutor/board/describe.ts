@@ -25,7 +25,7 @@ export const union = (a: Box, b: Box): Box => {
 
 /**
  * Compact text view of the board for the tutor: one item per board id (parts merged),
- * user freehand reported as "ink", strings clipped to 120 chars. Highlight overlays are not items.
+ * user freehand reported as "ink" (a persistent Circle-to-Ask mark as "circle"), strings clipped to 120 chars. Highlight overlays are not items.
  * Unrevealed stepped shapes (opacity 0) are skipped unless `includeHidden` (layout still needs their space).
  */
 export function describeShapes(
@@ -45,8 +45,10 @@ export function describeShapes(
     let item = items.get(id);
     if (!item) {
       const tutor = s.meta.author === "tutor";
-      const type = tutor ? String(s.meta.kind ?? s.type) : s.type === "draw" || s.type === "highlight" ? "ink" : s.type;
+      const circle = typeof s.meta.circle_id === "string" ? s.meta.circle_id : undefined;
+      const type = tutor ? String(s.meta.kind ?? s.type) : circle ? "circle" : s.type === "draw" || s.type === "highlight" ? "ink" : s.type;
       item = { id, type, author: tutor ? "tutor" : "user", bbox };
+      if (circle) item.label = `student's circle (question ${circle})`;
       items.set(id, item);
     } else item.bbox = union(item.bbox, bbox);
 

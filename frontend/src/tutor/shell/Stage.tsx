@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode, type Ref, type RefObject } from "react";
+import { useEffect, useState, type ReactNode, type Ref, type RefObject } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { MonitorUp } from "lucide-react";
 import { BOARD_PLUGINS, Whiteboard } from "@/tutor/board";
@@ -24,15 +24,33 @@ type Props = {
   deck?: Deck | null;
   deckLoading?: boolean;
   slidesRef?: Ref<SlidesHandle | null>;
-  children?: ReactNode; // overlays (captions)
+  children?: ReactNode; // a strip under the stage (captions)
 };
 
 // Hidden panes stay mounted for the agent's RPCs. opacity-0 too: slide animations set visibility:visible on
 // their own dots and lines, which beats the parent's visibility:hidden and paints them over the whiteboard.
 const HIDDEN = "invisible opacity-0 pointer-events-none";
+// Tab changes cross-fade (~1 s) under a short label, so the stage never jumps; instant with reduced motion.
+const FADE_MS = 1000;
+const FADE = "transition-opacity duration-1000 ease-in-out motion-reduce:transition-none";
+const MOVING: Record<StageTab, string> = {
+  board: "Moving to the whiteboard…",
+  slides: "Back to the slides…",
+  screen: "Moving to your shared screen…",
+};
+const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
+  // `leaving` is the tab still fading out; derived during render so the old pane never blinks out before fading.
+  const [fade, setFade] = useState<{ tab: StageTab; leaving: StageTab | null }>({ tab, leaving: null });
+  if (fade.tab !== tab) setFade({ tab, leaving: reducedMotion() ? null : fade.tab });
+  useEffect(() => {
+    if (!fade.leaving) return;
+    const t = setTimeout(() => setFade((f) => ({ ...f, leaving: null })), FADE_MS);
+    return () => clearTimeout(t);
+  }, [fade]);
+  const pane = (id: StageTab) => (id === tab ? FADE : id === fade.leaving ? `${FADE} opacity-0 pointer-events-none` : HIDDEN);
   const tabs: [StageTab, string][] = [
     ["board", "Whiteboard"],
     ["slides", "Slides"],
@@ -58,14 +76,14 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
       </div>
       <div className="relative min-h-0 flex-1">
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
-        <div className={`absolute inset-0 bg-white ${tab === "board" ? "" : HIDDEN}`}>
+        <div className={`absolute inset-0 bg-white ${pane("board")}`}>
           <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
         </div>
         {/* Mounted for the whole lesson too: the agent drives the deck over RPC even before the tab is shown. */}
-        <div className={`absolute inset-0 ${tab === "slides" ? "" : HIDDEN}`}>
+        <div className={`absolute inset-0 ${pane("slides")}`}>
           <SlidesStage ref={slidesRef} deck={deck} loading={deckLoading} circleMode={circleMode && tab === "slides"} onCircle={onCircle} />
         </div>
-        <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : HIDDEN}`}>
+        <div className={`absolute inset-0 bg-slate-950 ${pane("screen")}`}>
           {screenTrack ? (
             <>
               <TrackVideo ref={setScreenVideo} track={screenTrack} fit="contain" label="Your shared screen" />
@@ -84,8 +102,15 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
             </div>
           )}
         </div>
-        {children}
+        {fade.leaving && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <span role="status" className="rounded-full bg-slate-950/80 px-4 py-2 text-sm font-medium text-slate-100 shadow-lg backdrop-blur">
+              {MOVING[tab]}
+            </span>
+          </div>
+        )}
       </div>
+      {children}
     </section>
   );
 }

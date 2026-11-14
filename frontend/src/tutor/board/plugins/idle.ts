@@ -43,8 +43,13 @@ export const makeIdlePlugin = ({ encodeJpeg = browserJpeg, maxBytes = MAX_BYTES 
       }
     };
 
+    const forget = (s: TLShape) => {
+      if (recent.delete(boardIdOf(s)) && !recent.size) clearTimeout(timer);
+    };
+
     const touch = (s: TLShape) => {
       if (s.meta.author !== "user") return;
+      if (s.meta.circle_id) return forget(s); // the Circle-to-Ask mark stays on the board but is a question, not work
       recent.add(boardIdOf(s));
       clearTimeout(timer);
       if (s.type === "draw" && !(s.props as { isComplete?: boolean }).isComplete) return; // pen still down
@@ -54,10 +59,8 @@ export const makeIdlePlugin = ({ encodeJpeg = browserJpeg, maxBytes = MAX_BYTES 
 
     const offCreate = editor.sideEffects.registerAfterCreateHandler("shape", touch);
     const offChange = editor.sideEffects.registerAfterChangeHandler("shape", (_prev, next) => touch(next));
-    // Erased ink — and the Circle-to-Ask lasso, deleted right after it is drawn — is not something to check.
-    const offDelete = editor.sideEffects.registerAfterDeleteHandler("shape", (s) => {
-      if (recent.delete(boardIdOf(s)) && !recent.size) clearTimeout(timer);
-    });
+    // Erased ink is not something to check.
+    const offDelete = editor.sideEffects.registerAfterDeleteHandler("shape", forget);
     return () => { offCreate(); offChange(); offDelete(); clearTimeout(timer); };
   };
 

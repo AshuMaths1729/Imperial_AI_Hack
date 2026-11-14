@@ -94,6 +94,20 @@ describe("idle plugin", () => {
     expect(t.emit).not.toHaveBeenCalled();
   });
 
+  it("ignores a persistent circle mark once it is tagged with its circle_id", async () => {
+    const t = setup([item("a", 100, 100), item("lasso", 400, 400)]);
+    const lasso = t.stroke("lasso");
+    t.h.change.forEach((f) => f(lasso, { ...lasso, meta: { author: "user", circle_id: "c1" } as Shape["meta"] }));
+    vi.advanceTimersByTime(IDLE_MS * 2);
+    await flush();
+    expect(t.emit).not.toHaveBeenCalled();
+    // real ink around it still fires, without the circle
+    t.stroke("a");
+    vi.advanceTimersByTime(IDLE_MS);
+    await flush();
+    expect((t.emit.mock.calls[0][1] as IdleEvent).item_ids).toEqual(["a"]);
+  });
+
   it("keeps the JSON payload under the size budget by shrinking the JPEG", async () => {
     const t = setup([item("a", 100, 100)]);
     t.stroke("a");

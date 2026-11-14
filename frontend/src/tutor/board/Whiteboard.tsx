@@ -128,7 +128,7 @@ function applyOne(editor: Editor, fx: BoardFx, op: BoardOp): string | undefined 
     case "point_at": {
       const b = items.get(op.target_id)!.bbox;
       fx.after(() => {
-        fx.point((b.x + b.w / 2) * S, (b.y + b.h / 2) * S, op.hold_ms ?? 2500);
+        fx.point((b.x + b.w / 2) * S, (b.y + b.h / 2) * S); // hold_ms is ignored: the laser stays parked (v3)
         if (!editor.getViewportPageBounds().contains(new PageBox(b.x * S, b.y * S, b.w * S, b.h * S))) fx.follow(scaled(b));
       });
       return;
@@ -260,7 +260,11 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
     describe: () => (editorRef.current ? describe(editorRef.current) : { items: [] }),
     snapshot: (region) => (editorRef.current ? snapshot(editorRef.current, region) : Promise.reject(new Error("whiteboard not ready"))),
     setCircleMode,
-    clearCircle: () => {}, // v3 WS-4: the board circle mark persists until cleared
+    clearCircle: (circleId) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      editor.run(() => editor.deleteShapes(editor.getCurrentPageShapes().filter((s) => s.meta.circle_id === circleId)), { history: "ignore" });
+    },
   }), []);
 
   const onMount = (editor: Editor) => {
@@ -279,19 +283,22 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
     const offAuthor = editor.sideEffects.registerBeforeCreateHandler("shape", (shape) =>
       shape.meta.author ? shape : { ...shape, meta: { ...shape.meta, author: "user" } });
 
-    // Circle-to-Ask: the first finished stroke in circle mode is a lasso, not ink.
+    // Circle-to-Ask: the first finished stroke in circle mode is a lasso, not ink. It stays on the board (with a "?")
+    // until the tutor clears it by its circle_id, but it never counts as the student's work.
     const offLasso = editor.sideEffects.registerAfterChangeHandler("shape", (prev, next) => {
       if (!circling.current || next.type !== "draw" || prev.type !== "draw" || prev.props.isComplete || !next.props.isComplete) return;
       if (next.meta.author !== "user") return; // the tutor's animated annotate strokes also finish drawing; they are not a lasso
       const b = editor.getShapePageBounds(next);
       setCircleMode(false);
+      const circle_id = `circle_${generateId()}`;
       setTimeout(async () => {
-        editor.deleteShapes([next.id]);
+        if (!editor.getShape(next.id)) return;
+        editor.run(() => editor.updateShape({ id: next.id, type: "draw", meta: { ...next.meta, circle_id } }), { history: "ignore" });
         if (!b) return;
         const region = lassoRegion({ x: b.x / S, y: b.y / S, w: b.w / S, h: b.h / S });
         try {
           const png_b64 = await snapshot(editor, region);
-          onCircleRef.current?.({ png_b64, region, item_ids: itemsInRegion(describe(editor).items, region), source: "board" });
+          onCircleRef.current?.({ png_b64, region, item_ids: itemsInRegion(describe(editor).items, region), source: "board", circle_id });
         } catch (e) {
           console.error("circle capture failed", e);
         }
