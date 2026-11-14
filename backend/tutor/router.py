@@ -1,0 +1,186 @@
+import functools
+import os
+import threading
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import List, Literal, Optional
+
+from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from schemas import WorkspaceDataset
+
+from .models import KP, Lesson, Material, Struggle, Track, Worked
+from .livekit_token import mint_token
+from .store import Store, make_store
+
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+tutor_router = APIRouter(prefix="/api/tutor")
+
+_store: Optional[Store] = None
+# Sync endpoints run in a threadpool; read-modify-write endpoints hold this for their whole body.
+# shortcut: one global lock, fine for one process; use per-document locks or Mongo atomic updates to scale.
+_write_lock = threading.Lock()
+
+
+def _locked(fn):
+    @functools.wraps(fn)
+    def wrapper(*a, **k):
+        with _write_lock:
+            return fn(*a, **k)
+    return wrapper
+
+
+def get_store() -> Store:
+    global _store
+    if _store is None:
+        _store = make_store()
+    return _store
+
+
+def _lookup(fn, key):
+    try:
+        return fn(key)
+    except KeyError as e:
+        raise HTTPException(404, e.args[0])
+
+
+class NewTrack(BaseModel):
+    title: str
+    user_id: str = "demo"
+
+
+class SessionIn(BaseModel):
+    track_id: str
+    tutor_id: str
+    user_id: str = "demo"
+
+
+class MaterialIn(BaseModel):
+    kind: Literal["pdf", "url", "demo"]
+    ref: str
+    dataset: WorkspaceDataset
+
+
+class KPUpdate(BaseModel):
+    kp_id: str
+    status: Literal["not_started", "introduced", "understood"]
+    evidence: str = ""
+
+
+class ProgressIn(BaseModel):
+    kp_updates: List[KPUpdate] = []
+    struggles: List[Struggle] = []
+    worked: List[Worked] = []
+
+
+class EndIn(BaseModel):
+    summary: str
+    covered_kp_ids: List[str] = []
+    board_snapshot_ref: Optional[str] = None
+
+
+@tutor_router.get("/tutors")
+def list_tutors(store: Store = Depends(get_store)):
+    return store.list_tutors()
+
+
+@tutor_router.get("/tracks")
+def list_tracks(user_id: str = "demo", store: Store = Depends(get_store)):
+    return store.list_tracks(user_id)
+
+
+@tutor_router.post("/tracks")
+def create_track(body: NewTrack, store: Store = Depends(get_store)):
+    now = datetime.now(timezone.utc)
+    track = Track(track_id=f"t{int(now.timestamp() * 1000)}", user_id=body.user_id,
+                  title=body.title, created_at=now.isoformat())
+    store.save_track(track)
+    return track
+
+
+@tutor_router.get("/tracks/{track_id}")
+def get_track(track_id: str, store: Store = Depends(get_store)):
+    track = _lookup(store.get_track, track_id)
+    return {"track": track, "lessons": store.recent_lessons(track_id, 3)}
+
+
+@tutor_router.post("/tracks/{track_id}/materials")
+@_locked
+def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_store)):
+    track = _lookup(store.get_track, track_id)
+    prefix = f"m{len(track.materials)}"
+    prereqs: dict = {}
+    for e in body.dataset.edges:
+        if e.type == "prerequisite":
+            prereqs.setdefault(e.target, []).append(f"{prefix}:{e.source}")
+    track.materials.append(Material(kind=body.kind, ref=body.ref, dataset_title=body.dataset.title))
+    track.knowledge_points += [
+        KP(kp_id=f"{prefix}:{n.id}", title=n.label, summary=n.summary, prereq_ids=prereqs.get(n.id, []))
+        for n in body.dataset.nodes
+    ]
+    store.save_track(track)
+    return track
+
+
+@tutor_router.get("/context/{lesson_id}")
+def get_context(lesson_id: str, store: Store = Depends(get_store)):
+    lesson = _lookup(store.get_lesson, lesson_id)
+    track = _lookup(store.get_track, lesson.track_id)
+    return {
+        "tutor": _lookup(store.get_tutor, lesson.tutor_id),
+        "profile": _lookup(store.get_profile, track.user_id),
+        "track": track,
+        "recent_lessons": store.recent_lessons(track.track_id, 3),
+    }
+
+
+@tutor_router.post("/lessons/{lesson_id}/progress")
+@_locked
+def post_progress(lesson_id: str, body: ProgressIn, store: Store = Depends(get_store)) -> Lesson:
+    lesson = _lookup(store.get_lesson, lesson_id)
+    track = _lookup(store.get_track, lesson.track_id)
+    kps = {k.kp_id: k for k in track.knowledge_points}
+    for u in body.kp_updates:  # validate everything before writing anything
+        if u.kp_id not in kps:
+            raise HTTPException(404, f"unknown kp_id: {u.kp_id}")
+    for u in body.kp_updates:
+        kps[u.kp_id].status, kps[u.kp_id].evidence = u.status, u.evidence
+    lesson.struggles += body.struggles
+    lesson.worked += body.worked
+    store.save_track(track)
+    store.save_lesson(lesson)
+    return lesson
+
+
+@tutor_router.post("/lessons/{lesson_id}/end")
+@_locked
+def end_lesson(lesson_id: str, body: EndIn, store: Store = Depends(get_store)) -> Lesson:
+    lesson = _lookup(store.get_lesson, lesson_id)
+    if lesson.ended_at:
+        return lesson
+    lesson.ended_at = datetime.now(timezone.utc).isoformat()
+    lesson.summary = body.summary
+    lesson.covered_kp_ids = body.covered_kp_ids
+    lesson.board_snapshot_ref = body.board_snapshot_ref
+    store.save_lesson(lesson)
+    return lesson
+
+
+@tutor_router.post("/session")
+def start_session(body: SessionIn, store: Store = Depends(get_store)):
+    url = os.environ.get("LIVEKIT_URL")
+    if not (url and os.environ.get("LIVEKIT_API_KEY") and os.environ.get("LIVEKIT_API_SECRET")):
+        raise HTTPException(503, "LiveKit is not configured")
+    _lookup(store.get_track, body.track_id)
+    _lookup(store.get_tutor, body.tutor_id)
+    lesson = store.create_lesson(body.track_id, body.tutor_id)
+    room = f"tutor-{lesson.lesson_id}"
+    token = mint_token(
+        room=room, identity=f"student-{body.user_id}",
+        agent_name=os.environ.get("TUTOR_AGENT_NAME") or "synthesia-avatar-agent",
+        metadata={"track_id": body.track_id, "lesson_id": lesson.lesson_id, "tutor_id": body.tutor_id},
+    )
+    return {"url": url, "token": token, "room": room, "lesson_id": lesson.lesson_id}
