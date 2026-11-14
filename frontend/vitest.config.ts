@@ -7,5 +7,6 @@ export default defineConfig({
     environment: "jsdom",
     include: ["src/tutor/**/*.test.ts", "src/tutor/**/*.test.tsx"],
     passWithNoTests: true,
+    setupFiles: ["src/tutor/test-setup.ts"],
   },
 });

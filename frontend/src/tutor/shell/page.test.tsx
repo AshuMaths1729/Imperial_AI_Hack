@@ -24,6 +24,17 @@ vi.mock("./api", () => ({
   ingestUrl: vi.fn(async () => ({ mode: "lecture", title: "Paper", subtitle: "", nodes: [{}, {}, {}], edges: [] })),
 }));
 
+// The real tldraw board can't render in jsdom; these tests cover the call layout, not the board.
+vi.mock("@/tutor/board", async (importOriginal) => {
+  const { forwardRef, createElement } = await import("react");
+  return {
+    ...(await importOriginal<typeof import("@/tutor/board")>()),
+    Whiteboard: forwardRef(function Whiteboard() {
+      return createElement("div", { "data-testid": "whiteboard" });
+    }),
+  };
+});
+
 let session: TutorSession;
 vi.mock("./useTutorSession", () => ({ useTutorSession: () => session }));
 
