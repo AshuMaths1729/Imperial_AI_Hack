@@ -379,6 +379,21 @@ def test_edit_retries_with_errors_then_falls_back_to_words():
     assert "failed" in ctx.notes[0] and "in words" in ctx.notes[0] and ctx.replies == []
 
 
+def test_edit_plays_the_step_numbers_the_page_inserted():
+    # the page inserts new steps right after the current one (step 2 of 5 -> new steps 3-4), not at the end
+    io = FakeIO({"slides.describe": {**DESCRIBE, "slide": DECK["slides"][2]},
+                 "slides.edit": {"ok": True, "errors": [], "index": 3, "step": 2, "steps_added": 2, "new_steps": [3, 4]}})
+    t = SlideTools(io, "L1", client=FakeAnthropic(PATCH))
+    ctx = FakeCtx()
+
+    async def run():
+        await t.slide_edit("why", ["tan"], ctx)
+        await drain(t)
+
+    asyncio.run(run())
+    assert "new steps 3-4" in ctx.notes[0] and "slide_step(3)" in ctx.notes[0] and "step 3: this is the tangent" in ctx.notes[0]
+
+
 def test_edit_without_slide_json_uses_the_outline_ids_and_step_count():
     io = FakeIO({"slides.describe": DESCRIBE, "slides.edit": {"ok": True, "errors": []}})
     patch = {**PATCH, "objects": [{**PATCH["objects"][0], "id": "p"}]}  # p is on the slide (outline)

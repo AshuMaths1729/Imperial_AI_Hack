@@ -328,9 +328,12 @@ class SlideTools:
             done = await self._generate("slide edit", EDIT_SYSTEM, EDIT_TOOL, prompt,
                                         lambda p: edit_problems(p, slide, existing), "slides.edit", lambda p: p)
             if done:
-                steps = done[0]["steps"]
-                first, last = before + 1, before + len(steps)
-                hints = "; ".join(f"step {i}: {s.get('narration', '')}" for i, s in enumerate(steps, first))
+                patch, reply = done
+                steps = patch["steps"]
+                # the page inserts them right after the current step and says where; appended is the fallback
+                nums = reply.get("new_steps") or list(range(before + 1, before + len(steps) + 1))
+                first, last = nums[0], nums[-1]
+                hints = "; ".join(f"step {n}: {s.get('narration', '')}" for n, s in zip(nums, steps))
                 note = (f"Your explanation is on the open slide now as new steps {first}-{last} ({hints}). Walk the "
                         f"student through them: 2-3 short sentences each, slide_step({first}) up to slide_step({last}), "
                         "then ask if that helped.")
