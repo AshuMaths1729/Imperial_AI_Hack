@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PenTool, Layers, Activity, GitCompare, Sparkles, GraduationCap } from "lucide-react";
+import type { AskSpatialRequest, AskSpatialResponse } from "../api/types";
 import {
   GraphNodeData,
-  SpatialAskResponse,
   UIAnnotation,
   WorkspaceDataset,
   WorkspaceMode,
@@ -18,6 +18,33 @@ import { UploadModal } from "../components/UploadModal";
 import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
+const MODE_TO_VIEW: Record<WorkspaceMode, AskSpatialRequest["active_context"]["view"]> = {
+  lecture: "lecture",
+  paper2sim: "sim",
+  hypothesis: "hypothesis",
+};
+
+/** Map v2 segment annotations onto the Phase-1 overlay's shape (it draws only these three types). */
+function toLegacyAnnotations(data: AskSpatialResponse): UIAnnotation[] {
+  const out: UIAnnotation[] = [];
+  for (const seg of data.segments) {
+    for (const a of seg.ui_annotations) {
+      if (a.type === "pulse_node" || a.type === "highlight_edge") {
+        out.push({ type: a.type, target_id: a.id, label: a.label ?? "" });
+      } else if (a.type === "callout_box") {
+        out.push({
+          type: "callout_box",
+          target_id: a.target_id ?? undefined,
+          x: a.x ?? undefined,
+          y: a.y ?? undefined,
+          label: a.label,
+        });
+      }
+    }
+  }
+  return out;
+}
 
 export default function ScholarTwinWorkspace() {
   const [mode, setMode] = useState<WorkspaceMode>("lecture");
@@ -33,6 +60,7 @@ export default function ScholarTwinWorkspace() {
   );
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -64,7 +92,17 @@ export default function ScholarTwinWorkspace() {
         }
         setStatusMsg(null);
       } catch {
-        if (!cancelled) setStatusMsg("Backend offline — start FastAPI on :8000 to load live datasets.");
+        // The Phase-1 demo datasets were removed in Phase 2, so this load fails even when the
+        // backend is up. Only claim "offline" if the health check fails too.
+        const online = await fetch(`${API_BASE}/api/health`)
+          .then((r) => r.ok)
+          .catch(() => false);
+        if (cancelled) return;
+        setStatusMsg(
+          online
+            ? "Backend connected. No dataset loaded yet; you can still ask the tutor a question."
+            : "Backend offline — start FastAPI on :8000 to load live datasets."
+        );
       }
     })();
     return () => {
@@ -72,17 +110,53 @@ export default function ScholarTwinWorkspace() {
     };
   }, [mode]);
 
-  const speakText = (text: string) => {
-    if (!ttsEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const speakWithBrowser = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setAvatarState("idle");
+      return;
+    }
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = 1.05;
     utter.onstart = () => setIsSpeaking(true);
-    utter.onend = () => {
+    utter.onend = utter.onerror = () => {
       setIsSpeaking(false);
       setAvatarState("idle");
     };
     window.speechSynthesis.speak(utter);
+  };
+
+  const stopSpeaking = () => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  // ElevenLabs voice via the backend's /api/tts; the browser's own voice is only a fallback.
+  const speakText = async (text: string) => {
+    if (!ttsEnabled) return;
+    stopSpeaking();
+    try {
+      const res = await fetch(`${API_BASE}/api/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text.slice(0, 1000) }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { url } = (await res.json()) as { url: string };
+      const audio = new Audio(/^https?:/.test(url) ? url : `${API_BASE}${url}`);
+      audioRef.current = audio;
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setAvatarState("idle");
+      };
+      await audio.play();
+    } catch (err) {
+      console.warn("ElevenLabs TTS failed; using the browser voice", err);
+      speakWithBrowser(text);
+    }
   };
 
   const handleParamChange = async (key: string, val: number) => {
@@ -110,31 +184,46 @@ export default function ScholarTwinWorkspace() {
     const activeBox = bboxOverride ?? lastBbox;
     const hitNodeIds = selectedNode ? [selectedNode.id] : [];
 
+    const req: AskSpatialRequest = {
+      transcript,
+      hit_metadata: {
+        node_ids: hitNodeIds,
+        edge_ids: [],
+        bbox: activeBox ? [activeBox.x, activeBox.y, activeBox.w, activeBox.h] : null,
+      },
+      active_context: {
+        view: MODE_TO_VIEW[mode],
+        params: mode === "paper2sim" && Object.keys(paramValues).length ? paramValues : null,
+      },
+    };
+
+    setLastReply("Thinking...");
+    let res: Response;
     try {
-      const res = await fetch(`${API_BASE}/api/ask-spatial`, {
+      res = await fetch(`${API_BASE}/api/ask-spatial/v2`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode,
-          transcript,
-          bbox: activeBox,
-          hit_node_ids: hitNodeIds,
-          sim_params: paramValues,
-        }),
+        body: JSON.stringify(req),
       });
-      if (!res.ok) throw new Error("Ask failed");
-      const data: SpatialAskResponse = await res.json();
-      setLastReply(data.spoken_answer);
-      setAvatarState(data.avatar_state);
-      setAnnotations(data.annotations);
-      if (data.suggested_quiz_node_id && dataset) {
-        const target = dataset.nodes.find((n) => n.id === data.suggested_quiz_node_id);
-        if (target) setSelectedNode(target);
-      }
-      speakText(data.spoken_answer);
     } catch {
-      setLastReply("Could not reach /api/ask-spatial. Make sure FastAPI is running on port 8000.");
+      setLastReply("Could not reach the backend. Make sure FastAPI is running on port 8000.");
+      return;
     }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const detail = body?.error?.message ?? body?.detail ?? res.statusText;
+      setLastReply(`The tutor couldn't answer (HTTP ${res.status}): ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
+      return;
+    }
+    const data: AskSpatialResponse = await res.json();
+    setLastReply(data.spoken_answer);
+    setAvatarState(data.avatar_state ?? "explaining");
+    setAnnotations(toLegacyAnnotations(data));
+    if (data.follow_up?.node_id && dataset) {
+      const target = dataset.nodes.find((n) => n.id === data.follow_up?.node_id);
+      if (target) setSelectedNode(target);
+    }
+    speakText(data.spoken_answer);
   };
 
   const handleLassoCapture = (bbox: BoundingBox) => {
@@ -270,7 +359,10 @@ export default function ScholarTwinWorkspace() {
           lastReply={lastReply}
           isSpeaking={isSpeaking}
           ttsEnabled={ttsEnabled}
-          onToggleTts={() => setTtsEnabled((v) => !v)}
+          onToggleTts={() => {
+            if (ttsEnabled) stopSpeaking();
+            setTtsEnabled((v) => !v);
+          }}
           onAsk={(text) => handleAsk(text)}
           avatar={<LiveAvatarTile />}
           onUploadClick={() => {
