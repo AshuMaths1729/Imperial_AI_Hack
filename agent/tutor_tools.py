@@ -32,11 +32,13 @@ class Box(TypedDict):
     h: int
 
 
-def as_tool_output(result: str | tuple[str, str], media_type: str) -> str:
-    """Tool outputs are strings; a JSON list is passed through as Anthropic tool_result content blocks."""
+def as_tool_output(result: str | tuple[str, str] | tuple[str, str, str], media_type: str) -> str:
+    """Tool outputs are strings; a JSON list is passed through as Anthropic tool_result content blocks.
+    A third tuple element overrides media_type (the board snapshot says its own mime)."""
     if isinstance(result, str):
         return result
-    text, b64 = result
+    text, b64, *mime = result
+    media_type = mime[0] if mime else media_type
     return json.dumps([
         {"type": "text", "text": text},
         {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
@@ -89,13 +91,17 @@ class TutorTools:
         ]
         return "\n".join(lines) or "(board is empty)"
 
-    async def look_at_board(self, region: dict | None = None) -> str | tuple[str, str]:
+    async def look_at_board(self, region: dict | None = None) -> str | tuple[str, str, str]:
         try:
             text = await self.board_text()
             if region is None:
                 return text
+            # reply {png_b64, mime?} (mime absent = png; the page may send JPEG to fit the 15 KB RPC limit)
             snap = await self.io.rpc("board.snapshot", {"region": region})
-            return text, snap["png_b64"]
+            if snap.get("ok") is False or not snap.get("png_b64"):
+                why = "; ".join(str(e) for e in snap.get("errors") or []) or "no image returned"
+                return f"{text}\n(couldn't capture the board: {why})"
+            return text, snap["png_b64"], snap.get("mime") or "image/png"
         except Exception as e:
             return f"failed: could not read the board ({e})"
 
