@@ -149,7 +149,7 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
                   </span>
                   <span>
                     <span className="block text-sm font-semibold text-slate-100">{t.name}</span>
-                    <span className="block text-xs capitalize text-sky-300">{style.trim()}</span>
+                    <span className="block text-xs text-sky-300 first-letter:uppercase">{style.trim()}</span>
                     {rest.length > 0 && <span className="mt-1 block text-xs leading-relaxed text-slate-400">{rest.join(":").trim()}</span>}
                   </span>
                 </button>

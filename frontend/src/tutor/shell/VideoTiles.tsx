@@ -32,6 +32,7 @@ export const TrackVideo = forwardRef<
 export const initials = (name: string) =>
   name
     .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
     .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0]!.toUpperCase())
@@ -49,7 +50,7 @@ type Props = {
 
 export function VideoTiles({ tutorName, connecting, avatarVideo, tutorSpeaking, selfVideo, cam, mic }: Props) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="relative">
       <figure
         className={`relative aspect-video overflow-hidden rounded-xl bg-slate-900 ring-2 transition-[box-shadow] duration-200 ${
           tutorSpeaking ? "ring-sky-400 shadow-[0_0_0_4px_rgba(56,189,248,0.15)]" : "ring-slate-800"
@@ -81,12 +82,12 @@ export function VideoTiles({ tutorName, connecting, avatarVideo, tutorSpeaking, 
           {tutorSpeaking && <span className="ml-1.5 text-sky-300">· speaking</span>}
         </figcaption>
       </figure>
-
-      <figure className="relative ml-auto aspect-video w-1/2 overflow-hidden rounded-lg bg-slate-900 ring-1 ring-slate-800">
+      {/* self-view, shown only to you */}
+      <figure className="absolute bottom-2 right-2 aspect-video w-[30%] min-w-24 overflow-hidden rounded-lg bg-slate-800 shadow-lg ring-1 ring-slate-950/60">
         {cam && selfVideo ? (
           <TrackVideo track={selfVideo} mirror label="Your camera (only you see this)" />
         ) : (
-          <div className="grid h-full w-full place-items-center text-xs text-slate-500">Camera off</div>
+          <div className="grid h-full w-full place-items-center text-[10px] text-slate-400">Camera off</div>
         )}
         <figcaption className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded bg-slate-950/70 px-1.5 py-0.5 text-[10px] text-slate-200">
           {!mic && <MicOff className="h-3 w-3 text-rose-400" aria-label="muted" />}

@@ -65,7 +65,7 @@ export default function TutorPage() {
         trackId={trackId}
         trackTitle={track?.title ?? ""}
         onLeave={() => {
-          setEnded({ lessonId: session.lessonId });
+          if (session.lessonId) setEnded({ lessonId: session.lessonId }); // no lesson yet → straight back to the lobby
           session.end();
         }}
       />
