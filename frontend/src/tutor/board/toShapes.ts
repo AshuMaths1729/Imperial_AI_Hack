@@ -95,7 +95,8 @@ export function opToShapePartials(op: BoardOp, box: Box, scale: number, shapes: 
     if (op.step) m.step = op.step;
     return m as JsonObject;
   };
-  const base = { id: tutorShapeId(boardId), x, y, opacity: op.step ? 0 : 1 };
+  // hidden until reveal_step, which finds shapes by group: a stepped op without one could never be revealed
+  const base = { id: tutorShapeId(boardId), x, y, opacity: op.step && op.group ? 0 : 1 };
 
   switch (op.op) {
     case "write_text":
