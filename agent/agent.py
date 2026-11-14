@@ -85,6 +85,7 @@ class RoomTutorIO:
             task = asyncio.create_task(self._keep_latest(track))
             self._tasks.add(task)
             task.add_done_callback(self._tasks.discard)
+            task.add_done_callback(log_task_exception)
 
     async def _keep_latest(self, track: rtc.Track) -> None:
         stream = rtc.VideoStream(track)
@@ -107,6 +108,28 @@ async def start_avatar(session: AgentSession, room: rtc.Room, make_avatar) -> bo
         session.output.audio = None
         logger.warning("avatar unavailable (%s); continuing voice only", e)
         return False
+
+
+def log_task_exception(task: asyncio.Task) -> None:
+    """Done-callback for background tasks: a crash would otherwise vanish silently."""
+    if not task.cancelled() and (exc := task.exception()) is not None:
+        logger.error("background task failed: %r", exc, exc_info=exc)
+
+
+def log_session(session: AgentSession) -> None:
+    """Log every tool call with its result and every session (LLM/STT/TTS) error."""
+
+    @session.on("function_tools_executed")
+    def _on_tools(ev) -> None:
+        for call, out in ev.zipped():
+            status = "error" if out is None or out.is_error else "ok"
+            logger.info("tool %s %s: %s", call.name, status, ((out.output if out else "") or "")[:200])
+
+    @session.on("error")
+    def _on_error(ev) -> None:
+        exc = getattr(ev.error, "error", None)
+        logger.error("session error from %s: %r", type(ev.source).__name__, ev.error,
+                     exc_info=exc if isinstance(exc, BaseException) else None)
 
 
 def track_turns(session: AgentSession, rolling: RollingSummary, after_tutor_turn) -> None:
@@ -154,6 +177,7 @@ async def entrypoint(ctx: JobContext) -> None:
         task = asyncio.create_task(coro)
         tasks.add(task)
         task.add_done_callback(tasks.discard)
+        task.add_done_callback(log_task_exception)
 
     async def on_shutdown() -> None:
         # runs when the room closes (student left -> session closes -> room deleted), so /end is always posted
@@ -176,6 +200,7 @@ async def entrypoint(ctx: JobContext) -> None:
     agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools())
 
     track_turns(session, rolling, lambda: spawn(fold()))
+    log_session(session)
 
     async def fold() -> None:
         if not await rolling.maybe_fold():
