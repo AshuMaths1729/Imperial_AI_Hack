@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { PenTool, Layers, Activity, GitCompare, Sparkles } from "lucide-react";
+import { PenTool, Layers, Activity, GitCompare, Sparkles, GraduationCap } from "lucide-react";
 import {
   GraphNodeData,
   SpatialAskResponse,
@@ -15,6 +15,7 @@ import { PaperSimCanvas } from "../components/PaperSimCanvas";
 import { InspectorPane } from "../components/InspectorPane";
 import { BoundingBox, LassoOverlay } from "../components/LassoOverlay";
 import { UploadModal } from "../components/UploadModal";
+import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -248,6 +249,13 @@ export default function ScholarTwinWorkspace() {
             <PenTool className="h-3.5 w-3.5" />
             {lassoActive ? "Draw Circle on Canvas..." : "Circle-to-Ask"}
           </button>
+          <a
+            href="/tutor"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
+          >
+            <GraduationCap className="h-3.5 w-3.5" />
+            Live Tutor
+          </a>
           <span className="hidden rounded-md border border-emerald-800/70 bg-emerald-950/50 px-2.5 py-1 text-[11px] font-medium text-emerald-300 md:inline-block">
             Demo Preset Ready
           </span>
@@ -264,6 +272,7 @@ export default function ScholarTwinWorkspace() {
           ttsEnabled={ttsEnabled}
           onToggleTts={() => setTtsEnabled((v) => !v)}
           onAsk={(text) => handleAsk(text)}
+          avatar={<LiveAvatarTile />}
           onUploadClick={() => {
             setUploadError(null);
             setUploadOpen(true);

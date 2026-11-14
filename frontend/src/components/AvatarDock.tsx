@@ -11,6 +11,8 @@ interface AvatarDockProps {
   onToggleTts: () => void;
   onAsk: (text: string) => void;
   onUploadClick: () => void;
+  /** Replaces the built-in face (e.g. the live tutor tile). */
+  avatar?: React.ReactNode;
 }
 
 export function AvatarDock({
@@ -21,6 +23,7 @@ export function AvatarDock({
   onToggleTts,
   onAsk,
   onUploadClick,
+  avatar,
 }: AvatarDockProps) {
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
@@ -94,6 +97,7 @@ export function AvatarDock({
 
         {/* Clean Interactive Digital Avatar */}
         <div className="flex flex-col items-center rounded-xl border border-slate-800 bg-slate-950/80 p-5">
+          {avatar ?? (
           <div
             className={`relative flex h-24 w-24 items-center justify-center rounded-full border-2 shadow-lg transition-all duration-300 ${ringColor} ${
               isSpeaking ? "scale-105" : ""
@@ -125,6 +129,7 @@ export function AvatarDock({
               {listening ? "Listening" : isSpeaking ? "Speaking" : avatarState}
             </span>
           </div>
+          )}
 
           <div className="mt-4 w-full rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-200">
             {lastReply}
