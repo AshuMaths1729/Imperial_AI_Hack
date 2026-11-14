@@ -20,3 +20,7 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# extra env rules
+.env.*
+!.env.example

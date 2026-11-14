@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { PenTool, Layers, Activity, GitCompare, Sparkles } from "lucide-react";
 import {
   GraphNodeData,
@@ -37,30 +37,39 @@ export default function ScholarTwinWorkspace() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const loadMode = useCallback(async (targetMode: WorkspaceMode) => {
+  const switchMode = (next: WorkspaceMode) => {
+    if (next === mode) return;
     setAnnotations([]);
     setLastBbox(null);
     setLassoActive(false);
-    try {
-      const res = await fetch(`${API_BASE}/api/demo/${targetMode}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data: WorkspaceDataset = await res.json();
-      setDataset(data);
-      setSelectedNode(data.nodes[0] ?? null);
-      if (data.simulation) {
-        const defaults: Record<string, number> = {};
-        data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
-        setParamValues(defaults);
-      }
-      setStatusMsg(null);
-    } catch {
-      setStatusMsg("Backend offline — start FastAPI on :8000 to load live datasets.");
-    }
-  }, []);
+    setMode(next);
+  };
 
   useEffect(() => {
-    loadMode(mode);
-  }, [mode, loadMode]);
+    // Ignore a stale response if the mode changed (or the component unmounted) mid-request.
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/demo/${mode}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: WorkspaceDataset = await res.json();
+        if (cancelled) return;
+        setDataset(data);
+        setSelectedNode(data.nodes[0] ?? null);
+        if (data.simulation) {
+          const defaults: Record<string, number> = {};
+          data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
+          setParamValues(defaults);
+        }
+        setStatusMsg(null);
+      } catch {
+        if (!cancelled) setStatusMsg("Backend offline — start FastAPI on :8000 to load live datasets.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const speakText = (text: string) => {
     if (!ttsEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -198,7 +207,7 @@ export default function ScholarTwinWorkspace() {
         {/* Mode Switcher */}
         <nav className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
           <button
-            onClick={() => setMode("lecture")}
+            onClick={() => switchMode("lecture")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
               mode === "lecture" ? "bg-sky-500 text-slate-950" : "text-slate-300 hover:bg-slate-800"
             }`}
@@ -207,7 +216,7 @@ export default function ScholarTwinWorkspace() {
             LectureGraph
           </button>
           <button
-            onClick={() => setMode("paper2sim")}
+            onClick={() => switchMode("paper2sim")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
               mode === "paper2sim" ? "bg-sky-500 text-slate-950" : "text-slate-300 hover:bg-slate-800"
             }`}
@@ -216,7 +225,7 @@ export default function ScholarTwinWorkspace() {
             Paper2Sim
           </button>
           <button
-            onClick={() => setMode("hypothesis")}
+            onClick={() => switchMode("hypothesis")}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
               mode === "hypothesis" ? "bg-sky-500 text-slate-950" : "text-slate-300 hover:bg-slate-800"
             }`}

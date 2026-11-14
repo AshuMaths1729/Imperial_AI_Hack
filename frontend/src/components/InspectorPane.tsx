@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BookOpen, CheckCircle2, AlertTriangle, Code2, Sparkles } from "lucide-react";
 import { GraphEdgeData, GraphNodeData, SimulationPayload, WorkspaceMode } from "../types/scholartwin";
 
@@ -12,11 +12,10 @@ interface InspectorPaneProps {
 }
 
 export function InspectorPane({ mode, selectedNode, edges, simulation }: InspectorPaneProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-
-  useEffect(() => {
-    setSelectedOption(null);
-  }, [selectedNode?.id]);
+  // Track which node the pick belongs to so it resets when the node changes (no effect needed).
+  const [pick, setPick] = useState<{ nodeId: string | undefined; option: number } | null>(null);
+  const selectedOption = pick && pick.nodeId === selectedNode?.id ? pick.option : null;
+  const setSelectedOption = (option: number) => setPick({ nodeId: selectedNode?.id, option });
 
   const relatedEdges = selectedNode
     ? edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id)
