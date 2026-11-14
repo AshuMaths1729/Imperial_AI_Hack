@@ -4,7 +4,7 @@ import { forwardRef, useImperativeHandle, useRef } from "react";
 import { Box as PageBox, DefaultColorStyle, Tldraw, type Editor, type TLDefaultColorStyle, type TLShape } from "tldraw";
 import "tldraw/tldraw.css";
 import "katex/dist/katex.min.css";
-import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, Box, CircleEvent } from "../contracts/types";
+import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, BoardPlugin, Box, CircleEvent } from "../contracts/types";
 import { downscaleDims, itemsInRegion, lassoRegion } from "./circle";
 import { fitBoardCamera } from "./camera";
 import { boardIdOf, describeShapes } from "./describe";
@@ -74,6 +74,10 @@ function applyOne(editor: Editor, op: BoardOp): string | undefined {
       editor.sendToBack(parts.map((p) => p.id));
       return;
     }
+    case "point_at":
+    case "annotate":
+    case "focus":
+      throw new Error(`${op.op} is not implemented yet`); // WS-A
   }
 
   // Reject an unplottable expression before touching the board.
@@ -130,14 +134,22 @@ function applyOps(editor: Editor, ops: unknown[]): ApplyResult {
   return { ok: errors.length === 0, ids, errors };
 }
 
-type Props = { onCircle?: (e: CircleEvent) => void; className?: string };
+type Props = {
+  onCircle?: (e: CircleEvent) => void;
+  className?: string;
+  /** Extensions mounted with the editor (read once, at mount). */
+  plugins?: BoardPlugin[];
+  emit?: (topic: string, payload: unknown) => void;
+};
 
 /** Shared tldraw board: the tutor writes via `applyOps`; the student draws freely and can circle a region to ask about it. */
-export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ onCircle, className }, ref) {
+export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ onCircle, className, plugins = [], emit }, ref) {
   const editorRef = useRef<Editor | null>(null);
   const circling = useRef<{ prevColor: TLDefaultColorStyle } | null>(null);
   const onCircleRef = useRef(onCircle);
   onCircleRef.current = onCircle;
+  const emitRef = useRef(emit);
+  emitRef.current = emit;
 
   const setCircleMode = (on: boolean) => {
     const editor = editorRef.current;
@@ -191,7 +203,13 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
         }
       });
     });
-    return () => { offAuthor(); offLasso(); ro.disconnect(); editorRef.current = null; };
+    const offPlugins = plugins.map((plugin) => plugin({
+      editor,
+      emit: (topic, payload) => emitRef.current?.(topic, payload),
+      snapshot: (region) => snapshot(editor, region),
+      describe: () => describe(editor),
+    }));
+    return () => { offAuthor(); offLasso(); offPlugins.forEach((off) => off?.()); ro.disconnect(); editorRef.current = null; };
   };
 
   return (

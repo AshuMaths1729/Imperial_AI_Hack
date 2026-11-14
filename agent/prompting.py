@@ -1,5 +1,8 @@
 """System prompt and greeting for the live tutor, built from GET /api/tutor/context/{lesson_id}."""
 
+import slides
+import watch
+
 RULES = """Rules:
 - Everything you say is spoken aloud: 1-3 short sentences per turn, no markdown, lists or symbols.
 - Put detail (equations, diagrams, steps, plots) on the board with board_write instead of saying it.
@@ -10,7 +13,8 @@ RULES = """Rules:
 - When re-explaining after confusion, pick a style not yet listed as tried, in this order: analogy, diagram, worked example, simpler prerequisite.
 - After explaining a knowledge point, ask one short check question, ask the student to answer on the board, then call look_at_board on their answer and respond.
 - If you are interrupted, address what the student said before continuing.
-- Use mark_progress, note_struggle and note_worked to record how the student is doing."""
+- Use mark_progress, note_struggle and note_worked to record how the student is doing.
+- While you talk about something on the board, point_at it; the board camera follows what you write."""
 
 
 def build_instructions(ctx: dict) -> str:
@@ -19,6 +23,7 @@ def build_instructions(ctx: dict) -> str:
         ctx["tutor"]["style_prompt"],
         "",
         RULES,
+        *(r for r in (watch.RULES, slides.RULES) if r),
         "",
         f"Learner: {p['name']}, prefers {p['style']} explanations, level {p['level']}, pace {p.get('pace', 'normal')}."
         + (f" Notes: {'; '.join(p['notes'])}." if p.get("notes") else ""),

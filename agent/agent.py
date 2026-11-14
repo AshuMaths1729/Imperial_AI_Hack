@@ -31,6 +31,8 @@ from circle import handle_circle, handle_lost
 from lesson_end import LessonEnder, finish_lesson
 from prompting import build_instructions, greeting_instruction
 from rolling import RollingSummary, haiku_summarize
+import slides
+import watch
 from tutor_tools import TutorTools
 
 load_dotenv()
@@ -200,7 +202,7 @@ async def entrypoint(ctx: JobContext) -> None:
             preemptive_generation={"enabled": True},
         ),
     )
-    agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools())
+    agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools() + slides.slide_tools(io, lesson_id))
 
     track_turns(session, rolling, lambda: spawn(fold()))
     log_session(session)
@@ -236,6 +238,11 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.room.register_text_stream_handler("tutor.circle", lambda reader, _who: spawn(read_text(reader)))
     ctx.room.register_byte_stream_handler("tutor.circle", lambda reader, _who: spawn(read_bytes(reader)))
     ctx.room.register_text_stream_handler("tutor.lost", lambda reader, _who: spawn(on_lost(reader)))
+
+    async def on_idle(reader: rtc.TextStreamReader) -> None:
+        await watch.handle_idle(agent, session, tools, json.loads(await reader.read_all()))
+
+    ctx.room.register_text_stream_handler("tutor.idle", lambda reader, _who: spawn(on_idle(reader)))
 
     if os.environ.get("TUTOR_AVATAR") != "0":
         config = synthesia.AvatarConfig(avatar_ids=[tctx["tutor"]["avatar_id"]])

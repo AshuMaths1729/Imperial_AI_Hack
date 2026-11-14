@@ -24,7 +24,7 @@ export function validateOp(op: unknown, existingIds: Set<string>, studentIds: Se
   const o = op as BoardOp;
   const refs: string[] = [];
   if ("from_id" in o) refs.push(o.from_id, o.to_id);
-  if ("target_id" in o) refs.push(o.target_id);
+  if ("target_id" in o && o.target_id) refs.push(o.target_id);
   if ("place" in o) {
     const m = /^(?:below|right_of):(.+)$/.exec(o.place);
     if (m) refs.push(m[1]);

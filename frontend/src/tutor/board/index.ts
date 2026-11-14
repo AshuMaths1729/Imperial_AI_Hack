@@ -2,4 +2,5 @@
 export { Whiteboard } from "./Whiteboard";
 export { makeBoardRpcHandlers } from "./rpc";
 export { downscaleDims } from "./circle";
-export type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, BoardRpcMethod, Box, CircleEvent } from "../contracts/types";
+export { BOARD_PLUGINS } from "./plugins";
+export type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, BoardPlugin, BoardRpcMethod, Box, CircleEvent, IdleEvent } from "../contracts/types";

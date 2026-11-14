@@ -181,8 +181,8 @@ class TutorTools:
         # sees the exact board-op contract.
         @llm.function_tool(raw_schema={
             "name": "board_write",
-            "description": "Draw or change things on the shared whiteboard, in order. Board units are 0-1000 on both "
-            "axes, never pixels. Give items short ids so you can refer to them (below:<id>, right_of:<id>, arrows). "
+            "description": "Draw or change things on the shared whiteboard, in order. Board units: x 0-1000, y 0-3000 (the page "
+            "grows downward like paper), never pixels. Give items short ids so you can refer to them (below:<id>, right_of:<id>, arrows). "
             "Ops with `step` are HIDDEN until you send reveal_step {group_id, step}; every stepped op needs a "
             "`group`; reveal step 1 in the same call, then later steps as you talk. "
             "plot_function expr uses x as the variable, * for multiplication and ^ for powers, with sin, cos, tan, "

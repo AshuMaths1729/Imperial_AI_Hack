@@ -152,6 +152,9 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
     sendLost: useCallback(() => {
       if (roomRef.current) void sendLostOn(roomRef.current);
     }, []),
+    sendEvent: useCallback((topic: string, payload: unknown) => {
+      if (roomRef.current) void roomRef.current.localParticipant.sendText(JSON.stringify(payload), { topic });
+    }, []),
     // LiveKit Agents reads typed user input from the `lk.chat` topic.
     sendText: useCallback((t: string) => {
       if (!roomRef.current) return;

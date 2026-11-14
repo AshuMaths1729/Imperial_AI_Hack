@@ -3,111 +3,529 @@
   "$id": "https://scholartwin.local/board_ops.schema.json",
   "title": "Tutor board ops",
   "type": "object",
-  "required": ["ops"],
+  "required": [
+    "ops"
+  ],
   "additionalProperties": false,
   "properties": {
-    "ops": { "type": "array", "items": { "$ref": "#/$defs/BoardOp" } }
+    "ops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BoardOp"
+      }
+    }
   },
   "$defs": {
-    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
     "place": {
       "type": "string",
       "pattern": "^(next|below:[A-Za-z0-9_-]{1,64}|right_of:[A-Za-z0-9_-]{1,64}|region:\\d{1,4},\\d{1,4},\\d{1,4},\\d{1,4})$"
     },
-    "label": { "type": "string", "maxLength": 200 },
-    "group": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
-    "step": { "type": "integer", "minimum": 1, "maximum": 20 },
+    "label": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "step": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
+    },
     "BoardOp": {
       "oneOf": [
-        { "$ref": "#/$defs/write_text" },
-        { "$ref": "#/$defs/write_math" },
-        { "$ref": "#/$defs/draw_shape" },
-        { "$ref": "#/$defs/draw_arrow" },
-        { "$ref": "#/$defs/plot_function" },
-        { "$ref": "#/$defs/place_image" },
-        { "$ref": "#/$defs/highlight" },
-        { "$ref": "#/$defs/reveal_step" },
-        { "$ref": "#/$defs/erase" },
-        { "$ref": "#/$defs/clear_tutor_layer" }
+        {
+          "$ref": "#/$defs/write_text"
+        },
+        {
+          "$ref": "#/$defs/write_math"
+        },
+        {
+          "$ref": "#/$defs/draw_shape"
+        },
+        {
+          "$ref": "#/$defs/draw_arrow"
+        },
+        {
+          "$ref": "#/$defs/plot_function"
+        },
+        {
+          "$ref": "#/$defs/place_image"
+        },
+        {
+          "$ref": "#/$defs/highlight"
+        },
+        {
+          "$ref": "#/$defs/reveal_step"
+        },
+        {
+          "$ref": "#/$defs/erase"
+        },
+        {
+          "$ref": "#/$defs/clear_tutor_layer"
+        },
+        {
+          "$ref": "#/$defs/point_at"
+        },
+        {
+          "$ref": "#/$defs/annotate"
+        },
+        {
+          "$ref": "#/$defs/focus"
+        }
       ]
     },
     "write_text": {
-      "type": "object", "additionalProperties": false, "required": ["op", "text", "place"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "text",
+        "place"
+      ],
       "properties": {
-        "op": { "const": "write_text" }, "id": { "$ref": "#/$defs/id" },
-        "text": { "type": "string", "minLength": 1, "maxLength": 2000 }, "place": { "$ref": "#/$defs/place" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "write_text"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "place": {
+          "$ref": "#/$defs/place"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "write_math": {
-      "type": "object", "additionalProperties": false, "required": ["op", "latex", "place"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "latex",
+        "place"
+      ],
       "properties": {
-        "op": { "const": "write_math" }, "id": { "$ref": "#/$defs/id" },
-        "latex": { "type": "string", "minLength": 1, "maxLength": 2000 }, "place": { "$ref": "#/$defs/place" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "write_math"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "latex": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "place": {
+          "$ref": "#/$defs/place"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "draw_shape": {
-      "type": "object", "additionalProperties": false, "required": ["op", "shape", "place"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "shape",
+        "place"
+      ],
       "properties": {
-        "op": { "const": "draw_shape" }, "id": { "$ref": "#/$defs/id" },
-        "shape": { "enum": ["rect", "ellipse", "line"] }, "label": { "$ref": "#/$defs/label" },
-        "place": { "$ref": "#/$defs/place" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "draw_shape"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "shape": {
+          "enum": [
+            "rect",
+            "ellipse",
+            "line"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "place": {
+          "$ref": "#/$defs/place"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "draw_arrow": {
-      "type": "object", "additionalProperties": false, "required": ["op", "from_id", "to_id"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "from_id",
+        "to_id"
+      ],
       "properties": {
-        "op": { "const": "draw_arrow" }, "id": { "$ref": "#/$defs/id" },
-        "from_id": { "$ref": "#/$defs/id" }, "to_id": { "$ref": "#/$defs/id" }, "label": { "$ref": "#/$defs/label" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "draw_arrow"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "from_id": {
+          "$ref": "#/$defs/id"
+        },
+        "to_id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "plot_function": {
-      "type": "object", "additionalProperties": false, "required": ["op", "x_range", "place"],
-      "anyOf": [{ "required": ["expr"] }, { "required": ["points"] }],
-      "properties": {
-        "op": { "const": "plot_function" }, "id": { "$ref": "#/$defs/id" },
-        "expr": { "type": "string", "minLength": 1, "maxLength": 300 },
-        "points": {
-          "type": "array", "minItems": 2, "maxItems": 2000,
-          "items": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "x_range",
+        "place"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "expr"
+          ]
         },
-        "x_range": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "number" }], "minItems": 2, "maxItems": 2 },
-        "label": { "$ref": "#/$defs/label" }, "place": { "$ref": "#/$defs/place" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        {
+          "required": [
+            "points"
+          ]
+        }
+      ],
+      "properties": {
+        "op": {
+          "const": "plot_function"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "expr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "points": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2000,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "x_range": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "place": {
+          "$ref": "#/$defs/place"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "place_image": {
-      "type": "object", "additionalProperties": false, "required": ["op", "url", "place"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "url",
+        "place"
+      ],
       "properties": {
-        "op": { "const": "place_image" }, "id": { "$ref": "#/$defs/id" },
-        "url": { "type": "string", "pattern": "^(https://|data:image/)" }, "caption": { "$ref": "#/$defs/label" },
-        "place": { "$ref": "#/$defs/place" },
-        "group": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "place_image"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^(https://|data:image/)"
+        },
+        "caption": {
+          "$ref": "#/$defs/label"
+        },
+        "place": {
+          "$ref": "#/$defs/place"
+        },
+        "group": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "highlight": {
-      "type": "object", "additionalProperties": false, "required": ["op", "target_id"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "target_id"
+      ],
       "properties": {
-        "op": { "const": "highlight" }, "target_id": { "$ref": "#/$defs/id" },
-        "color": { "enum": ["yellow", "red", "green", "blue", "violet"] }
+        "op": {
+          "const": "highlight"
+        },
+        "target_id": {
+          "$ref": "#/$defs/id"
+        },
+        "color": {
+          "enum": [
+            "yellow",
+            "red",
+            "green",
+            "blue",
+            "violet"
+          ]
+        }
       }
     },
     "reveal_step": {
-      "type": "object", "additionalProperties": false, "required": ["op", "group_id", "step"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "group_id",
+        "step"
+      ],
       "properties": {
-        "op": { "const": "reveal_step" }, "group_id": { "$ref": "#/$defs/group" }, "step": { "$ref": "#/$defs/step" }
+        "op": {
+          "const": "reveal_step"
+        },
+        "group_id": {
+          "$ref": "#/$defs/group"
+        },
+        "step": {
+          "$ref": "#/$defs/step"
+        }
       }
     },
     "erase": {
-      "type": "object", "additionalProperties": false, "required": ["op", "target_id"],
-      "properties": { "op": { "const": "erase" }, "target_id": { "$ref": "#/$defs/id" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "target_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "erase"
+        },
+        "target_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
     },
     "clear_tutor_layer": {
-      "type": "object", "additionalProperties": false, "required": ["op"],
-      "properties": { "op": { "const": "clear_tutor_layer" } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "const": "clear_tutor_layer"
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "w": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "h": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        }
+      }
+    },
+    "point_at": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "target_id"
+      ],
+      "properties": {
+        "op": {
+          "const": "point_at"
+        },
+        "target_id": {
+          "$ref": "#/$defs/id"
+        },
+        "hold_ms": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 10000
+        }
+      }
+    },
+    "annotate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "mark"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "target_id"
+          ]
+        },
+        {
+          "required": [
+            "region"
+          ]
+        }
+      ],
+      "properties": {
+        "op": {
+          "const": "annotate"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "mark": {
+          "enum": [
+            "circle",
+            "underline",
+            "cross",
+            "tick"
+          ]
+        },
+        "target_id": {
+          "$ref": "#/$defs/id"
+        },
+        "region": {
+          "$ref": "#/$defs/region"
+        },
+        "color": {
+          "enum": [
+            "yellow",
+            "red",
+            "green",
+            "blue",
+            "violet"
+          ]
+        }
+      }
+    },
+    "focus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "target_id"
+          ]
+        },
+        {
+          "required": [
+            "region"
+          ]
+        }
+      ],
+      "properties": {
+        "op": {
+          "const": "focus"
+        },
+        "target_id": {
+          "$ref": "#/$defs/id"
+        },
+        "region": {
+          "$ref": "#/$defs/region"
+        }
+      }
     }
   }
 }

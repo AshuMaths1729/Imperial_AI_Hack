@@ -3,7 +3,7 @@
 import { useState, type ReactNode, type RefObject } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { MonitorUp } from "lucide-react";
-import { Whiteboard } from "@/tutor/board";
+import { BOARD_PLUGINS, Whiteboard } from "@/tutor/board";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 import { ScreenCircle } from "./ScreenCircle";
 import { TrackVideo } from "./VideoTiles";
@@ -15,13 +15,15 @@ type Props = {
   onTab: (t: StageTab) => void;
   boardRef: RefObject<BoardHandle | null>;
   onCircle: (e: CircleEvent) => void;
+  /** Sends a board plugin event to the agent (LiveKit text stream). */
+  emit?: (topic: string, payload: unknown) => void;
   screenTrack?: LocalVideoTrack;
   circleMode: boolean;
   onShare: () => void;
   children?: ReactNode; // overlays (captions)
 };
 
-export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, circleMode, onShare, children }: Props) {
+export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   const tabs: [StageTab, string][] = [
     ["board", "Whiteboard"],
@@ -48,7 +50,7 @@ export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, circleMode,
       <div className="relative min-h-0 flex-1">
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
         <div className={`absolute inset-0 bg-white ${tab === "board" ? "" : "invisible"}`}>
-          <Whiteboard ref={boardRef} onCircle={onCircle} />
+          <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
         </div>
         <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : "invisible"}`}>
           {screenTrack ? (

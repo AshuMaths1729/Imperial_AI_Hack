@@ -85,7 +85,8 @@ export function opToShapePartials(op: BoardOp, box: Box, scale: number, shapes: 
       props: { geo: "rectangle", w: w + 2 * HIGHLIGHT_PAD, h: h + 2 * HIGHLIGHT_PAD, color: op.color ?? "yellow", fill: "solid", dash: "solid", size: "s" },
     }];
   }
-  if (op.op === "erase" || op.op === "clear_tutor_layer") return [];
+  // point_at / annotate / focus are handled by the board itself (WS-A), not mapped to stored shapes here.
+  if (op.op === "erase" || op.op === "clear_tutor_layer" || op.op === "point_at" || op.op === "annotate" || op.op === "focus") return [];
 
   const boardId = op.id ?? generateId();
   const meta = (kind: string, part?: TutorMeta["part"]): JsonObject => {

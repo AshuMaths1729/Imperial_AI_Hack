@@ -52,6 +52,7 @@ function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
     end: vi.fn(),
     sendCircle: vi.fn(),
     sendLost: vi.fn(),
+    sendEvent: vi.fn(),
     sendText: vi.fn(),
     mic: true,
     toggleMic: vi.fn(async () => {}),

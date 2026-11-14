@@ -67,6 +67,7 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
           onTab={setTab}
           boardRef={boardRef}
           onCircle={onCircle}
+          emit={s.sendEvent}
           screenTrack={s.screenTrack}
           circleMode={circleMode}
           onShare={s.toggleShare}
