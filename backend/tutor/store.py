@@ -120,6 +120,16 @@ class Store:
         return sorted(done, key=lambda l: l.ended_at, reverse=True)[:n]
 
 
+    def latest_state(self, track_id: str, exclude_lesson_id: str) -> Optional[dict]:
+        """The newest checkpoint of any other lesson on the track (ended or not), with its lesson_id."""
+        saved = [l for l in (Lesson.model_validate(d) for d in self.b.all("lessons"))
+                 if l.track_id == track_id and l.lesson_id != exclude_lesson_id and l.state]
+        if not saved:
+            return None
+        last = max(saved, key=lambda l: l.state.saved_at)
+        return {**last.state.model_dump(), "lesson_id": last.lesson_id}
+
+
 def make_store() -> Store:
     uri = os.environ.get("MONGODB_URI")
     if uri:

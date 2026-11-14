@@ -55,6 +55,33 @@ class Worked(BaseModel):
     explanation_style: str
 
 
+class Detour(BaseModel):
+    topic: str = Field(max_length=300)
+    why: str = Field("", max_length=300)
+    from_slide: int = 0
+    from_step: int = 0
+    from_idea: str = Field("", max_length=1000)
+
+
+class ConceptMark(BaseModel):
+    concept: str = Field(max_length=200)
+    level: Optional[Literal["not_yet", "shaky", "got_it"]] = None  # None: only an anchor was chosen
+    evidence: str = Field("", max_length=500)
+    anchor: str = Field("", max_length=300)
+    tries: int = 0
+
+
+class LessonCheckpoint(BaseModel):
+    """The agent's lesson state (agent/lesson_state.py): main branch position, open detours, understanding."""
+    slide: int = 0
+    step: int = 0
+    idea: str = Field("", max_length=1000)
+    detours: List[Detour] = Field(default_factory=list, max_length=20)
+    concepts: List[ConceptMark] = Field(default_factory=list, max_length=200)
+    text: str = Field("", max_length=4000)  # the note the tutor saw
+    saved_at: str = ""  # set by the server
+
+
 class Lesson(BaseModel):
     lesson_id: str
     track_id: str
@@ -66,3 +93,4 @@ class Lesson(BaseModel):
     struggles: List[Struggle] = []
     worked: List[Worked] = []
     board_snapshot_ref: Optional[str] = None
+    state: Optional[LessonCheckpoint] = None  # latest checkpoint

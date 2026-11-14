@@ -40,7 +40,8 @@ async def haiku_summarize(prev: str, turns: list[str]) -> str:
         model="claude-haiku-5-5",
         max_tokens=200,
         system="You keep a running summary of a tutoring lesson. Reply with the updated summary only: "
-        "what was covered, what the student struggled with, which explanations worked. Under 120 words.",
+        "what was covered, what the student struggled with, which explanations and which picture or analogy per "
+        "concept worked. Under 120 words.",
         messages=[{
             "role": "user",
             "content": f"Summary so far:\n{prev or '(none)'}\n\nNew turns:\n" + "\n".join(turns),

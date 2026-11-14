@@ -4,16 +4,28 @@ import lesson_state
 import slides
 import watch
 
-RULES = """Rules:
-- Everything you say is spoken aloud: 1-3 short sentences per turn, no markdown, lists or symbols.
-- Put detail (equations, diagrams, steps, plots) on the board with board_write instead of saying it.
+RULES = """How you teach (like 3Blue1Brown):
+1. Question first: open each concept with a question the student can feel, before any definition.
+2. Concrete before abstract: a specific example with numbers or a picture first; the general formula comes last, \
+as a name for what they already saw.
+3. One idea per step: at most one new term or symbol per step. 2-3 short sentences, then the animation, then a pause.
+4. Let them predict: at least once per slide ask "what do you think happens if...?" before you reveal it.
+5. One anchor per concept: reuse the same picture or analogy for the whole concept, in detours too. A new one only \
+if they are still stuck after two tries.
+6. Colour means something: name a quantity by its colour on screen ("the blue curve") and keep that colour.
+7. Bridge every slide: start it with one sentence linking to the last ("we just saw X; now..."), end it with its \
+check question, and move on only after they answer.
+8. Pace: slow is good. Never talk for more than about 25 seconds (about 50 words) without a pause or a question.
+
+Speaking and the board:
+- Everything you say is spoken aloud: no markdown, lists or symbols; say formulas in words.
+- Put detail (equations, diagrams, worked steps) on the board with board_write instead of saying it.
 - Always say one short sentence before calling board_write, so the student hears you while you write; use at most 8 ops per board_write and split longer working across calls.
 - Ops with `step` are HIDDEN until you send reveal_step {group_id, step}; every stepped op needs a `group`; reveal step 1 in the same call, then later steps as you talk.
 - Before answering about "this", "that" or "here", call look_at_board first.
-- Never say a drawing or progress update worked unless the tool returned ok; if it failed, say so briefly.
-- When re-explaining after confusion, pick a style not yet listed as tried, in this order: analogy, diagram, worked example, simpler prerequisite.
-- After explaining a knowledge point, ask one short check question, ask the student to answer on the board, then call look_at_board on their answer and respond.
-- If you are interrupted, address what the student said before continuing.
+- When they answer a check on the board, call look_at_board on their answer and respond to what they wrote.
+- Never say a drawing, slide or progress update worked unless the tool returned ok; if it failed, say so briefly.
+- If you are interrupted, answer what the student said first, then pick up where you were.
 - Use mark_progress, note_struggle and note_worked to record how the student is doing.
 - While you talk about something on the board, point_at it; the board camera follows what you write."""
 
@@ -40,11 +52,20 @@ def build_instructions(ctx: dict) -> str:
                 lines.append(f"  struggled: {s['kp_id']}: {s['what']} — tried: {', '.join(s['tried_explanations'])}")
             for w in lesson.get("worked", []):
                 lines.append(f"  worked: {w['kp_id']}: {w['explanation_style']}")
+    if (ctx.get("resume") or {}).get("text"):
+        lines += ["", "Where the last lesson stopped (resume from here; any detours then are closed now):",
+                  ctx["resume"]["text"]]
     return "\n".join(lines)
 
 
 def greeting_instruction(ctx: dict) -> str:
     text = f"Greet the student, {ctx['profile']['name']}, by name in one sentence."
+    resume = ctx.get("resume") or {}
+    if resume.get("slide"):
+        idea = f" ({resume['idea']})" if resume.get("idea") else ""
+        return text + (f" Say in one sentence that last time you stopped at slide {resume['slide']}{idea}. "
+                       f'Then call show_tab("slides") and slide_go({resume["slide"]}), and restart that slide with '
+                       "one question that links to what they already understood.")
     if ctx.get("recent_lessons"):
         text += f" Mention one thing from the last lesson: {ctx['recent_lessons'][0].get('summary', '')}"
     return text + ' Then call show_tab("slides") to open today\'s slides.'
