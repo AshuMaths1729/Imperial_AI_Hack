@@ -17,8 +17,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from livekit import rtc
-from livekit.agents import Agent, AgentSession, JobContext, JobProcess, TurnHandlingOptions, WorkerOptions, cli
-from livekit.plugins import anthropic, elevenlabs, silero, synthesia
+from livekit.agents import Agent, AgentSession, JobContext, JobProcess, TurnHandlingOptions, WorkerOptions, cli, room_io
+from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
 load_dotenv(Path(__file__).parent / ".env")
 load_dotenv(Path(__file__).parent.parent / ".env")  # the team's repo-root .env; never overrides the above
@@ -63,8 +63,11 @@ async def entrypoint(ctx: JobContext) -> None:
         tts=tts,
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced captions on the page
+        # The avatar's audio output can't pause, so a false interruption kills the reply for good:
+        # only real speech (>=0.8 s and 2+ words) may cut the tutor off.
         turn_handling=TurnHandlingOptions(
-            interruption={"enabled": True, "min_duration": 0.3},
+            interruption={"enabled": True, "min_duration": 0.8, "min_words": 2},
+            endpointing={"min_delay": 0.6},
             preemptive_generation={"enabled": True},
         ),
     )
@@ -116,7 +119,12 @@ async def entrypoint(ctx: JobContext) -> None:
 
     ctx.room.register_text_stream_handler("tutor.switch", spawn)
 
-    await session.start(agent=agent, room=ctx.room)
+    await session.start(
+        agent=agent,
+        room=ctx.room,
+        # BVC drops other people talking near the student's mic (LiveKit Cloud only)
+        room_options=room_io.RoomOptions(audio_input=room_io.AudioInputOptions(noise_cancellation=noise_cancellation.BVC())),
+    )
     await ctx.room.local_participant.set_attributes({"tutor_id": active})
     session.generate_reply(instructions="Greet the student in one sentence, say your name, and ask what they'd like to learn.")
 

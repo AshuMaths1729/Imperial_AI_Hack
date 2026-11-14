@@ -8,6 +8,7 @@ dependencies = [
     "python-dotenv",
     "httpx",
     "jsonschema",
+    "livekit-plugins-noise-cancellation~=0.2",
 ]
 
 [dependency-groups]
