@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, type ReactNode, type RefObject } from "react";
+import { useState, type ReactNode, type Ref, type RefObject } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { MonitorUp } from "lucide-react";
 import { BOARD_PLUGINS, Whiteboard } from "@/tutor/board";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
+import { SlidesStage, type Deck, type SlidesHandle, type StageTab } from "@/tutor/slides";
 import { ScreenCircle } from "./ScreenCircle";
 import { TrackVideo } from "./VideoTiles";
 
-export type StageTab = "board" | "screen";
+export type { StageTab };
 
 type Props = {
   tab: StageTab;
@@ -20,13 +21,17 @@ type Props = {
   screenTrack?: LocalVideoTrack;
   circleMode: boolean;
   onShare: () => void;
+  deck?: Deck | null;
+  deckLoading?: boolean;
+  slidesRef?: Ref<SlidesHandle | null>;
   children?: ReactNode; // overlays (captions)
 };
 
-export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, children }: Props) {
+export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   const tabs: [StageTab, string][] = [
     ["board", "Whiteboard"],
+    ["slides", "Slides"],
     ["screen", "Shared screen"],
   ];
   return (
@@ -51,6 +56,10 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
         <div className={`absolute inset-0 bg-white ${tab === "board" ? "" : "invisible"}`}>
           <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
+        </div>
+        {/* Mounted for the whole lesson too: the agent drives the deck over RPC even before the tab is shown. */}
+        <div className={`absolute inset-0 ${tab === "slides" ? "" : "invisible"}`}>
+          <SlidesStage ref={slidesRef} deck={deck} loading={deckLoading} circleMode={circleMode && tab === "slides"} onCircle={onCircle} />
         </div>
         <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : "invisible"}`}>
           {screenTrack ? (

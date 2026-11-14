@@ -55,11 +55,17 @@ describe("session", () => {
     expectTypeOf<Room>().toExtend<RoomLike>();
   });
 
-  it("registers all board rpcs on connect", async () => {
+  it("registers all board, stage and slides rpcs on connect", async () => {
     const room = fakeRoom();
-    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => null);
+    const showTab = vi.fn();
+    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => null, undefined, () => ({ showTab, slides: null }));
 
-    expect([...room.rpcs.keys()].sort()).toEqual(["board.apply", "board.describe", "board.snapshot"]);
+    expect([...room.rpcs.keys()].sort()).toEqual([
+      "board.apply", "board.describe", "board.snapshot",
+      "slides.describe", "slides.go", "slides.point", "slides.push", "slides.step", "ui.show_tab",
+    ]);
+    expect(JSON.parse(await room.rpcs.get("ui.show_tab")!({ payload: '{"tab":"slides"}' })).ok).toBe(true);
+    expect(showTab).toHaveBeenCalledWith("slides");
     expect(room.connect).toHaveBeenCalledWith("wss://lk", "tok");
     expect(room.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(true);
     // the stub board answers {ok:false}; the RPC passes the payload through and returns its reply

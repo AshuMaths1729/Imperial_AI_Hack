@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
+import type { Deck, SlidesHandle } from "@/tutor/slides";
+import { getDeck } from "./api";
 import { CaptionsOverlay } from "./CaptionsOverlay";
 import { ControlBar } from "./ControlBar";
 import { SidePanel } from "./SidePanel";
@@ -24,6 +26,33 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
   const [circleMode, setCircleMode] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(true);
   const live = s.status === "live";
+  const slidesRef = useRef<SlidesHandle | null>(null);
+  const [deck, setDeck] = useState<Deck | null>(null);
+  const [deckLoading, setDeckLoading] = useState(true);
+
+  // The deck prepared before the lesson (or the track's shipped fallback); never blocks joining.
+  useEffect(() => {
+    let alive = true;
+    getDeck(trackId).then(
+      (v) => alive && (setDeck(v.deck), setDeckLoading(false)),
+      () => alive && setDeckLoading(false)
+    );
+    return () => {
+      alive = false;
+    };
+  }, [trackId]);
+
+  // The agent's RPCs reach the stage through this (tab switching, the Slides tab).
+  const setStage = s.setStage;
+  useEffect(() => {
+    setStage({
+      showTab: setTab,
+      get slides() {
+        return slidesRef.current;
+      },
+    });
+    return () => setStage(null);
+  }, [setStage]);
 
   // Shared content takes the stage when sharing starts, like Zoom; back to the board when it stops.
   const sharing = !!s.screenTrack;
@@ -71,6 +100,9 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
           screenTrack={s.screenTrack}
           circleMode={circleMode}
           onShare={s.toggleShare}
+          deck={deck}
+          deckLoading={deckLoading}
+          slidesRef={slidesRef}
         >
           {captionsOn && <CaptionsOverlay captions={s.captions} tutorName={tutorName} />}
         </Stage>
