@@ -4,6 +4,7 @@ import {
   connectLesson,
   joinLesson,
   mergeCaption,
+  micErrorMessage,
   onCaptions,
   sendCircle,
   sendLost,
@@ -176,6 +177,27 @@ describe("session", () => {
       expect(onLesson).toHaveBeenCalledWith("L1");
       expect(micTurnedOn(room)).toBe(true);
       expect(room.disconnect).not.toHaveBeenCalled();
+    });
+
+    it("a blocked microphone still joins the lesson and reports why", async () => {
+      const room = fakeRoom();
+      room.remoteParticipants.set("a", { identity: "agent-1" });
+      const blocked = Object.assign(new Error("Permission denied"), { name: "NotAllowedError" });
+      room.localParticipant.setMicrophoneEnabled.mockRejectedValueOnce(blocked);
+      const onMicError = vi.fn();
+      await expect(
+        joinLesson(room as unknown as RoomLike, async () => info, () => null, new AbortController().signal, undefined, undefined, onMicError)
+      ).resolves.toBe(true);
+      expect(onMicError).toHaveBeenCalledWith(blocked);
+      expect(room.disconnect).not.toHaveBeenCalled();
+    });
+
+    it("explains each kind of microphone failure", () => {
+      const named = (name: string) => Object.assign(new Error("x"), { name });
+      expect(micErrorMessage(named("NotAllowedError"))).toMatch(/blocked[^]*Privacy & Security[^]*Microphone/);
+      expect(micErrorMessage(named("NotFoundError"))).toMatch(/No microphone/);
+      expect(micErrorMessage(named("NotReadableError"))).toMatch(/another app/);
+      expect(micErrorMessage("weird")).toMatch(/type to the tutor/);
     });
 
     it("leave during startSession never connects and leaves no mic on", async () => {

@@ -36,7 +36,8 @@ export async function connectLesson(
   s: { url: string; token: string },
   getBoard: () => BoardHandle | null,
   signal?: AbortSignal,
-  getStage: () => StageHandle | null = () => null
+  getStage: () => StageHandle | null = () => null,
+  onMicError: (e: unknown) => void = () => {}
 ): Promise<void> {
   const handlers = makeBoardRpcHandlers(getBoard);
   for (const method of Object.keys(handlers) as BoardRpcMethod[]) {
@@ -52,7 +53,22 @@ export async function connectLesson(
   }
   await room.connect(s.url, s.token);
   if (signal?.aborted) return;
-  await room.localParticipant.setMicrophoneEnabled(true);
+  // A blocked mic (site or macOS privacy settings) must not stop the lesson: the student can type, then retry the mic.
+  await room.localParticipant.setMicrophoneEnabled(true).catch(onMicError);
+}
+
+/** What to tell the student when the browser refuses the microphone. */
+export function micErrorMessage(e: unknown): string {
+  const name = e instanceof Error ? e.name : "";
+  const fix =
+    name === "NotAllowedError"
+      ? "Microphone blocked. Allow it for this site (icon left of the address bar), and for your browser in System Settings → Privacy & Security → Microphone, then click Mic."
+      : name === "NotFoundError"
+        ? "No microphone found. Plug one in or pick an input in System Settings → Sound, then click Mic."
+        : name === "NotReadableError"
+          ? "The microphone is busy in another app or blocked by macOS. Close the other app or check System Settings → Privacy & Security → Microphone, then click Mic."
+          : "The microphone couldn't start.";
+  return `${fix} Meanwhile you can type to the tutor.`;
 }
 
 /**
@@ -66,13 +82,14 @@ export async function joinLesson(
   getBoard: () => BoardHandle | null,
   signal: AbortSignal,
   onLessonId: (id: string) => void = () => {},
-  getStage: () => StageHandle | null = () => null
+  getStage: () => StageHandle | null = () => null,
+  onMicError: (e: unknown) => void = () => {}
 ): Promise<boolean> {
   try {
     const s = await fetchSession();
     if (!signal.aborted) {
       onLessonId(s.lesson_id);
-      await connectLesson(room, s, getBoard, signal, getStage);
+      await connectLesson(room, s, getBoard, signal, getStage, onMicError);
     }
     if (!signal.aborted) {
       await room.startAudio().catch(() => {}); // Safari: unlock audio close to the Join click

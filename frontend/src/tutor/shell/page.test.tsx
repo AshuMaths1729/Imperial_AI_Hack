@@ -64,6 +64,7 @@ function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
     sendCircle: vi.fn(),
     sendLost: vi.fn(),
     sendEvent: vi.fn(),
+    micError: undefined,
     sendText: vi.fn(),
     mic: true,
     toggleMic: vi.fn(async () => {}),
@@ -159,6 +160,13 @@ describe("slides", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Slides" }));
     expect(screen.getByRole("tab", { name: "Slides" }).getAttribute("aria-selected")).toBe("true");
     await screen.findByRole("region", { name: /Slide 1 of 7: Lost in the fog/ });
+  });
+
+  it("a blocked microphone shows how to fix it, and the lesson stays usable", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1", micError: "Microphone blocked. Meanwhile you can type to the tutor." });
+    render(<TutorPage />);
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Microphone blocked/);
+    expect(screen.getByPlaceholderText("Type to the tutor…")).toBeTruthy();
   });
 
   it("a hidden Slides tab paints nothing over the whiteboard", async () => {

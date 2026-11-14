@@ -19,6 +19,7 @@ import {
   AVATAR_IDENTITY,
   joinLesson,
   mergeCaption,
+  micErrorMessage,
   onCaptions,
   sendCircle as sendCircleOn,
   sendLost as sendLostOn,
@@ -39,6 +40,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   const [screenTrack, setScreenTrack] = useState<LocalVideoTrack>();
   const [captions, setCaptions] = useState<Caption[]>([]);
   const [mic, setMic] = useState(false);
+  const [micError, setMicError] = useState<string>();
   const [cam, setCam] = useState(false);
   const [tutorSpeaking, setTutorSpeaking] = useState(false);
 
@@ -47,6 +49,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
     setSelfVideo(undefined);
     setScreenTrack(undefined);
     setMic(false);
+    setMicError(undefined);
     setCam(false);
     setTutorSpeaking(false);
   };
@@ -110,7 +113,8 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
       try {
         // joinLesson disconnects the room itself when aborted or failing
         const live = await joinLesson(
-          room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId, () => stageRef.current
+          room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId, () => stageRef.current,
+          (e) => setMicError(micErrorMessage(e))
         );
         if (live) setStatus("live");
       } catch (e) {
@@ -170,10 +174,16 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
       setCaptions((l) => mergeCaption(l, { id: `chat-${Date.now()}`, who: "you", text: t, final: true }));
     }, []),
     mic,
+    micError,
     toggleMic: useCallback(async () => {
       const next = !mic;
-      await local()?.setMicrophoneEnabled(next);
-      setMic(next);
+      try {
+        await local()?.setMicrophoneEnabled(next);
+        setMic(next);
+        setMicError(undefined);
+      } catch (e) {
+        setMicError(micErrorMessage(e));
+      }
     }, [mic]),
     cam,
     toggleCam: useCallback(async () => {
