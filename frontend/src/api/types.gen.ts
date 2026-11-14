@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/avatar/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Avatar Session */
+        post: operations["avatar_session_api_avatar_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/demo/{mode}": {
         parameters: {
             query?: never;
@@ -47,6 +64,40 @@ export interface paths {
         };
         /** Get Demo Dataset */
         get: operations["get_demo_dataset_api_demo__mode__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/docs/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Doc */
+        get: operations["get_doc_api_docs__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/docs/{doc_id}/pages/{n}.png": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Page Image */
+        get: operations["get_page_image_api_docs__doc_id__pages__n__png_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -81,6 +132,57 @@ export interface paths {
         };
         /** Health */
         get: operations["health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/lecture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest Lecture */
+        post: operations["ingest_lecture_api_ingest_lecture_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest Paper */
+        post: operations["ingest_paper_api_ingest_paper_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/paper/{paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Paper */
+        get: operations["get_paper_api_ingest_paper__paper_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -140,6 +242,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mastery/{graph_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mastery */
+        get: operations["get_mastery_api_mastery__graph_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/{media_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media */
+        get: operations["media_api_media__media_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/papers/{paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Paper */
+        get: operations["get_paper_api_papers__paper_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Presets */
+        get: operations["list_presets_api_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current */
+        get: operations["current_api_presets_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/unload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unload */
+        post: operations["unload_api_presets_unload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/{name}/freeze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Freeze */
+        post: operations["freeze_api_presets__name__freeze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/presets/{name}/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Load */
+        post: operations["load_api_presets__name__load_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz/{graph_id}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Next Node
+         * @description The weakest node: lowest mastery (unseen = 0), then fewest attempts, then graph order.
+         */
+        get: operations["next_node_api_quiz__graph_id__next_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz/{graph_id}/{node_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Quiz */
+        get: operations["get_quiz_api_quiz__graph_id___node_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz/{graph_id}/{node_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer */
+        post: operations["answer_api_quiz__graph_id___node_id__answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sim/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate */
+        post: operations["generate_api_sim_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sim/generate-pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate From Pdf */
+        post: operations["generate_from_pdf_api_sim_generate_pdf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sim/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run */
+        post: operations["run_api_sim_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sim/{sim_id}": {
         parameters: {
             query?: never;
@@ -174,6 +517,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stt */
+        post: operations["stt_api_stt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Topic
+         * @description Search papers on a topic and build the claim/contradiction graph (synchronous).
+         */
+        post: operations["create_topic_api_topics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tts */
+        post: operations["tts_api_tts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tts/segments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tts Segments */
+        post: operations["tts_segments_api_tts_segments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -193,6 +607,22 @@ export interface components {
              * @enum {string}
              */
             view: "sim" | "lecture" | "hypothesis";
+        };
+        /** AnswerRequest */
+        AnswerRequest: {
+            /** Choice */
+            choice: number;
+            /** Question Id */
+            question_id: string;
+        };
+        /** AnswerResponse */
+        AnswerResponse: {
+            /** Correct */
+            correct: boolean;
+            /** Explanation */
+            explanation: string;
+            /** Mastery */
+            mastery: number;
         };
         /** AskSpatialRequest */
         AskSpatialRequest: {
@@ -219,6 +649,51 @@ export interface components {
              */
             spoken_answer: string;
         };
+        /** AvatarSessionResponse */
+        AvatarSessionResponse: {
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "avatar" | "audio_only";
+            /** Session Token */
+            session_token?: string | null;
+        };
+        /** Body_generate_from_pdf_api_sim_generate_pdf_post */
+        Body_generate_from_pdf_api_sim_generate_pdf_post: {
+            /** File */
+            file: string;
+            /**
+             * Hint
+             * @default
+             */
+            hint: string;
+        };
+        /** Body_ingest_lecture_api_ingest_lecture_post */
+        Body_ingest_lecture_api_ingest_lecture_post: {
+            /** File */
+            file: string;
+        };
+        /** Body_ingest_paper_api_ingest_paper_post */
+        Body_ingest_paper_api_ingest_paper_post: {
+            /**
+             * Arxiv Id
+             * @description e.g. 1503.01243 or arXiv:1503.01243v2
+             */
+            arxiv_id?: string | null;
+            /**
+             * File
+             * @description PDF upload
+             */
+            file?: string | null;
+            /**
+             * Url
+             * @description arXiv link, direct .pdf link or web page
+             */
+            url?: string | null;
+        };
         /** Body_ingest_pdf_api_ingest_pdf_post */
         Body_ingest_pdf_api_ingest_pdf_post: {
             /** File */
@@ -228,6 +703,11 @@ export interface components {
              * @default lecture
              */
             mode: string;
+        };
+        /** Body_stt_api_stt_post */
+        Body_stt_api_stt_post: {
+            /** File */
+            file: string;
         };
         /** CalloutBox */
         CalloutBox: {
@@ -281,6 +761,21 @@ export interface components {
             /** Y */
             y: number | null;
         };
+        /** DocInfo */
+        DocInfo: {
+            /** Doc Id */
+            doc_id: string;
+            /** Filename */
+            filename: string;
+            /** Page Count */
+            page_count: number;
+            /** Pages */
+            pages: components["schemas"]["PageInfo"][];
+            /** Total Pages */
+            total_pages: number;
+            /** Truncated */
+            truncated: boolean;
+        };
         /** DrawArrow */
         DrawArrow: {
             /** Label */
@@ -331,6 +826,18 @@ export interface components {
              */
             type: "prerequisite" | "supports" | "contradicts" | "gap";
         };
+        /** Equation */
+        Equation: {
+            /**
+             * Context
+             * @default
+             */
+            context: string;
+            /** Label */
+            label: string | null;
+            /** Latex */
+            latex: string;
+        };
         /** ErrorBody */
         ErrorBody: {
             /** Code */
@@ -369,6 +876,20 @@ export interface components {
              * @constant
              */
             type: "quiz";
+        };
+        /** FreezeRequest */
+        FreezeRequest: {
+            /** Include */
+            include?: string[] | null;
+        };
+        /** GenerateRequest */
+        GenerateRequest: {
+            /** Arxiv Id */
+            arxiv_id?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /** Paper Text */
+            paper_text?: string | null;
         };
         /** Graph */
         Graph: {
@@ -439,7 +960,7 @@ export interface components {
              * Quiz
              * @default []
              */
-            quiz: components["schemas"]["QuizQuestion"][];
+            quiz: components["schemas"]["app__modules__legacy__legacy_schemas__QuizQuestion"][];
             /** Slide Ref */
             slide_ref?: string | null;
             /** Summary */
@@ -511,6 +1032,32 @@ export interface components {
             node_ids?: string[];
             plot_range?: components["schemas"]["PlotRange"] | null;
         };
+        /** IngestLectureResponse */
+        IngestLectureResponse: {
+            /** Doc Id */
+            doc_id: string;
+            graph: components["schemas"]["Graph"];
+            /** Graph Id */
+            graph_id: string;
+            /** Page Count */
+            page_count: number;
+            /**
+             * Truncated
+             * @description True if only the first 100 pages were processed
+             */
+            truncated: boolean;
+        };
+        /** Issue */
+        Issue: {
+            /** Code */
+            code: string;
+            /** Line */
+            line?: number | null;
+            /** Message */
+            message: string;
+            /** Run */
+            run?: string | null;
+        };
         /**
          * JobCreated
          * @description Response of every endpoint that starts a job (`POST /ingest/*`, `POST /topics`, ...).
@@ -549,6 +1096,37 @@ export interface components {
             /** Stage */
             stage: string;
         };
+        /** MasteryEntry */
+        MasteryEntry: {
+            /** Attempts */
+            attempts: number;
+            /** Label */
+            label: string;
+            /** Mastery */
+            mastery: number;
+            /** Node Id */
+            node_id: string;
+        };
+        /** MasteryResponse */
+        MasteryResponse: {
+            /** Graph Id */
+            graph_id: string;
+            /** Nodes */
+            nodes: components["schemas"]["MasteryEntry"][];
+        };
+        /** NextResponse */
+        NextResponse: {
+            /** Attempts */
+            attempts: number;
+            /** Graph Id */
+            graph_id: string;
+            /** Label */
+            label: string;
+            /** Mastery */
+            mastery: number;
+            /** Node Id */
+            node_id: string;
+        };
         /** Node */
         Node: {
             /** Authors Year */
@@ -568,6 +1146,76 @@ export interface components {
              * @default
              */
             summary: string;
+        };
+        /** PageInfo */
+        PageInfo: {
+            /** Page */
+            page: number;
+            /** Snippet */
+            snippet: string;
+        };
+        /** PaperOut */
+        PaperOut: {
+            /**
+             * Abstract
+             * @default
+             */
+            abstract: string;
+            /**
+             * Authors Year
+             * @default
+             */
+            authors_year: string;
+            /** Doi */
+            doi: string | null;
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /**
+             * Tldr
+             * @default
+             */
+            tldr: string;
+            /**
+             * Venue
+             * @default
+             */
+            venue: string;
+            /** Year */
+            year: number | null;
+        };
+        /** PaperSource */
+        PaperSource: {
+            /**
+             * Abstract
+             * @default
+             */
+            abstract: string;
+            /** Arxiv Id */
+            arxiv_id: string | null;
+            /** Authors */
+            authors: string[];
+            /** Equations */
+            equations: components["schemas"]["Equation"][];
+            /** Macros */
+            macros: string[];
+            /** Method Text */
+            method_text: string;
+            /** Paper Id */
+            paper_id: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "arxiv_tex" | "pdf" | "html";
+            /** Title */
+            title: string;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
         };
         /**
          * ParamSpec
@@ -618,18 +1266,53 @@ export interface components {
              */
             type: "pulse_node";
         };
-        /** QuizQuestion */
-        QuizQuestion: {
-            /** Correct Index */
-            correct_index: number;
-            /** Explanation */
-            explanation: string;
-            /** Id */
-            id: string;
-            /** Options */
-            options: string[];
-            /** Question */
-            question: string;
+        /** QuizResponse */
+        QuizResponse: {
+            /** Graph Id */
+            graph_id: string;
+            /** Node Id */
+            node_id: string;
+            /** Questions */
+            questions: components["schemas"]["app__modules__quiz__router__QuizQuestion"][];
+        };
+        /** RunRecord */
+        RunRecord: {
+            /** Label */
+            label: string;
+            /** Ms */
+            ms?: number | null;
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+            /** Params */
+            params: {
+                [key: string]: number;
+            };
+        };
+        /** RunRequest */
+        RunRequest: {
+            /** Params */
+            params?: {
+                [key: string]: number;
+            };
+            /** Sim Id */
+            sim_id: string;
+        };
+        /** RunResponse */
+        RunResponse: {
+            /** Cached */
+            cached: boolean;
+            /** Ms */
+            ms: number;
+            output: components["schemas"]["SimOutput"];
+            /** Params */
+            params: {
+                [key: string]: number;
+            };
+            /** Runner */
+            runner: string;
         };
         /** Segment */
         Segment: {
@@ -702,6 +1385,37 @@ export interface components {
             };
             /** Python Code */
             python_code: string | null;
+        };
+        /**
+         * SimSpec
+         * @description A stored simulation: the `SimPayload` plus provenance and validation.
+         */
+        SimSpec: {
+            /** Arxiv Id */
+            arxiv_id: string | null;
+            /** Assumptions */
+            assumptions: string[];
+            default_output: components["schemas"]["SimOutput"];
+            /** Equation Latex */
+            equation_latex: string | null;
+            /**
+             * Explanation
+             * @default
+             */
+            explanation: string;
+            /** Paper Title */
+            paper_title: string | null;
+            /** Params */
+            params: {
+                [key: string]: components["schemas"]["ParamSpec"];
+            };
+            /** Python Code */
+            python_code: string | null;
+            /** Sim Id */
+            sim_id: string;
+            /** Title */
+            title: string;
+            validation: components["schemas"]["ValidationReport"];
         };
         /** SimulationParam */
         SimulationParam: {
@@ -813,6 +1527,73 @@ export interface components {
             /** Suggested Quiz Node Id */
             suggested_quiz_node_id?: string | null;
         };
+        /** SttResponse */
+        SttResponse: {
+            /** Transcript */
+            transcript: string;
+        };
+        /** TopicRequest */
+        TopicRequest: {
+            /**
+             * Max Papers
+             * @default 12
+             */
+            max_papers: number;
+            /** Query */
+            query: string;
+        };
+        /** TopicResult */
+        TopicResult: {
+            graph: components["schemas"]["Graph"];
+            /** Graph Id */
+            graph_id: string;
+            stats: components["schemas"]["TopicStats"];
+        };
+        /** TopicStats */
+        TopicStats: {
+            /** Claims */
+            claims: number;
+            /** Clusters */
+            clusters: number;
+            /** Contradicts */
+            contradicts: number;
+            /** Gaps */
+            gaps: number;
+            /** Papers Found */
+            papers_found: number;
+            /** Papers With Claims */
+            papers_with_claims: number;
+            /** Supports */
+            supports: number;
+        };
+        /** TtsRequest */
+        TtsRequest: {
+            /** Text */
+            text: string;
+            /** Voice Id */
+            voice_id?: string | null;
+        };
+        /** TtsResponse */
+        TtsResponse: {
+            /** Cached */
+            cached: boolean;
+            /** Media Id */
+            media_id: string;
+            /** Url */
+            url: string;
+        };
+        /** TtsSegmentIn */
+        TtsSegmentIn: {
+            /** Text */
+            text: string;
+        };
+        /** TtsSegmentsRequest */
+        TtsSegmentsRequest: {
+            /** Segments */
+            segments: components["schemas"]["TtsSegmentIn"][];
+            /** Voice Id */
+            voice_id?: string | null;
+        };
         /** UIAnnotation */
         UIAnnotation: {
             /** Label */
@@ -853,6 +1634,20 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** ValidationReport */
+        ValidationReport: {
+            /** Errors */
+            errors?: components["schemas"]["Issue"][];
+            /** Runs */
+            runs?: components["schemas"]["RunRecord"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "passed" | "failed";
+            /** Warnings */
+            warnings?: components["schemas"]["Issue"][];
+        };
         /** WorkspaceDataset */
         WorkspaceDataset: {
             /**
@@ -875,6 +1670,32 @@ export interface components {
             subtitle: string;
             /** Title */
             title: string;
+        };
+        /** QuizQuestion */
+        app__modules__legacy__legacy_schemas__QuizQuestion: {
+            /** Correct Index */
+            correct_index: number;
+            /** Explanation */
+            explanation: string;
+            /** Id */
+            id: string;
+            /** Options */
+            options: string[];
+            /** Question */
+            question: string;
+        };
+        /** QuizQuestion */
+        app__modules__quiz__router__QuizQuestion: {
+            /** Correct Index */
+            correct_index: number;
+            /** Explanation */
+            explanation: string;
+            /** Id */
+            id: string;
+            /** Options */
+            options: string[];
+            /** Question */
+            question: string;
         };
     };
     responses: never;
@@ -951,6 +1772,26 @@ export interface operations {
             };
         };
     };
+    avatar_session_api_avatar_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvatarSessionResponse"];
+                };
+            };
+        };
+    };
     get_demo_dataset_api_demo__mode__get: {
         parameters: {
             query?: never;
@@ -969,6 +1810,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceDataset"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_doc_api_docs__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_page_image_api_docs__doc_id__pages__n__png_get: {
+        parameters: {
+            query?: {
+                size?: "thumb" | "full";
+            };
+            header?: never;
+            path: {
+                doc_id: string;
+                n: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -1029,6 +1935,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    ingest_lecture_api_ingest_lecture_post: {
+        parameters: {
+            query?: {
+                /** @description Re-run extraction even if cached on disk */
+                force?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_ingest_lecture_api_ingest_lecture_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestLectureResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_paper_api_ingest_paper_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_ingest_paper_api_ingest_paper_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperSource"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_paper_api_ingest_paper__paper_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperSource"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1137,6 +2143,435 @@ export interface operations {
             };
         };
     };
+    get_mastery_api_mastery__graph_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                graph_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasteryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    media_api_media__media_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                media_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_paper_api_papers__paper_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_presets_api_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    current_api_presets_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string | null;
+                    };
+                };
+            };
+        };
+    };
+    unload_api_presets_unload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string | null;
+                    };
+                };
+            };
+        };
+    };
+    freeze_api_presets__name__freeze_post: {
+        parameters: {
+            query?: {
+                overwrite?: boolean;
+            };
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FreezeRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    load_api_presets__name__load_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    next_node_api_quiz__graph_id__next_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                graph_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NextResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quiz_api_quiz__graph_id___node_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                graph_id: string;
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuizResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_api_quiz__graph_id___node_id__answer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                graph_id: string;
+                node_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_api_sim_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimSpec"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_from_pdf_api_sim_generate_pdf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_generate_from_pdf_api_sim_generate_pdf_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SimSpec"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_api_sim_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_sim_api_sim__sim_id__get: {
         parameters: {
             query?: never;
@@ -1190,6 +2625,138 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stt_api_stt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_stt_api_stt_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SttResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_topic_api_topics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopicRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tts_api_tts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TtsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TtsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tts_segments_api_tts_segments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TtsSegmentsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TtsResponse"][];
                 };
             };
             /** @description Validation Error */
