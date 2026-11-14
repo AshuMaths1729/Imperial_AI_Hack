@@ -1,4 +1,6 @@
+import functools
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -18,6 +20,17 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 tutor_router = APIRouter(prefix="/api/tutor")
 
 _store: Optional[Store] = None
+# Sync endpoints run in a threadpool; read-modify-write endpoints hold this for their whole body.
+# shortcut: one global lock, fine for one process; use per-document locks or Mongo atomic updates to scale.
+_write_lock = threading.Lock()
+
+
+def _locked(fn):
+    @functools.wraps(fn)
+    def wrapper(*a, **k):
+        with _write_lock:
+            return fn(*a, **k)
+    return wrapper
 
 
 def get_store() -> Store:
@@ -95,6 +108,7 @@ def get_track(track_id: str, store: Store = Depends(get_store)):
 
 
 @tutor_router.post("/tracks/{track_id}/materials")
+@_locked
 def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_store)):
     track = _lookup(store.get_track, track_id)
     prefix = f"m{len(track.materials)}"
@@ -124,6 +138,7 @@ def get_context(lesson_id: str, store: Store = Depends(get_store)):
 
 
 @tutor_router.post("/lessons/{lesson_id}/progress")
+@_locked
 def post_progress(lesson_id: str, body: ProgressIn, store: Store = Depends(get_store)) -> Lesson:
     lesson = _lookup(store.get_lesson, lesson_id)
     track = _lookup(store.get_track, lesson.track_id)
@@ -141,6 +156,7 @@ def post_progress(lesson_id: str, body: ProgressIn, store: Store = Depends(get_s
 
 
 @tutor_router.post("/lessons/{lesson_id}/end")
+@_locked
 def end_lesson(lesson_id: str, body: EndIn, store: Store = Depends(get_store)) -> Lesson:
     lesson = _lookup(store.get_lesson, lesson_id)
     if lesson.ended_at:
