@@ -2,6 +2,7 @@
 import { RoomEvent, type RpcInvocationData, type TextStreamReader } from "livekit-client";
 import { makeBoardRpcHandlers } from "@/tutor/board";
 import type { BoardHandle, BoardRpcMethod, CircleEvent } from "@/tutor/contracts/types";
+import { makeSlidesRpcHandlers, type SlidesRpcMethod, type StageHandle } from "@/tutor/slides";
 
 /** The subset of livekit-client 2.24 `Room` this app uses (checked against the real type in session.test.ts). */
 export type RoomLike = {
@@ -29,16 +30,21 @@ export const AVATAR_IDENTITY = "synthesia-avatar-agent";
 export const AGENT_TIMEOUT_MESSAGE = "Tutor didn't join — is the agent running?";
 const isStudent = (identity: string) => identity.startsWith("student-");
 
-/** Registers the board RPCs (before connecting, so the agent never calls an unregistered method), connects, enables the mic (skipped if `signal` aborted meanwhile). */
+/** Registers the board and stage/slides RPCs (before connecting, so the agent never calls an unregistered method), connects, enables the mic (skipped if `signal` aborted meanwhile). */
 export async function connectLesson(
   room: RoomLike,
   s: { url: string; token: string },
   getBoard: () => BoardHandle | null,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  getStage: () => StageHandle | null = () => null
 ): Promise<void> {
   const handlers = makeBoardRpcHandlers(getBoard);
   for (const method of Object.keys(handlers) as BoardRpcMethod[]) {
     room.registerRpcMethod(method, (d) => handlers[method](d.payload));
+  }
+  const stage = makeSlidesRpcHandlers(getStage);
+  for (const method of Object.keys(stage) as SlidesRpcMethod[]) {
+    room.registerRpcMethod(method, (d) => stage[method](d.payload));
   }
   await room.connect(s.url, s.token);
   if (signal?.aborted) return;
@@ -55,13 +61,14 @@ export async function joinLesson(
   fetchSession: () => Promise<{ url: string; token: string; lesson_id: string }>,
   getBoard: () => BoardHandle | null,
   signal: AbortSignal,
-  onLessonId: (id: string) => void = () => {}
+  onLessonId: (id: string) => void = () => {},
+  getStage: () => StageHandle | null = () => null
 ): Promise<boolean> {
   try {
     const s = await fetchSession();
     if (!signal.aborted) {
       onLessonId(s.lesson_id);
-      await connectLesson(room, s, getBoard, signal);
+      await connectLesson(room, s, getBoard, signal, getStage);
     }
     if (!signal.aborted) {
       await room.startAudio().catch(() => {}); // Safari: unlock audio close to the Join click

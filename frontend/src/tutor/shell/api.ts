@@ -1,5 +1,6 @@
 // Typed client for the tutor backend (README §7–§8) and the team's ingest endpoints.
 import type { WorkspaceDataset } from "@/types/scholartwin";
+import type { DeckView } from "@/tutor/slides/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -56,6 +57,9 @@ export const getTrack = (id: string) =>
   request<{ track: Track; lessons: Lesson[] }>(`/api/tutor/tracks/${encodeURIComponent(id)}`);
 export const addMaterial = (trackId: string, m: { kind: Material["kind"]; ref: string; dataset: WorkspaceDataset }) =>
   post<Track>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/materials`, m);
+export const getDeck = (trackId: string) => request<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`);
+/** Starts (re)generating the track's slides in the background; poll getDeck for the status. */
+export const prepareDeck = (trackId: string) => post<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`, {});
 export const startSession = (trackId: string, tutorId: string) =>
   post<SessionInfo>("/api/tutor/session", { track_id: trackId, tutor_id: tutorId });
 

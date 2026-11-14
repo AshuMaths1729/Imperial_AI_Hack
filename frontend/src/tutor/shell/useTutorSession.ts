@@ -13,6 +13,7 @@ import {
   type RemoteVideoTrack,
 } from "livekit-client";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
+import type { StageHandle } from "@/tutor/slides";
 import { startSession } from "./api";
 import {
   AVATAR_IDENTITY,
@@ -29,6 +30,7 @@ export type SessionStatus = "idle" | "connecting" | "live" | "error";
 export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   const roomRef = useRef<Room | null>(null);
   const joinAbort = useRef<AbortController | null>(null); // aborted by Leave/unmount while still joining
+  const stageRef = useRef<StageHandle | null>(null); // set by CallView via setStage
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [error, setError] = useState<string>();
   const [lessonId, setLessonId] = useState<string>();
@@ -107,7 +109,9 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
 
       try {
         // joinLesson disconnects the room itself when aborted or failing
-        const live = await joinLesson(room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId);
+        const live = await joinLesson(
+          room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId, () => stageRef.current
+        );
         if (live) setStatus("live");
       } catch (e) {
         if (ac.signal.aborted) return;
@@ -136,6 +140,10 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   const local = () => roomRef.current?.localParticipant;
 
   return {
+    /** CallView hands in tab switching + the Slides tab here, for the agent's RPCs. */
+    setStage: useCallback((h: StageHandle | null) => {
+      stageRef.current = h;
+    }, []),
     status,
     error,
     lessonId,

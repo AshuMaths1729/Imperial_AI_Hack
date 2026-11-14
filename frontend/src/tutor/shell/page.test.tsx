@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import TutorPage from "@/app/tutor/page";
+import gd from "@/tutor/slides/decks/gradient-descent.json";
+import * as api from "./api";
+import type { StageHandle } from "@/tutor/slides";
 import type { TutorSession } from "./useTutorSession";
+
+const deckView = (over = {}) => ({ status: "none", source: "fallback", deck: gd, error: "", warnings: [], updated_at: null, ...over });
 
 vi.mock("./api", () => ({
   listTutors: vi.fn(async () => [
@@ -21,6 +26,8 @@ vi.mock("./api", () => ({
     track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [], knowledge_points: [], created_at: "",
   })),
   ingestPdf: vi.fn(),
+  getDeck: vi.fn(async () => deckView()),
+  prepareDeck: vi.fn(async () => deckView({ status: "generating" })),
   ingestUrl: vi.fn(async () => ({ mode: "lecture", title: "Paper", subtitle: "", nodes: [{}, {}, {}], edges: [] })),
 }));
 
@@ -36,10 +43,14 @@ vi.mock("@/tutor/board", async (importOriginal) => {
 });
 
 let session: TutorSession;
+let stage: StageHandle | null = null;
 vi.mock("./useTutorSession", () => ({ useTutorSession: () => session }));
 
 function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
   return {
+    setStage: vi.fn((h) => {
+      stage = h;
+    }),
     status: "idle",
     error: undefined,
     lessonId: undefined,
@@ -128,5 +139,56 @@ describe("/tutor page", () => {
     fireEvent.change(screen.getByLabelText("Material URL"), { target: { value: "https://arxiv.org/abs/1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add URL" }));
     await screen.findByText("Added 3 knowledge points");
+  });
+});
+
+describe("slides", () => {
+  it("lobby shows the track's deck and Prepare slides starts generation", async () => {
+    render(<TutorPage />);
+    await pickTutorAndTrack();
+    await screen.findByText("Using the built-in 7-slide deck.");
+    fireEvent.click(screen.getByRole("button", { name: /Prepare slides/ }));
+    await screen.findByText(/Generating animated slides/);
+    expect(api.prepareDeck).toHaveBeenCalledWith("t1");
+    expect((screen.getByRole("button", { name: /Prepare slides/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("the call has a Slides tab showing the deck", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Slides" }));
+    expect(screen.getByRole("tab", { name: "Slides" }).getAttribute("aria-selected")).toBe("true");
+    await screen.findByRole("region", { name: /Slide 1 of 7: Lost in the fog/ });
+  });
+
+  it("the agent switches tabs and drives the deck through the session's stage handle", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    await screen.findByRole("region", { name: /Slide 1 of 7/ });
+    act(() => stage!.showTab("slides"));
+    expect(screen.getByRole("tab", { name: "Slides" }).getAttribute("aria-selected")).toBe("true");
+    let r;
+    act(() => {
+      r = stage!.slides!.go(4);
+    });
+    expect(r).toMatchObject({ ok: true, index: 4, step: 0 });
+    await screen.findByRole("region", { name: /Slide 4 of 7: One step downhill/ });
+    act(() => {
+      r = stage!.slides!.step(9);
+    });
+    expect(r).toMatchObject({ ok: false });
+    expect(stage!.slides!.describe().current!.id).toBe("update");
+    act(() => stage!.showTab("board"));
+    expect(screen.getByRole("tab", { name: "Whiteboard" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("student can step through slides with the controls", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    await screen.findByRole("region", { name: /Slide 1 of 7/ });
+    for (let i = 0; i < 4; i++) fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByLabelText("Step 4 of 4")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("region", { name: /Slide 2 of 7: What the loss measures/ });
   });
 });
