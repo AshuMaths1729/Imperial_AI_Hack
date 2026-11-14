@@ -1,40 +1,47 @@
+"""LEGACY Phase-1 prototype routes, kept so the existing frontend keeps working.
+
+REMOVE THIS MODULE once Tracks B/C/D replace these routes (see the plan's migration map):
+  /api/demo/{mode}, /api/simulate   -> Track B (`/api/sim/...`) + Track A graphs
+  /api/ingest/pdf, /api/ingest/url  -> Track A/B ingest jobs
+  /api/ask-spatial (old shape)      -> Track C5 (new `AskSpatialRequest` on the same path;
+                                       a new route mounted before this module shadows it)
+"""
+
+from __future__ import annotations
+
 import json
 import math
 import re
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List
-import fitz  # PyMuPDF
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import (
-    WorkspaceDataset,
-    GraphNode,
+import pymupdf
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+
+from app.deps import get_settings
+from app.modules.legacy.legacy_schemas import (
     GraphEdge,
+    GraphNode,
     QuizQuestion,
-    UrlIngestRequest,
+    SimulationSeries,
     SpatialAskRequest,
     SpatialAskResponse,
     UIAnnotation,
-    SimulationSeries,
+    UrlIngestRequest,
+    WorkspaceDataset,
 )
+from app.schemas.health import HealthResponse
+from app.settings import Settings
 
-app = FastAPI(title="ScholarTwin API", version="0.1.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter(tags=["legacy"])
 
 DEMO_DIR = Path(__file__).parent / "demo_data"
 
 
-def run_heavy_ball_sim(gamma: float = 0.35, eta: float = 2.4, theta0: float = 1.8, steps: int = 180):
+def run_heavy_ball_sim(
+    gamma: float = 0.35, eta: float = 2.4, theta0: float = 1.8, steps: int = 180
+):
     dt = 0.08
     xs = [round(i * dt, 2) for i in range(steps)]
     theta = [0.0] * steps
@@ -43,7 +50,7 @@ def run_heavy_ball_sim(gamma: float = 0.35, eta: float = 2.4, theta0: float = 1.
     envelope = [0.0] * steps
 
     theta[0] = theta0
-    energy[0] = round(0.5 * (theta0 ** 2), 4)
+    energy[0] = round(0.5 * (theta0**2), 4)
     envelope[0] = round(theta0, 4)
 
     for i in range(1, steps):
@@ -62,12 +69,17 @@ def run_heavy_ball_sim(gamma: float = 0.35, eta: float = 2.4, theta0: float = 1.
     ]
 
 
-@app.get("/api/health")
-def health():
-    return {"status": "ok", "service": "ScholarTwin Phase 1"}
+@router.get("/health", response_model=HealthResponse)
+def health(settings: Settings = Depends(get_settings)):
+    return HealthResponse(
+        status="ok",
+        cache_mode=settings.cache_mode,
+        preset=settings.preset,
+        service="ScholarTwin Phase 1",
+    )
 
 
-@app.get("/api/demo/{mode}", response_model=WorkspaceDataset)
+@router.get("/demo/{mode}", response_model=WorkspaceDataset)
 def get_demo_dataset(mode: str):
     file_map = {
         "lecture": DEMO_DIR / "lecture_demo.json",
@@ -77,7 +89,7 @@ def get_demo_dataset(mode: str):
     if mode not in file_map or not file_map[mode].exists():
         raise HTTPException(status_code=404, detail=f"Unknown mode: {mode}")
 
-    raw = json.loads(file_map[mode].read_text())
+    raw = json.loads(file_map[mode].read_text(encoding="utf-8"))
     dataset = WorkspaceDataset(**raw)
 
     if mode == "paper2sim" and dataset.simulation:
@@ -88,8 +100,8 @@ def get_demo_dataset(mode: str):
     return dataset
 
 
-@app.post("/api/simulate")
-def simulate_paper(params: Dict[str, float]):
+@router.post("/simulate")
+def simulate_paper(params: dict[str, float]):
     gamma = float(params.get("gamma", 0.35))
     eta = float(params.get("eta", 2.4))
     theta0 = float(params.get("theta0", 1.8))
@@ -97,7 +109,9 @@ def simulate_paper(params: Dict[str, float]):
     return {"x": xs, "series": [s.model_dump() for s in series]}
 
 
-def _build_graph_from_chunks(title: str, subtitle: str, mode: str, chunks: List[Dict[str, str]]) -> WorkspaceDataset:
+def _build_graph_from_chunks(
+    title: str, subtitle: str, mode: str, chunks: list[dict[str, str]]
+) -> WorkspaceDataset:
     if mode == "paper2sim":
         base = get_demo_dataset("paper2sim")
         base.title = title
@@ -108,26 +122,26 @@ def _build_graph_from_chunks(title: str, subtitle: str, mode: str, chunks: List[
                 base.simulation.summary = chunks[0]["summary"]
         return base
 
-    nodes: List[GraphNode] = []
-    edges: List[GraphEdge] = []
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
     positions = [(90, 90), (340, 90), (590, 90), (140, 260), (400, 260), (650, 260)]
 
     for idx, ch in enumerate(chunks[:6]):
         x, y = positions[idx % len(positions)]
-        nid = f"u{idx+1}"
+        nid = f"u{idx + 1}"
         nodes.append(
             GraphNode(
                 id=nid,
                 label=ch["label"][:52],
                 category="core" if idx > 0 else "prerequisite",
                 summary=ch["summary"][:320],
-                slide_ref=ch.get("ref", f"Section {idx+1}"),
+                slide_ref=ch.get("ref", f"Section {idx + 1}"),
                 mastery=max(35, 85 - idx * 8),
                 x=x,
                 y=y,
                 quiz=[
                     QuizQuestion(
-                        id=f"uq{idx+1}",
+                        id=f"uq{idx + 1}",
                         question=f"Which best summarizes '{ch['label'][:40]}'?",
                         options=[
                             ch["summary"][:95] + ("..." if len(ch["summary"]) > 95 else ""),
@@ -141,29 +155,33 @@ def _build_graph_from_chunks(title: str, subtitle: str, mode: str, chunks: List[
             )
         )
         if idx > 0:
-            edge_type = "prerequisite" if mode == "lecture" else ("supports" if idx % 2 == 1 else "contradicts")
+            edge_type = (
+                "prerequisite" if mode == "lecture" else ("supports" if idx % 2 == 1 else "contradicts")
+            )
             edges.append(
                 GraphEdge(
                     id=f"ue{idx}",
                     source=f"u{idx}",
                     target=nid,
                     type=edge_type,
-                    label="Builds on" if mode == "lecture" else ("Supports" if edge_type == "supports" else "Contrasts"),
+                    label="Builds on"
+                    if mode == "lecture"
+                    else ("Supports" if edge_type == "supports" else "Contrasts"),
                 )
             )
 
     return WorkspaceDataset(mode=mode, title=title, subtitle=subtitle, nodes=nodes, edges=edges)
 
 
-@app.post("/api/ingest/pdf", response_model=WorkspaceDataset)
+@router.post("/ingest/pdf", response_model=WorkspaceDataset)
 async def ingest_pdf(file: UploadFile = File(...), mode: str = Form("lecture")):
     raw_bytes = await file.read()
     try:
-        doc = fitz.open(stream=raw_bytes, filetype="pdf")
+        doc = pymupdf.open(stream=raw_bytes, filetype="pdf")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid PDF file: {exc}")
+        raise HTTPException(status_code=400, detail=f"Invalid PDF file: {exc}") from exc
 
-    chunks: List[Dict[str, str]] = []
+    chunks: list[dict[str, str]] = []
     for i, page in enumerate(doc):
         if len(chunks) >= 6:
             break
@@ -173,10 +191,16 @@ async def ingest_pdf(file: UploadFile = File(...), mode: str = Form("lecture")):
             continue
         label = lines[0]
         summary = " ".join(lines[1:6]) if len(lines) > 1 else lines[0]
-        chunks.append({"label": label, "summary": summary, "ref": f"Page {i+1}"})
+        chunks.append({"label": label, "summary": summary, "ref": f"Page {i + 1}"})
 
     if not chunks:
-        chunks = [{"label": file.filename or "Uploaded Document", "summary": "No selectable text found (scanned PDF).", "ref": "Page 1"}]
+        chunks = [
+            {
+                "label": file.filename or "Uploaded Document",
+                "summary": "No selectable text found (scanned PDF).",
+                "ref": "Page 1",
+            }
+        ]
 
     return _build_graph_from_chunks(
         title=file.filename or "Uploaded Lecture PDF",
@@ -186,7 +210,7 @@ async def ingest_pdf(file: UploadFile = File(...), mode: str = Form("lecture")):
     )
 
 
-@app.post("/api/ingest/url", response_model=WorkspaceDataset)
+@router.post("/ingest/url", response_model=WorkspaceDataset)
 def ingest_url(req: UrlIngestRequest):
     raw = req.url.strip()
     if not raw:
@@ -203,15 +227,27 @@ def ingest_url(req: UrlIngestRequest):
             ns = {"atom": "http://www.w3.org/2005/Atom"}
             entry = root.find("atom:entry", ns)
             if entry is not None:
-                title = (entry.findtext("atom:title", "", ns) or f"arXiv:{arxiv_id}").strip().replace("\n", " ")
+                title = (
+                    (entry.findtext("atom:title", "", ns) or f"arXiv:{arxiv_id}")
+                    .strip()
+                    .replace("\n", " ")
+                )
                 abstract = (entry.findtext("atom:summary", "", ns) or "").strip().replace("\n", " ")
-                sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract) if len(s.strip()) > 20]
+                sentences = [
+                    s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract) if len(s.strip()) > 20
+                ]
                 chunks = [
-                    {"label": f"Key Point {i+1}: {s[:42]}...", "summary": s, "ref": f"arXiv:{arxiv_id}"}
+                    {"label": f"Key Point {i + 1}: {s[:42]}...", "summary": s, "ref": f"arXiv:{arxiv_id}"}
                     for i, s in enumerate(sentences[:5])
                 ]
                 if not chunks:
-                    chunks = [{"label": title, "summary": abstract or "Fetched from arXiv.", "ref": f"arXiv:{arxiv_id}"}]
+                    chunks = [
+                        {
+                            "label": title,
+                            "summary": abstract or "Fetched from arXiv.",
+                            "ref": f"arXiv:{arxiv_id}",
+                        }
+                    ]
                 return _build_graph_from_chunks(
                     title=title,
                     subtitle=f"arXiv:{arxiv_id} — Live Abstract Extraction",
@@ -224,8 +260,16 @@ def ingest_url(req: UrlIngestRequest):
     # Fallback for generic URLs or offline mode
     chunks = [
         {"label": f"Source: {raw[:45]}", "summary": f"Ingested URL/topic: {raw}", "ref": "Web Source"},
-        {"label": "Core Methodology", "summary": "Primary claims and mathematical formulation extracted from source.", "ref": "Section 2"},
-        {"label": "Empirical Findings", "summary": "Experimental results and comparative benchmarks.", "ref": "Section 4"},
+        {
+            "label": "Core Methodology",
+            "summary": "Primary claims and mathematical formulation extracted from source.",
+            "ref": "Section 2",
+        },
+        {
+            "label": "Empirical Findings",
+            "summary": "Experimental results and comparative benchmarks.",
+            "ref": "Section 4",
+        },
     ]
     return _build_graph_from_chunks(
         title=f"Ingested: {raw[:50]}",
@@ -235,10 +279,8 @@ def ingest_url(req: UrlIngestRequest):
     )
 
 
-@app.post("/api/ask-spatial", response_model=SpatialAskResponse)
+@router.post("/ask-spatial", response_model=SpatialAskResponse)
 def ask_spatial(req: SpatialAskRequest):
-    q = req.transcript.strip() or "Explain what I circled here."
-
     if req.mode == "lecture":
         node_id = req.hit_node_ids[0] if req.hit_node_ids else "n3"
         return SpatialAskResponse(

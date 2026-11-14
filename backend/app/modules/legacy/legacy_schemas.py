@@ -1,11 +1,12 @@
-from typing import List, Optional, Literal, Dict, Any
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class QuizQuestion(BaseModel):
     id: str
     question: str
-    options: List[str]
+    options: list[str]
     correct_index: int
     explanation: str
 
@@ -15,12 +16,12 @@ class GraphNode(BaseModel):
     label: str
     category: Literal["core", "prerequisite", "claim", "paper", "gap"] = "core"
     summary: str
-    slide_ref: Optional[str] = None          # e.g., "Slide 14 (08:42)" or "arXiv:2401.11234"
-    authors_year: Optional[str] = None       # For HypothesisGraph papers
+    slide_ref: str | None = None          # e.g., "Slide 14 (08:42)" or "arXiv:2401.11234"
+    authors_year: str | None = None       # For HypothesisGraph papers
     mastery: int = Field(default=65, ge=0, le=100)
     x: float = 0.0
     y: float = 0.0
-    quiz: List[QuizQuestion] = []
+    quiz: list[QuizQuestion] = []
 
 
 class GraphEdge(BaseModel):
@@ -28,8 +29,8 @@ class GraphEdge(BaseModel):
     source: str
     target: str
     type: Literal["prerequisite", "supports", "contradicts", "gap"]
-    label: Optional[str] = None
-    condition: Optional[str] = None          # e.g., "Refutes under high current density (>2 mA/cm²)"
+    label: str | None = None
+    condition: str | None = None          # e.g., "Refutes under high current density (>2 mA/cm²)"
 
 
 class SimulationParam(BaseModel):
@@ -45,7 +46,7 @@ class SimulationParam(BaseModel):
 class SimulationSeries(BaseModel):
     name: str
     color: str
-    y: List[float]
+    y: list[float]
 
 
 class SimulationPayload(BaseModel):
@@ -54,20 +55,20 @@ class SimulationPayload(BaseModel):
     equation_latex: str
     summary: str
     python_code: str
-    params: List[SimulationParam]
+    params: list[SimulationParam]
     x_label: str
     y_label: str
-    x: List[float]
-    series: List[SimulationSeries]
+    x: list[float]
+    series: list[SimulationSeries]
 
 
 class WorkspaceDataset(BaseModel):
     mode: Literal["lecture", "paper2sim", "hypothesis"]
     title: str
     subtitle: str
-    nodes: List[GraphNode] = []
-    edges: List[GraphEdge] = []
-    simulation: Optional[SimulationPayload] = None
+    nodes: list[GraphNode] = []
+    edges: list[GraphEdge] = []
+    simulation: SimulationPayload | None = None
 
 
 class UrlIngestRequest(BaseModel):
@@ -78,23 +79,23 @@ class UrlIngestRequest(BaseModel):
 class SpatialAskRequest(BaseModel):
     mode: Literal["lecture", "paper2sim", "hypothesis"]
     transcript: str
-    bbox: Optional[Dict[str, float]] = None  # {x, y, w, h}
-    hit_node_ids: List[str] = []
-    hit_edge_ids: List[str] = []
-    sim_params: Optional[Dict[str, float]] = None
-    cropped_image_b64: Optional[str] = None
+    bbox: dict[str, float] | None = None  # {x, y, w, h}
+    hit_node_ids: list[str] = []
+    hit_edge_ids: list[str] = []
+    sim_params: dict[str, float] | None = None
+    cropped_image_b64: str | None = None
 
 
 class UIAnnotation(BaseModel):
     type: Literal["pulse_node", "highlight_edge", "callout_box"]
-    target_id: Optional[str] = None
-    x: Optional[float] = None
-    y: Optional[float] = None
+    target_id: str | None = None
+    x: float | None = None
+    y: float | None = None
     label: str
 
 
 class SpatialAskResponse(BaseModel):
     spoken_answer: str
     avatar_state: Literal["explaining", "emphatic", "questioning"] = "explaining"
-    annotations: List[UIAnnotation] = []
-    suggested_quiz_node_id: Optional[str] = None
+    annotations: list[UIAnnotation] = []
+    suggested_quiz_node_id: str | None = None
