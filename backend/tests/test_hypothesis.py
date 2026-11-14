@@ -151,7 +151,7 @@ def golden_llm() -> FakeLLM:
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:
-    return Settings(_env_file=None, state_dir=tmp_path / "state")
+    return Settings(_env_file=None, s2_api_key="test-key", state_dir=tmp_path / "state")
 
 
 def test_quote_must_be_verbatim_substring_modulo_whitespace():
@@ -240,8 +240,10 @@ async def test_failed_normalize_falls_back_to_raw_keys(settings):
 
 
 async def test_offline_mode_serves_stored_graph_or_fails(tmp_path):
-    online = Settings(_env_file=None, state_dir=tmp_path / "state")
-    offline = Settings(_env_file=None, state_dir=tmp_path / "state", cache_mode="offline")
+    online = Settings(_env_file=None, s2_api_key="test-key", state_dir=tmp_path / "state")
+    offline = Settings(
+        _env_file=None, s2_api_key="test-key", state_dir=tmp_path / "state", cache_mode="offline"
+    )
     with pytest.raises(OfflineCacheMiss):
         await build_topic_graph(QUERY, 4, llm=FakeLLM(), settings=offline)
 

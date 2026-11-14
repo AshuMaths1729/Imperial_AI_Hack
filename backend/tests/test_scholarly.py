@@ -25,7 +25,8 @@ def test_rebuild_abstract_from_inverted_index():
 
 async def test_s2_search_drops_no_abstract_and_dedupes():
     http, rec = make_http()
-    papers = await search_papers("solid-state", 4, settings=Settings(_env_file=None), http=http)
+    settings = Settings(_env_file=None, s2_api_key="test-key")
+    papers = await search_papers("solid-state", 4, settings=settings, http=http)
     assert [p.id for p in papers] == ["s2_A1", "s2_B2", "s2_C3", "s2_D4"]
     assert papers[0].authors_year == "Smith et al., 2021"
     assert papers[1].authors_year == "Wu & Park, 2022"
@@ -33,7 +34,6 @@ async def test_s2_search_drops_no_abstract_and_dedupes():
     assert len(rec.of("semanticscholar")) == 1
     assert rec.of("openalex") == []  # enough results: no fallback
     req = rec.of("semanticscholar")[0]
-    assert "x-api-key" not in req.headers
     assert "tldr" in req.url.params["fields"] and "abstract" in req.url.params["fields"]
 
 
@@ -47,7 +47,7 @@ async def test_s2_api_key_is_sent_only_when_configured():
 async def test_s2_429_retries_then_falls_back_to_openalex():
     http, rec = make_http(s2=(429, {"message": "Too Many Requests"}), oa=(200, OA_WORKS))
     sleep = Sleeps()
-    settings = Settings(_env_file=None, openalex_mailto="me@example.org")
+    settings = Settings(_env_file=None, s2_api_key="test-key", openalex_mailto="me@example.org")
     papers = await search_papers("solid electrolytes", 5, settings=settings, http=http, sleep=sleep)
 
     assert len(rec.of("semanticscholar")) == 4  # 1 try + 3 retries
@@ -72,7 +72,7 @@ async def test_thin_s2_results_are_topped_up_from_openalex():
     thin = {"data": [S2_GOLDEN["data"][0]]}
     http, rec = make_http(s2=(200, thin), oa=(200, OA_WORKS))
     papers = await search_papers(
-        "solid electrolytes", 6, settings=Settings(_env_file=None), http=http
+        "solid electrolytes", 6, settings=Settings(_env_file=None, s2_api_key="test-key"), http=http
     )
     ids = [p.id for p in papers]
     assert ids[0] == "s2_A1"
@@ -84,5 +84,16 @@ async def test_thin_s2_results_are_topped_up_from_openalex():
 
 async def test_both_sources_failing_raises_upstream_error():
     http, _ = make_http(s2=(500, {}), oa=(500, {}))
+    settings = Settings(_env_file=None, s2_api_key="test-key")
     with pytest.raises(UpstreamError):
-        await search_papers("x", 5, settings=Settings(_env_file=None), http=http, sleep=Sleeps())
+        await search_papers("x", 5, settings=settings, http=http, sleep=Sleeps())
+
+
+async def test_no_s2_key_skips_s2_and_uses_openalex_only():
+    http, rec = make_http(s2=(200, S2_GOLDEN), oa=(200, OA_WORKS))
+    papers = await search_papers(
+        "solid electrolytes", 4, settings=Settings(_env_file=None), http=http
+    )
+    assert rec.of("semanticscholar") == []  # the throttled anonymous pool is never touched
+    assert len(rec.of("openalex")) == 1
+    assert papers and all(p.source == "openalex" for p in papers)
