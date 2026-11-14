@@ -8,8 +8,8 @@ Module convention (`app/modules/<name>/__init__.py`):
     def register(reg: Registry): ...   # optional; add tools/policies/extractors/sandbox runners
 
 Modules may import only `app.schemas`, `app.core`, `app.llm`, `app.tools`, `app.deps`
-(never each other). Packages whose name starts with `_` are skipped. The `legacy` module is
-always mounted last, so a new route with the same path shadows its legacy twin.
+(never each other). Packages whose name starts with `_` are skipped. `fixtures_api` and
+`legacy` are always mounted last, so a real route with the same path shadows its stand-in.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from app.settings import Settings, load_settings
 from app.tools.registry import Registry
 
 API_PREFIX = "/api"
-LAST_MODULES = ("legacy",)
+LAST_MODULES = ("fixtures_api", "legacy")  # stand-ins and legacy yield to real routes
 
 
 def discover_modules() -> list[str]:
