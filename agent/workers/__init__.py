@@ -1,7 +1,12 @@
 from typing import Literal
 
-from .animate import animate
-from .illustrate import illustrate
+from .animate import UNAVAILABLE, animate
+from .illustrate import FALLBACK, illustrate
+
+
+def is_fallback(ops: list[dict]) -> bool:
+    """True when a worker returned its placeholder instead of a real visual."""
+    return ops in (UNAVAILABLE, FALLBACK)
 
 
 async def run_visual(kind: Literal["illustration", "animation"], brief: str, board_text: str) -> list[dict]:

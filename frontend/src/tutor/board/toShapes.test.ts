@@ -26,6 +26,11 @@ describe("opToShapePartials", () => {
     expect(s.meta).toMatchObject({ group: "g", step: 2 });
   });
 
+  it("a stepped op without a group stays visible (it could never be revealed)", () => {
+    const [s] = opToShapePartials({ op: "write_text", id: "a", text: "hi", place: "next", step: 2 }, box, 1);
+    expect(s.opacity).toBe(1);
+  });
+
   it("reveal_step hides later steps", () => {
     const shapes = [1, 2, 3].map((step) => ({
       id: `shape:s${step}`, type: "text", opacity: 0, meta: { author: "tutor", boardId: `s${step}`, group: "g", step },

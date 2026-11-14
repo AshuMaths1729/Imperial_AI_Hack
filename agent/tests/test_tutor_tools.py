@@ -121,7 +121,7 @@ async def test_start_visual_returns_immediately(monkeypatch):
         done.set()
         return []
 
-    monkeypatch.setitem(sys.modules, "workers", types.SimpleNamespace(run_visual=run_visual))
+    monkeypatch.setitem(sys.modules, "workers", types.SimpleNamespace(run_visual=run_visual, is_fallback=lambda ops: False))
     tools = TutorTools(FakeIO({"board.describe": {"items": []}}), "L1")
     t0 = time.perf_counter()
     assert await tools.start_visual("illustration", "a ball rolling into a valley") == "queued"
@@ -200,3 +200,95 @@ async def test_look_at_board_snapshot_failure_is_text_only(reply):
     out = await TutorTools(io, "L1").look_at_board({"x": 0, "y": 0, "w": 10, "h": 10})
     assert isinstance(out, str) and "couldn't capture the board" in out
     assert as_tool_output(out, "image/png") == out
+
+
+def _board_write_description():
+    tool = next(t for t in TutorTools(FakeIO(), "L1").function_tools() if t.info.name == "board_write")
+    return tool.info.raw_schema["description"]
+
+
+def test_board_write_description_explains_hidden_steps():
+    d = _board_write_description()
+    assert "HIDDEN" in d and "reveal_step" in d and "group" in d
+
+
+def test_board_write_description_gives_plot_syntax():
+    d = _board_write_description()
+    assert "exp(-0.3*x)*cos(2*x)" in d and "x^2" in d
+
+
+@pytest.mark.parametrize("reply", [{"ok": False, "ids": [], "errors": ["whiteboard is not ready"]}, {}])
+async def test_board_text_failed_describe_is_not_an_empty_board(reply):
+    out = await TutorTools(FakeIO({"board.describe": reply}), "L1").board_text()
+    assert out.startswith("couldn't read the board")
+    assert "empty" not in out
+    if reply:
+        assert "whiteboard is not ready" in out
+
+
+async def test_look_at_board_accepts_float_region():
+    from livekit.agents.llm.utils import prepare_function_arguments
+
+    io = FakeIO({"board.describe": {"items": []}, "board.snapshot": {"png_b64": "P"}})
+    tool = next(t for t in TutorTools(io, "L1").function_tools() if t.info.name == "look_at_board")
+    region = {"x": 10.5, "y": 20.2, "w": 300.7, "h": 200}
+    args, kwargs = prepare_function_arguments(fnc=tool, json_arguments={"region": region})
+    await tool(*args, **kwargs)
+    assert ("board.snapshot", {"region": {"x": 10, "y": 20, "w": 301, "h": 200}}) in io.rpcs
+
+
+UNAVAILABLE_NOTE = ("Visual unavailable: how a stack works — explain it in words or draw it yourself with board_write")
+
+
+async def _run_visual_with(monkeypatch, ops, apply=ok_apply, fallback=False, describe=None):
+    async def run_visual(kind, brief, board_text):
+        return ops
+
+    monkeypatch.setitem(sys.modules, "workers",
+                        types.SimpleNamespace(run_visual=run_visual, is_fallback=lambda o: fallback))
+    notes: list[str] = []
+
+    async def on_note(text):
+        notes.append(text)
+
+    tools = TutorTools(FakeIO({"board.describe": describe or {"items": []}, "board.apply": apply}), "L1",
+                       on_note=on_note)
+    assert await tools.start_visual("animation", "how a stack works") == "queued"
+    await asyncio.gather(*tools._tasks)
+    return notes
+
+
+async def test_visual_ready_note_after_animation_drawn(monkeypatch):
+    ops = [
+        {"op": "write_text", "id": "g_a", "text": "push", "place": "next", "group": "anim_1", "step": 1},
+        {"op": "write_text", "id": "g_b", "text": "pop", "place": "next", "group": "anim_1", "step": 3},
+        {"op": "reveal_step", "group_id": "anim_1", "step": 1},
+    ]
+    notes = await _run_visual_with(monkeypatch, ops)
+    assert notes == ["Visual ready: how a stack works (group anim_1, steps 1..3; "
+                     "reveal later steps with reveal_step as you explain)"]
+
+
+async def test_visual_ready_note_for_illustration(monkeypatch):
+    notes = await _run_visual_with(monkeypatch, [{"op": "place_image", "url": "https://x/i.png", "place": "next"}])
+    assert notes == ["Visual ready: how a stack works"]
+
+
+async def test_unavailable_note_when_board_write_fails(monkeypatch):
+    notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "x", "place": "next"}],
+                                   apply={"ok": False, "ids": [], "errors": ["nope"]})
+    assert notes == [UNAVAILABLE_NOTE]
+
+
+async def test_unavailable_note_when_worker_fell_back(monkeypatch):
+    notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "(animation unavailable)", "place": "next"}],
+                                   fallback=True)
+    assert notes == [UNAVAILABLE_NOTE]
+
+
+async def test_unavailable_note_when_board_raises(monkeypatch):
+    def boom(payload):
+        raise RuntimeError("the student's page is not connected")
+
+    notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "x", "place": "next"}], describe=boom)
+    assert notes == [UNAVAILABLE_NOTE]

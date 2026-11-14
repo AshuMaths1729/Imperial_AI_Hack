@@ -1,4 +1,5 @@
-"""Animation planner: Claude Sonnet plans 3-6 grouped board ops; we validate and append reveal_step ops."""
+"""Animation planner: Claude Sonnet plans 3-6 grouped board ops; we validate them and reveal step 1 only
+(the tutor reveals later steps with reveal_step while explaining)."""
 import asyncio
 import json
 import logging
@@ -15,7 +16,7 @@ SCHEMA = json.loads(
 _VALIDATOR = jsonschema.Draft202012Validator(SCHEMA)
 UNAVAILABLE = [{"op": "write_text", "text": "(animation unavailable)", "place": "next"}]
 # The model must not emit these: reveals are generated here, the rest would act on the live board.
-_NOT_FROM_MODEL = {"reveal_step", "erase", "clear_tutor_layer", "highlight"}
+_NOT_FROM_MODEL = {"reveal_step", "erase", "clear_tutor_layer", "highlight", "place_image"}
 
 TOOL = {
     "name": "plan_animation",
@@ -53,14 +54,24 @@ async def animate(brief: str, board_text: str, *, client=None, timeout_s: float 
         log.warning("animate failed", exc_info=True)
         return list(UNAVAILABLE)
     group = "anim_" + uuid.uuid4().hex[:8]
+    raw = [op for op in raw if isinstance(op, dict)] if isinstance(raw, list) else []
+    # model ids (eq1, ...) would replace same-id tutor items already on the board: prefix them with the group
+    mine = {op["id"] for op in raw if isinstance(op.get("id"), str)}
+    ren = lambda i: f"{group}_{i}"[:64] if isinstance(i, str) and i in mine else i  # noqa: E731 (non-str: validator drops op)
     ops = []
-    for op in raw if isinstance(raw, list) else []:
-        if not isinstance(op, dict) or op.get("op") in _NOT_FROM_MODEL:
+    for op in raw:
+        if op.get("op") in _NOT_FROM_MODEL:
             continue
         op = {**op, "group": group} if "step" in op else dict(op)
+        for k in ("id", "from_id", "to_id", "target_id"):
+            if k in op:
+                op[k] = ren(op[k])
+        kind, _, ref = str(op.get("place", "")).partition(":")
+        if kind in ("below", "right_of"):
+            op["place"] = f"{kind}:{ren(ref)}"
         if _VALIDATOR.is_valid({"ops": [op]}):
             ops.append(op)
     if not ops:
         return list(UNAVAILABLE)
     steps = sorted({op["step"] for op in ops if "step" in op})
-    return ops + [{"op": "reveal_step", "group_id": group, "step": s} for s in steps]
+    return ops + [{"op": "reveal_step", "group_id": group, "step": steps[0]}] if steps else ops

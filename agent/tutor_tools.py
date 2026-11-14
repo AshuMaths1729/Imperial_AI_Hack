@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Literal, Protocol, TypedDict
+from typing import Any, Awaitable, Callable, Literal, Protocol, TypedDict
 
 import httpx
 from jsonschema import Draft202012Validator
@@ -26,10 +26,10 @@ class TutorIO(Protocol):
 
 
 class Box(TypedDict):
-    x: int
-    y: int
-    w: int
-    h: int
+    x: float
+    y: float
+    w: float
+    h: float
 
 
 def as_tool_output(result: str | tuple[str, str] | tuple[str, str, str], media_type: str) -> str:
@@ -54,9 +54,10 @@ def _op_error(i: int, op: Any) -> str | None:
 
 
 class TutorTools:
-    def __init__(self, io: TutorIO, lesson_id: str):
+    def __init__(self, io: TutorIO, lesson_id: str, on_note: Callable[[str], Awaitable[None]] | None = None):
         self.io = io
         self.lesson_id = lesson_id
+        self.on_note = on_note  # tells the tutor's chat context something happened (e.g. a visual arrived)
         self.covered: list[str] = []  # KPs marked during this lesson, sent with /end
         self._tasks: set[asyncio.Task] = set()
 
@@ -84,7 +85,11 @@ class TutorTools:
         return f"failed: {'; '.join(errors)}"
 
     async def board_text(self) -> str:
-        items = (await self.io.rpc("board.describe", {})).get("items", [])
+        reply = await self.io.rpc("board.describe", {})
+        items = reply.get("items")
+        if reply.get("ok") is False or not isinstance(items, list):
+            why = "; ".join(str(e) for e in reply.get("errors") or []) or "no items returned"
+            return f"couldn't read the board: {why}"
         lines = [
             f"{it['id']} {it['type']} {it['author']}: {it.get('text') or it.get('latex') or it.get('label') or ''}"
             for it in items
@@ -141,20 +146,33 @@ class TutorTools:
 
     async def start_visual(self, kind: Literal["illustration", "animation"], brief: str) -> str:
         try:
-            from workers import run_visual  # agent/workers (WS5), optional
+            from workers import is_fallback, run_visual  # agent/workers (WS5), optional
         except ImportError:
             return "not available"
-        task = asyncio.create_task(self._run_visual(run_visual, kind, brief))
+        task = asyncio.create_task(self._run_visual(run_visual, is_fallback, kind, brief))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return "queued"
 
-    async def _run_visual(self, run_visual, kind: str, brief: str) -> None:
+    async def _run_visual(self, run_visual, is_fallback, kind: str, brief: str) -> None:
+        note = f"Visual unavailable: {brief} — explain it in words or draw it yourself with board_write"
         try:
             ops = await run_visual(kind, brief, await self.board_text())
-            logger.info("visual %s: %s", kind, await self.board_write(ops))
+            result = await self.board_write(ops)
+            logger.info("visual %s: %s", kind, result)
+            if not result.startswith("failed") and not is_fallback(ops):
+                note = f"Visual ready: {brief}"
+                stepped = [op for op in ops if op.get("group") and op.get("step")]
+                if stepped:
+                    note += (f" (group {stepped[0]['group']}, steps 1..{max(op['step'] for op in stepped)}; "
+                             "reveal later steps with reveal_step as you explain)")
         except Exception:
             logger.exception("visual %s failed", kind)
+        if self.on_note is not None:
+            try:
+                await self.on_note(note)
+            except Exception:
+                logger.exception("visual note failed")
 
     def function_tools(self) -> list[llm.FunctionTool | llm.RawFunctionTool]:
         t = self
@@ -165,7 +183,10 @@ class TutorTools:
             "name": "board_write",
             "description": "Draw or change things on the shared whiteboard, in order. Board units are 0-1000 on both "
             "axes, never pixels. Give items short ids so you can refer to them (below:<id>, right_of:<id>, arrows). "
-            "Drawable ops accept optional group + step; reveal them one by one with reveal_step.",
+            "Ops with `step` are HIDDEN until you send reveal_step {group_id, step}; every stepped op needs a "
+            "`group`; reveal step 1 in the same call, then later steps as you talk. "
+            "plot_function expr uses x as the variable, * for multiplication and ^ for powers, with sin, cos, tan, "
+            "exp, log (natural), sqrt, abs, PI, E, e.g. x^2 or exp(-0.3*x)*cos(2*x).",
             "parameters": BOARD_WRITE_PARAMS,
         })
         async def board_write(raw_arguments: dict[str, Any]) -> str:
@@ -178,7 +199,8 @@ class TutorTools:
             Args:
                 region: optional area to look at as an image
             """
-            return as_tool_output(await t.look_at_board(dict(region) if region else None), "image/png")
+            box = {k: round(v) for k, v in region.items()} if region else None
+            return as_tool_output(await t.look_at_board(box), "image/png")
 
         @llm.function_tool
         async def look_at_screen() -> str:

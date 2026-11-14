@@ -120,7 +120,7 @@ function applyOps(editor: Editor, ops: unknown[]): ApplyResult {
       const v = validateOp(raw, existing, student);
       if ("error" in v) throw new Error(v.error);
       let id: string | undefined;
-      editor.run(() => { id = applyOne(editor, v.op); });
+      editor.run(() => { id = applyOne(editor, v.op); }, { history: "ignore" }); // tutor ops stay off the student's undo stack
       if (id) ids.push(id);
     } catch (e) {
       errors.push(`op ${i}: ${e instanceof Error ? e.message : String(e)}`);

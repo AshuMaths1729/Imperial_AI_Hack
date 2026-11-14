@@ -25,7 +25,7 @@ from livekit.agents import (
     room_io,
 )
 from livekit.agents.utils import images
-from livekit.plugins import anthropic, elevenlabs, silero, synthesia
+from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
 from circle import handle_circle, handle_lost
 from lesson_end import LessonEnder, finish_lesson
@@ -85,6 +85,7 @@ class RoomTutorIO:
             task = asyncio.create_task(self._keep_latest(track))
             self._tasks.add(task)
             task.add_done_callback(self._tasks.discard)
+            task.add_done_callback(log_task_exception)
 
     async def _keep_latest(self, track: rtc.Track) -> None:
         stream = rtc.VideoStream(track)
@@ -109,6 +110,40 @@ async def start_avatar(session: AgentSession, room: rtc.Room, make_avatar) -> bo
         return False
 
 
+def log_task_exception(task: asyncio.Task) -> None:
+    """Done-callback for background tasks: a crash would otherwise vanish silently."""
+    if not task.cancelled() and (exc := task.exception()) is not None:
+        logger.error("background task failed: %r", exc, exc_info=exc)
+
+
+def log_session(session: AgentSession) -> None:
+    """Log every tool call with its result and every session (LLM/STT/TTS) error."""
+
+    @session.on("function_tools_executed")
+    def _on_tools(ev) -> None:
+        for call, out in ev.zipped():
+            status = "error" if out is None or out.is_error else "ok"
+            logger.info("tool %s %s: %s", call.name, status, ((out.output if out else "") or "")[:200])
+
+    @session.on("error")
+    def _on_error(ev) -> None:
+        exc = getattr(ev.error, "error", None)
+        logger.error("session error from %s: %r", type(ev.source).__name__, ev.error,
+                     exc_info=exc if isinstance(exc, BaseException) else None)
+
+
+def track_turns(session: AgentSession, rolling: RollingSummary, after_tutor_turn) -> None:
+    """Feed every spoken user/tutor turn into the rolling lesson memory (sent with /end)."""
+
+    @session.on("conversation_item_added")
+    def _on_item(ev) -> None:
+        item = ev.item
+        if item.type == "message" and item.role in ("user", "assistant"):
+            rolling.add_turn(item.role, item.text_content or "")
+            if item.role == "assistant":
+                after_tutor_turn()
+
+
 def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
 
@@ -127,7 +162,13 @@ async def entrypoint(ctx: JobContext) -> None:
     _, tctx = await asyncio.gather(ctx.connect(), fetch_context())
 
     io = RoomTutorIO(ctx.room, http)
-    tools = TutorTools(io, lesson_id)
+
+    async def add_note(text: str) -> None:  # e.g. "Visual ready: ..." once a background visual is on the board
+        chat = agent.chat_ctx.copy()
+        chat.add_message(role="system", content=text)
+        await agent.update_chat_ctx(chat)
+
+    tools = TutorTools(io, lesson_id, on_note=add_note)
     rolling = RollingSummary(haiku_summarize)
     ender = LessonEnder(io.post, lesson_id)
     tasks: set[asyncio.Task] = set()
@@ -136,6 +177,7 @@ async def entrypoint(ctx: JobContext) -> None:
         task = asyncio.create_task(coro)
         tasks.add(task)
         task.add_done_callback(tasks.discard)
+        task.add_done_callback(log_task_exception)
 
     async def on_shutdown() -> None:
         # runs when the room closes (student left -> session closes -> room deleted), so /end is always posted
@@ -145,25 +187,20 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.add_shutdown_callback(on_shutdown)
 
     session = AgentSession(
-        stt=elevenlabs.STT(model="scribe_v2_realtime"),
-        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=300),
+        stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
+        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=800),  # 300 cut board_write calls off mid-JSON
         tts=elevenlabs.TTS(voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5"),
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced tutor captions
         turn_handling=TurnHandlingOptions(
-            interruption={"enabled": True, "min_duration": 0.3},
+            interruption={"enabled": True, "min_duration": 0.5, "min_words": 2},  # a cough or stray "No." keeps talking
             preemptive_generation={"enabled": True},
         ),
     )
     agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools())
 
-    @session.on("conversation_item_added")
-    def _on_item(ev) -> None:
-        item = ev.item
-        if item.type == "message" and item.role in ("user", "assistant"):
-            rolling.add_turn(item.role, item.text_content or "")
-            if item.role == "assistant":
-                spawn(fold())
+    track_turns(session, rolling, lambda: spawn(fold()))
+    log_session(session)
 
     async def fold() -> None:
         if not await rolling.maybe_fold():
@@ -204,7 +241,11 @@ async def entrypoint(ctx: JobContext) -> None:
     await session.start(
         agent=agent,
         room=ctx.room,
-        room_options=room_io.RoomOptions(delete_room_on_close=True),
+        room_options=room_io.RoomOptions(
+            delete_room_on_close=True,
+            # LiveKit Cloud BVC: strips background voices (noisy room) before VAD/STT
+            audio_input=room_io.AudioInputOptions(noise_cancellation=noise_cancellation.BVC()),
+        ),
     )
     session.generate_reply(instructions=greeting_instruction(tctx))
 
@@ -214,7 +255,7 @@ if __name__ == "__main__":
         WorkerOptions(
             entrypoint_fnc=entrypoint,
             prewarm_fnc=prewarm,
-            agent_name=os.environ.get("TUTOR_AGENT_NAME", "synthesia-avatar-agent"),
+            agent_name=os.environ.get("TUTOR_AGENT_NAME") or "scholartwin-tutor",
             shutdown_process_timeout=15,  # final summary <= 5 s + /end <= 3 s, with headroom
         )
     )

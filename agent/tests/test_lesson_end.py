@@ -49,7 +49,7 @@ async def test_finish_lesson_fits_shutdown_budget():
     await finish_lesson(rolling, LessonEnder(hanging_post, "L1"), ["m0:n1"], slow_summarize,
                         summary_timeout=0.1, end_timeout=0.1)
     assert time.perf_counter() - t0 < 0.5
-    assert hanging_post.body == {"summary": "rolling so far", "covered_kp_ids": ["m0:n1"]}
+    assert hanging_post.body == {"summary": "rolling so far\nuser: hi", "covered_kp_ids": ["m0:n1"]}
 
 
 async def test_finish_lesson_uses_final_summary():

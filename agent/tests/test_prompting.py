@@ -34,3 +34,8 @@ def test_greeting_mentions_last_lesson_when_absent():
     g = greeting_instruction({**CTX, "recent_lessons": []})
     assert "Alex" in g
     assert "last lesson" not in g.lower()
+
+
+def test_rules_explain_hidden_steps():
+    text = build_instructions(CTX)
+    assert "HIDDEN" in text and "reveal_step" in text and "group" in text
