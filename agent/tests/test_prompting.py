@@ -63,3 +63,43 @@ def test_tutor_can_teach_a_whole_slide_in_one_turn():
     import slides
     assert agent.MAX_TOOL_STEPS >= 10
     assert "without waiting" in slides.RULES
+
+
+RESUME = {"slide": 3, "step": 2, "idea": "A chord's gradient is rise over run.", "lesson_id": "l1",
+          "detours": [], "concepts": [], "text": "Lesson state:\nMain: slide 3, step 2 - chords\nNext: slide 3, step 3."}
+
+
+def test_rules_carry_the_teaching_contract():
+    from prompting import RULES
+    for phrase in ("Question first", "Concrete before abstract", "One idea per step", "predict",
+                   "same picture or analogy", "colour", "Bridge every slide", "25 seconds"):
+        assert phrase in RULES, phrase
+
+
+def test_lesson_state_rules_are_in_the_instructions():
+    import lesson_state
+    text = build_instructions(CTX)
+    assert lesson_state.RULES in text and "detour_start" in text
+
+
+def test_instructions_include_where_the_last_lesson_stopped():
+    text = build_instructions({**CTX, "resume": RESUME})
+    assert "Where the last lesson stopped" in text and "Main: slide 3, step 2 - chords" in text
+    assert "Where the last lesson stopped" not in build_instructions(CTX)
+
+
+def test_greeting_resumes_from_the_saved_slide():
+    g = greeting_instruction({**CTX, "resume": RESUME})
+    assert 'show_tab("slides")' in g and "slide_go(3)" in g
+    assert "rise over run" in g and "Alex" in g
+
+
+def test_greeting_without_a_saved_slide_starts_at_the_top():
+    g = greeting_instruction({**CTX, "resume": {**RESUME, "slide": 0}})
+    assert "slide_go" not in g and 'show_tab("slides")' in g
+
+
+def test_rules_stay_short_for_the_voice_model():
+    import lesson_state
+    from prompting import RULES
+    assert len(RULES) + len(lesson_state.RULES) < 4000
