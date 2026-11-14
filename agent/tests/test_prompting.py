@@ -30,6 +30,10 @@ def test_greeting_mentions_last_lesson_when_present():
     assert "Covered the loss function" in g
 
 
+def test_greeting_opens_the_slides():
+    assert 'show_tab("slides")' in greeting_instruction(CTX)
+
+
 def test_greeting_mentions_last_lesson_when_absent():
     g = greeting_instruction({**CTX, "recent_lessons": []})
     assert "Alex" in g

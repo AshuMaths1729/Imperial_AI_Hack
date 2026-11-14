@@ -46,4 +46,4 @@ def greeting_instruction(ctx: dict) -> str:
     text = f"Greet the student, {ctx['profile']['name']}, by name in one sentence."
     if ctx.get("recent_lessons"):
         text += f" Mention one thing from the last lesson: {ctx['recent_lessons'][0].get('summary', '')}"
-    return text
+    return text + ' Then call show_tab("slides") to open today\'s slides.'

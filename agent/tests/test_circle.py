@@ -29,7 +29,7 @@ def test_slide_circle_routes_to_animation_or_handwritten_working():
     assert text.startswith('[circled on slide s3] items=curve said="why minus?"')
     # derivations are worked by hand on the board, concepts get a richer animation
     assert 'show_tab("board")' in text and "derivation" in text
-    assert 'start_visual(kind="animation"' in text
+    assert "slide_animate(" in text and "curve" in text  # follow-up slide built from the circled objects
     assert "point_at" not in text  # slide objects are not board items
 
 
