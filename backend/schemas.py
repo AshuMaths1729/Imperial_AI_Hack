@@ -70,6 +70,11 @@ class WorkspaceDataset(BaseModel):
     simulation: Optional[SimulationPayload] = None
 
 
+class UrlIngestRequest(BaseModel):
+    url: str
+    mode: Literal["lecture", "paper2sim", "hypothesis"] = "lecture"
+
+
 class SpatialAskRequest(BaseModel):
     mode: Literal["lecture", "paper2sim", "hypothesis"]
     transcript: str

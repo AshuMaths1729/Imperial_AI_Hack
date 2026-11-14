@@ -14,6 +14,7 @@ import { GraphCanvas } from "../components/GraphCanvas";
 import { PaperSimCanvas } from "../components/PaperSimCanvas";
 import { InspectorPane } from "../components/InspectorPane";
 import { BoundingBox, LassoOverlay } from "../components/LassoOverlay";
+import { UploadModal } from "../components/UploadModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -32,6 +33,9 @@ export default function ScholarTwinWorkspace() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const loadMode = useCallback(async (targetMode: WorkspaceMode) => {
     setAnnotations([]);
@@ -129,6 +133,54 @@ export default function ScholarTwinWorkspace() {
     handleAsk("Explain what I just circled here.", bbox);
   };
 
+  const applyIngestedDataset = (data: WorkspaceDataset) => {
+    setDataset(data);
+    setSelectedNode(data.nodes[0] ?? null);
+    setAnnotations([]);
+    setUploadOpen(false);
+    setUploadError(null);
+    const msg = `Loaded "${data.title}" with ${data.nodes.length || "live simulation"} items. Click or circle any part to ask me about it!`;
+    setLastReply(msg);
+    speakText(msg);
+  };
+
+  const handleUploadPdf = async (file: File) => {
+    setUploadLoading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("mode", mode);
+      const res = await fetch(`${API_BASE}/api/ingest/pdf`, { method: "POST", body: form });
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+      const data: WorkspaceDataset = await res.json();
+      applyIngestedDataset(data);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Could not parse PDF. Is the backend running?");
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleIngestUrl = async (url: string) => {
+    setUploadLoading(true);
+    setUploadError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/ingest/url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, mode }),
+      });
+      if (!res.ok) throw new Error(`URL ingest failed (${res.status})`);
+      const data: WorkspaceDataset = await res.json();
+      applyIngestedDataset(data);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Could not fetch URL. Is the backend running?");
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
       {/* Top Workspace Bar */}
@@ -203,9 +255,10 @@ export default function ScholarTwinWorkspace() {
           ttsEnabled={ttsEnabled}
           onToggleTts={() => setTtsEnabled((v) => !v)}
           onAsk={(text) => handleAsk(text)}
-          onUploadClick={() =>
-            setLastReply("Phase 2 will enable live PDF/arXiv ingestion! Currently running cached Imperial demo presets.")
-          }
+          onUploadClick={() => {
+            setUploadError(null);
+            setUploadOpen(true);
+          }}
         />
 
         {/* Center Pane: Interactive Graphic + Circle-to-Ask Overlay */}
@@ -265,6 +318,15 @@ export default function ScholarTwinWorkspace() {
           simulation={dataset?.simulation}
         />
       </div>
+
+      <UploadModal
+        open={uploadOpen}
+        loading={uploadLoading}
+        error={uploadError}
+        onClose={() => setUploadOpen(false)}
+        onUploadPdf={handleUploadPdf}
+        onIngestUrl={handleIngestUrl}
+      />
     </div>
   );
 }
