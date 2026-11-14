@@ -30,3 +30,15 @@ def test_falls_back_on_non_https_or_error():
     bad = FakeFal(result={"images": [{"url": "http://insecure/x.png"}]})
     assert asyncio.run(illustrate("x", client=bad))[0]["op"] == "write_text"
     assert asyncio.run(illustrate("x", client=FakeFal(result={})))[0]["op"] == "write_text"
+
+
+def test_exception_and_none_url_fall_back_and_log(caplog):
+    class Boom:
+        async def subscribe_async(self, *a, **kw):
+            raise RuntimeError("bad key")
+
+    with caplog.at_level("WARNING"):
+        assert asyncio.run(illustrate("x", client=Boom()))[0]["op"] == "write_text"
+    assert "illustrate failed" in caplog.text and "bad key" in caplog.text
+    none_url = FakeFal(result={"images": [{"url": None}]})
+    assert asyncio.run(illustrate("x", client=none_url))[0]["op"] == "write_text"

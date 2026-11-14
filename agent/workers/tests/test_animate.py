@@ -67,3 +67,16 @@ def test_run_visual_dispatches(monkeypatch):
     monkeypatch.setattr(workers, "animate", fake_anim)
     assert asyncio.run(run_visual("illustration", "b", "t")) == ["ill", "b"]
     assert asyncio.run(run_visual("animation", "b", "t")) == ["anim", "b", "t"]
+
+
+def test_exception_falls_back_and_logs(caplog):
+    class Boom:
+        def __init__(self):
+            self.messages = SimpleNamespace(create=self._create)
+
+        async def _create(self, **kw):
+            raise RuntimeError("400 bad schema")
+
+    with caplog.at_level("WARNING"):
+        assert asyncio.run(animate("b", "", client=Boom())) == UNAVAILABLE
+    assert "animate failed" in caplog.text and "400 bad schema" in caplog.text

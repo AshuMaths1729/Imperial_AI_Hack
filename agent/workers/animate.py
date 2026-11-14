@@ -1,11 +1,13 @@
 """Animation planner: Claude Sonnet plans 3-6 grouped board ops; we validate and append reveal_step ops."""
 import asyncio
 import json
+import logging
 import uuid
 from pathlib import Path
 
 import jsonschema
 
+log = logging.getLogger(__name__)
 MODEL = "claude-sonnet-5-5"
 SCHEMA = json.loads(
     (Path(__file__).resolve().parents[2] / "frontend/src/tutor/contracts/board_ops.schema.json").read_text()
@@ -48,6 +50,7 @@ async def animate(brief: str, board_text: str, *, client=None, timeout_s: float 
         )
         raw = next(b.input for b in resp.content if b.type == "tool_use")["ops"]
     except Exception:  # timeout, API error, or no tool call: the tutor just says it can't
+        log.warning("animate failed", exc_info=True)
         return list(UNAVAILABLE)
     group = "anim_" + uuid.uuid4().hex[:8]
     ops = []
