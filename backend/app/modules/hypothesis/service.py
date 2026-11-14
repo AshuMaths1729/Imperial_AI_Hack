@@ -43,6 +43,7 @@ log = logging.getLogger(__name__)
 
 MAX_CLAIMS_PER_PAPER = 4
 MAX_CLUSTERS = 8
+MIN_TIER1_CLUSTERS = 3
 MAX_CLAIMS_PER_CLUSTER = 8
 CONCURRENCY = 6
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]+$")
@@ -180,14 +181,33 @@ async def normalize(llm: LLMClient, claims: list[ClaimRec]) -> None:
 
 
 def cluster_claims(claims: list[ClaimRec]) -> list[Cluster]:
-    """Group by canonical (entity, property); keep >= 2 papers; top MAX_CLUSTERS by size."""
+    """Group claims that could be compared; keep clusters spanning >= 2 papers.
+
+    Tier 1 groups by canonical (entity, property). When that yields fewer than
+    MIN_TIER1_CLUSTERS clusters (diverse corpora rarely share both keys), tier 2 adds clusters by
+    property alone (key = ("*", property)) so cross-paper contradictions can still be found.
+    """
     groups: dict[tuple[str, str], Cluster] = {}
     for c in claims:
         key = (c.entity_key, c.property_key)
         groups.setdefault(key, Cluster(key)).claims.append(c)
-    multi = [g for g in groups.values() if g.n_papers >= 2]
-    multi.sort(key=lambda g: (-len(g.claims), g.key))
-    return multi[:MAX_CLUSTERS]
+    chosen = [g for g in groups.values() if g.n_papers >= 2]
+    chosen.sort(key=lambda g: (-len(g.claims), g.key))
+    chosen = chosen[:MAX_CLUSTERS]
+
+    if len(chosen) < MIN_TIER1_CLUSTERS:
+        by_prop: dict[str, Cluster] = {}
+        for c in claims:
+            by_prop.setdefault(c.property_key, Cluster(("*", c.property_key))).claims.append(c)
+        covered = [{id(c) for c in g.claims} for g in chosen]
+        extra = [
+            g
+            for g in by_prop.values()
+            if g.n_papers >= 2 and not any({id(c) for c in g.claims} <= s for s in covered)
+        ]
+        extra.sort(key=lambda g: (-len(g.claims), g.key))
+        chosen += extra[: MAX_CLUSTERS - len(chosen)]
+    return chosen
 
 
 def _claim_line(i: int, c: ClaimRec) -> str:
