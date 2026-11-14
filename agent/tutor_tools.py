@@ -14,7 +14,9 @@ from livekit.agents import llm
 logger = logging.getLogger("tutor.tools")
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "frontend/src/tutor/contracts/board_ops.schema.json"
-_validator = Draft202012Validator(json.loads(SCHEMA_PATH.read_text()))
+_SCHEMA = json.loads(SCHEMA_PATH.read_text())
+_validator = Draft202012Validator(_SCHEMA)
+BOARD_WRITE_PARAMS = {k: v for k, v in _SCHEMA.items() if k in ("type", "required", "properties", "$defs")}
 
 
 class TutorIO(Protocol):
@@ -146,24 +148,20 @@ class TutorTools:
         except Exception:
             logger.exception("visual %s failed", kind)
 
-    def function_tools(self) -> list[llm.FunctionTool]:
+    def function_tools(self) -> list[llm.FunctionTool | llm.RawFunctionTool]:
         t = self
 
-        @llm.function_tool
-        async def board_write(ops: list[dict[str, Any]]) -> str:
-            """Draw or change things on the shared whiteboard. Board units are 0-1000 on both axes; never pixels.
-
-            Ops (every op is an object with "op"; drawable ops accept optional "group" + "step" for step-by-step reveals):
-            write_text {id?, text, place}; write_math {id?, latex, place}; draw_shape {id?, shape: rect|ellipse|line, label?, place};
-            draw_arrow {id?, from_id, to_id, label?}; plot_function {id?, expr | points, x_range: [min, max], label?, place};
-            place_image {id?, url, caption?, place}; highlight {target_id, color?: yellow|red|green|blue|violet};
-            reveal_step {group_id, step}; erase {target_id}; clear_tutor_layer {}.
-            place is "next" | "below:<id>" | "right_of:<id>" | "region:x,y,w,h". Give items short ids so you can refer to them.
-
-            Args:
-                ops: the board ops to apply, in order
-            """
-            return await t.board_write(ops)
+        # Raw (non-strict) tool: Anthropic strict mode rejects free-form op objects, and this way the model
+        # sees the exact board-op contract.
+        @llm.function_tool(raw_schema={
+            "name": "board_write",
+            "description": "Draw or change things on the shared whiteboard, in order. Board units are 0-1000 on both "
+            "axes, never pixels. Give items short ids so you can refer to them (below:<id>, right_of:<id>, arrows). "
+            "Drawable ops accept optional group + step; reveal them one by one with reveal_step.",
+            "parameters": BOARD_WRITE_PARAMS,
+        })
+        async def board_write(raw_arguments: dict[str, Any]) -> str:
+            return await t.board_write(raw_arguments.get("ops") or [])
 
         @llm.function_tool
         async def look_at_board(region: Box | None = None) -> str:

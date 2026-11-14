@@ -142,7 +142,7 @@ def test_function_tools_exposed():
     names = {t.info.name for t in TutorTools(FakeIO(), "L1").function_tools()}
     assert names == {"board_write", "look_at_board", "look_at_screen", "mark_progress",
                      "note_struggle", "note_worked", "start_visual"}
-    assert all(isinstance(t, llm.FunctionTool) for t in TutorTools(FakeIO(), "L1").function_tools())
+    assert all(isinstance(t, (llm.FunctionTool, llm.RawFunctionTool)) for t in TutorTools(FakeIO(), "L1").function_tools())
 
 
 @pytest.mark.parametrize("result,expected_type", [("plain", str), (("t", "B64"), list)])
@@ -156,3 +156,13 @@ async def test_tool_wrapper_attaches_image(result, expected_type):
         blocks = json.loads(out)
         assert blocks[0] == {"type": "text", "text": "t"}
         assert blocks[1]["source"] == {"type": "base64", "media_type": "image/png", "data": "B64"}
+
+
+async def test_board_write_tool_schema_is_the_contract_and_forwards():
+    from livekit.agents import llm
+
+    io = FakeIO({"board.apply": ok_apply})
+    tool = next(t for t in TutorTools(io, "L1").function_tools() if t.info.name == "board_write")
+    schema = llm.ToolContext([tool]).parse_function_tools("anthropic", strict=True)[0]
+    assert "strict" not in schema and "write_math" in schema["input_schema"]["$defs"]
+    assert (await tool(raw_arguments={"ops": VALID_OPS[:1]})).startswith("ok: drew title")
