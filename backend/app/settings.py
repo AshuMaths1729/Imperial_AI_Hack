@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     s2_api_key: SecretStr | None = None
     openalex_mailto: str | None = None  # contact email for the OpenAlex polite pool
 
+    # --- live tutor (LiveKit room + agent dispatch) ---------------------------------
+    livekit_url: str | None = None
+    livekit_api_key: SecretStr | None = None
+    livekit_api_secret: SecretStr | None = None
+    tutor_agent_name: str = "scholartwin-tutor"  # must match the agent worker's TUTOR_AGENT_NAME
+
     # --- cache / offline / presets --------------------------------------------------
     cache_mode: CacheMode = "live"
     offline: bool = False  # alias: OFFLINE=1 is the same as CACHE_MODE=offline
