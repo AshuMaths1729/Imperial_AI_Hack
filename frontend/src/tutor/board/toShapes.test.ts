@@ -49,6 +49,17 @@ describe("opToShapePartials", () => {
     }
   });
 
+  it("tutor text is handwritten (tldraw's draw font)", () => {
+    const [s] = opToShapePartials({ op: "write_text", id: "a", text: "hi", place: "next" }, box, 1);
+    expect(s.props).toMatchObject({ font: "draw" });
+  });
+
+  it("point_at, annotate and focus are not stored by the pure mapping (the board animates them)", () => {
+    expect(opToShapePartials({ op: "point_at", target_id: "a" }, box, 1)).toEqual([]);
+    expect(opToShapePartials({ op: "focus", target_id: "a" }, box, 1)).toEqual([]);
+    expect(opToShapePartials({ op: "annotate", mark: "circle", target_id: "a" }, box, 1)).toEqual([]);
+  });
+
   it("generates an id when the op has none", () => {
     const [s] = opToShapePartials({ op: "write_text", text: "hi", place: "next" }, box, 1);
     expect(s.meta?.boardId).toMatch(/^[A-Za-z0-9_-]+$/);

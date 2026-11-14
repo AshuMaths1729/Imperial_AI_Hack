@@ -33,8 +33,10 @@ describe("circle helpers", () => {
 });
 
 describe("lassoRegion", () => {
-  it("clips to the board and grows tiny lassos", () => {
-    expect(lassoRegion({ x: -50, y: 900, w: 200, h: 300 })).toEqual({ x: 0, y: 900, w: 150, h: 100 });
+  it("clips to the 1000×3000 page and grows tiny lassos", () => {
+    expect(lassoRegion({ x: -50, y: 900, w: 200, h: 300 })).toEqual({ x: 0, y: 900, w: 150, h: 300 });
+    expect(lassoRegion({ x: 900, y: 2900, w: 200, h: 300 })).toEqual({ x: 900, y: 2900, w: 100, h: 100 });
+    expect(lassoRegion({ x: 10, y: 2999, w: 2, h: 2 })).toEqual({ x: 0, y: 2968, w: 32, h: 32 });
     expect(lassoRegion({ x: 500, y: 500, w: 0, h: 0 })).toEqual({ x: 484, y: 484, w: 32, h: 32 });
     expect(lassoRegion({ x: 995, y: 0, w: 2, h: 2 })).toEqual({ x: 968, y: 0, w: 32, h: 32 });
   });
