@@ -94,5 +94,67 @@ def test_end_is_idempotent(client):
 def test_context_bundle(client):
     lid = new_lesson(client)
     ctx = client.get(f"/api/tutor/context/{lid}").json()
-    assert set(ctx) == {"tutor", "profile", "track", "recent_lessons"}
+    assert set(ctx) == {"tutor", "profile", "track", "recent_lessons", "resume"}
+    assert ctx["resume"] is None
     assert client.get("/api/tutor/context/nope").status_code == 404
+
+
+STATE = {
+    "slide": 3, "step": 2, "idea": "A chord's gradient is rise over run.",
+    "detours": [{"topic": "limits", "why": "asked", "from_slide": 3, "from_step": 2, "from_idea": "chords"}],
+    "concepts": [{"concept": "gradient", "level": "got_it", "evidence": "said 2", "anchor": "speedometer", "tries": 0}],
+    "text": "Lesson state: ...",
+}
+
+
+def test_state_roundtrip(client):
+    lid = new_lesson(client)
+    assert client.get(f"/api/tutor/lessons/{lid}/state").json() is None
+    saved = client.post(f"/api/tutor/lessons/{lid}/state", json=STATE).json()
+    assert saved["saved_at"] and saved["slide"] == 3
+    got = client.get(f"/api/tutor/lessons/{lid}/state").json()
+    assert got == saved and got["concepts"][0]["anchor"] == "speedometer"
+    newer = client.post(f"/api/tutor/lessons/{lid}/state", json={**STATE, "step": 3}).json()
+    assert client.get(f"/api/tutor/lessons/{lid}/state").json()["step"] == 3 and newer["step"] == 3
+
+
+def test_state_is_validated(client):
+    lid = new_lesson(client)
+    url = f"/api/tutor/lessons/{lid}/state"
+    bad_level = {**STATE, "concepts": [{"concept": "x", "level": "kinda"}]}
+    assert client.post(url, json=bad_level).status_code == 422
+    assert client.post(url, json={**STATE, "slide": "three"}).status_code == 422
+    assert client.post(url, json={**STATE, "text": "x" * 5000}).status_code == 422
+    assert client.post("/api/tutor/lessons/nope/state", json=STATE).status_code == 404
+    assert client.get("/api/tutor/lessons/nope/state").status_code == 404
+
+
+def test_state_does_not_unend_or_change_the_lesson(client):
+    lid = new_lesson(client)
+    client.post(f"/api/tutor/lessons/{lid}/end", json={"summary": "s"})
+    client.post(f"/api/tutor/lessons/{lid}/state", json=STATE)  # a late checkpoint after /end
+    lesson = client.app.dependency_overrides[get_store]().get_lesson(lid)
+    assert lesson.ended_at and lesson.summary == "s" and lesson.state.slide == 3
+
+
+def test_new_lesson_resumes_from_the_previous_lessons_state(client):
+    first = new_lesson(client)
+    client.post(f"/api/tutor/lessons/{first}/state", json=STATE)
+    client.post(f"/api/tutor/lessons/{first}/end", json={"summary": "did chords"})
+    second = new_lesson(client)
+    ctx = client.get(f"/api/tutor/context/{second}").json()
+    assert ctx["recent_lessons"][0]["state"]["slide"] == 3
+    assert ctx["resume"]["slide"] == 3 and ctx["resume"]["lesson_id"] == first
+
+
+def test_resume_survives_a_lesson_that_never_ended(client):
+    crashed = new_lesson(client)  # the worker died before /end: its checkpoint still resumes
+    client.post(f"/api/tutor/lessons/{crashed}/state", json={**STATE, "slide": 5})
+    later = new_lesson(client)
+    client.post(f"/api/tutor/lessons/{later}/state", json={**STATE, "slide": 6})
+    current = new_lesson(client)
+    resume = client.get(f"/api/tutor/context/{current}").json()["resume"]
+    assert resume["slide"] == 6 and resume["lesson_id"] == later
+    # the current lesson's own checkpoint is never its resume point
+    client.post(f"/api/tutor/lessons/{current}/state", json={**STATE, "slide": 1})
+    assert client.get(f"/api/tutor/context/{current}").json()["resume"]["slide"] == 6

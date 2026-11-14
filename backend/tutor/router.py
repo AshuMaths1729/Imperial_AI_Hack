@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from schemas import WorkspaceDataset
 
 from . import deck as decks
-from .models import KP, Lesson, Material, Struggle, Track, Worked
+from .models import KP, Lesson, LessonCheckpoint, Material, Struggle, Track, Worked
 from .livekit_token import mint_token
 from .store import Store, make_store
 
@@ -160,6 +160,7 @@ def get_context(lesson_id: str, store: Store = Depends(get_store)):
         "profile": _lookup(store.get_profile, track.user_id),
         "track": track,
         "recent_lessons": store.recent_lessons(track.track_id, 3),
+        "resume": store.latest_state(track.track_id, lesson_id),  # where the last lesson stopped, or None
     }
 
 
@@ -179,6 +180,21 @@ def post_progress(lesson_id: str, body: ProgressIn, store: Store = Depends(get_s
     store.save_track(track)
     store.save_lesson(lesson)
     return lesson
+
+
+@tutor_router.post("/lessons/{lesson_id}/state")
+@_locked
+def save_state(lesson_id: str, body: LessonCheckpoint, store: Store = Depends(get_store)) -> LessonCheckpoint:
+    """The agent's lesson-state checkpoint (every tutor turn / 60 s); only the latest is kept."""
+    lesson = _lookup(store.get_lesson, lesson_id)
+    lesson.state = body.model_copy(update={"saved_at": datetime.now(timezone.utc).isoformat()})
+    store.save_lesson(lesson)
+    return lesson.state
+
+
+@tutor_router.get("/lessons/{lesson_id}/state")
+def get_state(lesson_id: str, store: Store = Depends(get_store)) -> Optional[LessonCheckpoint]:
+    return _lookup(store.get_lesson, lesson_id).state
 
 
 @tutor_router.post("/lessons/{lesson_id}/end")
