@@ -19,6 +19,121 @@
   }
 }
 
+/* ---------- ScholarTwin motion utilities (st-*) ---------- */
+@keyframes st-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes st-fade-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes st-pop {
+  0% { transform: scale(0.96); }
+  60% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+@keyframes st-aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  50% { transform: translate(4%, 24px) scale(1.08); opacity: 0.6; }
+}
+@keyframes st-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -20px) scale(1.1); }
+}
+@keyframes st-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes st-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes st-twinkle {
+  0%, 100% { opacity: 1; transform: rotate(0deg) scale(1); }
+  50% { opacity: 0.65; transform: rotate(12deg) scale(0.92); }
+}
+@keyframes st-border-spin {
+  to { --st-angle: 360deg; }
+}
+@keyframes st-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes st-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+@keyframes st-sheen {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to { transform: translateX(260%) skewX(-20deg); }
+}
+
+@property --st-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.st-fade-up { animation: st-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.st-fade-down { animation: st-fade-down 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.st-pop > * { animation: st-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: inherit; }
+.st-aurora { animation: st-aurora 14s ease-in-out infinite; }
+.st-aurora-slow { animation: st-drift 20s ease-in-out infinite; }
+.st-float { animation: st-float 3.2s ease-in-out infinite; }
+.st-bob { animation: st-bob 2.6s ease-in-out infinite; }
+.st-twinkle { animation: st-twinkle 3.5s ease-in-out infinite; }
+.st-progress { animation: st-progress 1.2s ease-in-out infinite; }
+.st-shake { animation: st-shake 0.4s ease-in-out; }
+
+.st-grid {
+  background-image:
+    linear-gradient(to right, rgb(51 65 85 / 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(51 65 85 / 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at top, black 20%, transparent 70%);
+}
+
+/* Rotating gradient border for the hero panel */
+.st-glow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--st-angle),
+    rgb(14 165 233 / 0.0),
+    rgb(14 165 233 / 0.9),
+    rgb(52 211 153 / 0.7),
+    rgb(14 165 233 / 0.0) 40%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: st-border-spin 6s linear infinite;
+  pointer-events: none;
+}
+
+/* Light sheen sweeping across cards on hover */
+.st-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent);
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
+}
+.st-sheen:hover::after { animation: st-sheen 0.9s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="st-"], [class*="st-"]::before, [class*="st-"]::after {
+    animation: none !important;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -507,27 +507,17 @@ export default function ScholarTwinWorkspace() {
   if (screen === "library") {
     const libraryMode = mode === "paper2sim" ? "paper2sim" : "lecture";
     return (
-      <>
-        <LibraryView
-          mode={libraryMode}
-          topics={libraryTopics.filter((t) => t.mode === libraryMode)}
-          onBackHome={() => setScreen("home")}
-          onOpenTopic={openTopic}
-          onDeleteTopic={deleteTopic}
-          onNewConversation={() => {
-            setUploadError(null);
-            setUploadOpen(true);
-          }}
-        />
-        <UploadModal
-          open={uploadOpen}
-          loading={uploadLoading}
-          error={uploadError}
-          onClose={() => setUploadOpen(false)}
-          onUploadPdf={handleUploadPdf}
-          onIngestUrl={handleIngestUrl}
-        />
-      </>
+      <LibraryView
+        mode={libraryMode}
+        topics={libraryTopics.filter((t) => t.mode === libraryMode)}
+        uploadLoading={uploadLoading}
+        uploadError={uploadError}
+        onBackHome={() => setScreen("home")}
+        onOpenTopic={openTopic}
+        onDeleteTopic={deleteTopic}
+        onUploadPdf={handleUploadPdf}
+        onIngestUrl={handleIngestUrl}
+      />
     );
   }
 
