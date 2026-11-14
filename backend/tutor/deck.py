@@ -424,7 +424,7 @@ def generate_deck(track: Track, llm: LLM, attempts: int = 2) -> Tuple[dict, List
     for _ in range(attempts):
         resp = llm({
             "model": MODEL, "max_tokens": 16000, "system": SYSTEM, "tools": [tool],
-            "tool_choice": {"type": "tool", "name": tool["name"]}, "messages": messages,
+            "tool_choice": {"type": "auto"}, "messages": messages,  # Sonnet 5.5 rejects a forced tool_choice; SYSTEM names it
         })
         use = next((b for b in resp.get("content", []) if b.get("type") == "tool_use"), None)
         if use is None:

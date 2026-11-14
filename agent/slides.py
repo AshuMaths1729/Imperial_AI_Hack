@@ -144,7 +144,8 @@ class SlideTools:
         task = asyncio.create_task(self._animate(brief, object_ids or [], ctx))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
-        return "queued: building the follow-up animation; it opens on the Slides tab by itself in a few seconds. Keep talking meanwhile."
+        return ("queued: building the follow-up animation; it opens on the Slides tab by itself in about 10-20 seconds. "
+                "Meanwhile talk about the idea itself; do not describe the animation until a note says it is on screen.")
 
     async def _plan(self, messages: list) -> tuple[Any, Any]:
         if self.client is None:
@@ -154,7 +155,8 @@ class SlideTools:
         resp = await asyncio.wait_for(
             self.client.messages.create(
                 model=MODEL, max_tokens=6000, system=FOLLOWUP_SYSTEM, tools=[SLIDE_TOOL],
-                tool_choice={"type": "tool", "name": SLIDE_TOOL["name"]}, messages=messages,
+                # Sonnet 5.5 rejects a forced tool_choice; FOLLOWUP_SYSTEM names the tool. No thinking: it must land in seconds.
+                tool_choice={"type": "auto"}, thinking={"type": "between_tools"}, messages=messages,
             ),
             self.timeout_s,
         )

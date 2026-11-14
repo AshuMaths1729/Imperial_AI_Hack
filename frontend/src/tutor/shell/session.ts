@@ -40,7 +40,11 @@ export async function connectLesson(
 ): Promise<void> {
   const handlers = makeBoardRpcHandlers(getBoard);
   for (const method of Object.keys(handlers) as BoardRpcMethod[]) {
-    room.registerRpcMethod(method, (d) => handlers[method](d.payload));
+    room.registerRpcMethod(method, (d) => {
+      // Whatever the tutor writes or points at on the board must be on screen, even mid-slides.
+      if (method === "board.apply") getStage()?.showTab("board");
+      return handlers[method](d.payload);
+    });
   }
   const stage = makeSlidesRpcHandlers(getStage);
   for (const method of Object.keys(stage) as SlidesRpcMethod[]) {

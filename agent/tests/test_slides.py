@@ -167,7 +167,8 @@ def test_animate_generates_validates_pushes_and_tells_the_tutor():
 
     asyncio.run(run())
     call = client.calls[0]
-    assert call["model"] == "claude-sonnet-5-5" and call["tool_choice"]["name"] == "make_slide"
+    assert call["model"] == "claude-sonnet-5-5" and call["tool_choice"] == {"type": "auto"}
+    assert call["thinking"] == {"type": "between_tools"}  # a follow-up must land in seconds
     assert '"id": "tan"' in call["messages"][0]["content"] and "why the tangent tilts" in call["messages"][0]["content"]
     assert pushed == [SLIDE]
     assert "on screen now as slide 4" in ctx.notes[0] and "step 1: drag it" in ctx.notes[0]

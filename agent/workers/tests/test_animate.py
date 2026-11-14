@@ -34,6 +34,7 @@ def test_returns_ops_plus_first_reveal():
     fake = FakeAnthropic(GOOD)
     ops = asyncio.run(animate("how a stack works", "board has: x", client=fake))
     assert fake.kw["model"] == "claude-sonnet-5-5"
+    assert fake.kw["tool_choice"] == {"type": "auto"} and fake.kw["thinking"] == {"type": "between_tools"}
     assert fake.kw["tools"][0]["input_schema"]["properties"]["ops"]
     drawn, reveals = ops[:3], ops[3:]
     group = drawn[0]["group"]

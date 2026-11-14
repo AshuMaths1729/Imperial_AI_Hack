@@ -11,7 +11,7 @@ import {
   type Caption,
   type RoomLike,
 } from "./session";
-import type { CircleEvent } from "@/tutor/contracts/types";
+import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 
 type Handler = (...args: unknown[]) => void;
 
@@ -71,6 +71,19 @@ describe("session", () => {
     // the stub board answers {ok:false}; the RPC passes the payload through and returns its reply
     const reply = JSON.parse(await room.rpcs.get("board.apply")!({ payload: '{"ops":[]}' }));
     expect(reply).toHaveProperty("ok");
+  });
+
+  it("the stage switches to the whiteboard when the tutor writes on it", async () => {
+    const room = fakeRoom();
+    const showTab = vi.fn();
+    const board = { applyOps: vi.fn(() => ({ ok: true, ids: ["eq1"], errors: [] })) } as unknown as BoardHandle;
+    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => board, undefined, () => ({ showTab, slides: null }));
+
+    await room.rpcs.get("board.apply")!({ payload: '{"ops":[{"op":"point_at","target_id":"eq1"}]}' });
+    expect(showTab).toHaveBeenCalledWith("board"); // anything the tutor does on the board must be visible
+    showTab.mockClear();
+    await room.rpcs.get("board.describe")!({ payload: "{}" }).catch(() => undefined);
+    expect(showTab).not.toHaveBeenCalled(); // reading the board doesn't take the stage
   });
 
   it("sendCircle uses tutor.circle topic", async () => {

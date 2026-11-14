@@ -99,7 +99,7 @@ def test_generate_retries_with_errors_then_succeeds():
     deck, warnings = decks.generate_deck(demo_track(), llm)
     assert deck["slides"][0]["id"] == "s1" and warnings == []
     first, second = llm.bodies
-    assert first["model"] == "claude-sonnet-5-5" and first["tool_choice"]["name"] == "make_deck"
+    assert first["model"] == "claude-sonnet-5-5" and first["tool_choice"] == {"type": "auto"}
     assert "Momentum" in first["messages"][0]["content"]  # KPs are in the prompt
     feedback = second["messages"][-1]["content"][0]
     assert feedback["tool_use_id"] == "tu1" and "nope" in feedback["content"]

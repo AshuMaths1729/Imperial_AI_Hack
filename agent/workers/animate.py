@@ -32,7 +32,7 @@ SYSTEM = (
 )
 
 
-async def animate(brief: str, board_text: str, *, client=None, timeout_s: float = 8.0) -> list[dict]:
+async def animate(brief: str, board_text: str, *, client=None, timeout_s: float = 12.0) -> list[dict]:
     if client is None:
         import anthropic
 
@@ -44,7 +44,9 @@ async def animate(brief: str, board_text: str, *, client=None, timeout_s: float 
                 max_tokens=2000,
                 system=SYSTEM,
                 tools=[TOOL],
-                tool_choice={"type": "tool", "name": TOOL["name"]},
+                # Sonnet 5.5 rejects a forced tool_choice; the system prompt names the tool. No thinking: 8 s budget.
+                tool_choice={"type": "auto"},
+                thinking={"type": "between_tools"},
                 messages=[{"role": "user", "content": f"Animation to make: {brief}\n\nCurrent board:\n{board_text}"}],
             ),
             timeout_s,
