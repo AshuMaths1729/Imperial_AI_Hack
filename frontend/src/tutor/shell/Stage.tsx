@@ -1,10 +1,11 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useState, type ReactNode, type RefObject } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { MonitorUp } from "lucide-react";
 import { Whiteboard } from "@/tutor/board";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
+import { ScreenCircle } from "./ScreenCircle";
 import { TrackVideo } from "./VideoTiles";
 
 export type StageTab = "board" | "screen";
@@ -20,7 +21,8 @@ type Props = {
   children?: ReactNode; // overlays (captions)
 };
 
-export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, onShare, children }: Props) {
+export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, circleMode, onShare, children }: Props) {
+  const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   const tabs: [StageTab, string][] = [
     ["board", "Whiteboard"],
     ["screen", "Shared screen"],
@@ -50,7 +52,10 @@ export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, onShare, ch
         </div>
         <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : "invisible"}`}>
           {screenTrack ? (
-            <TrackVideo track={screenTrack} fit="contain" label="Your shared screen" />
+            <>
+              <TrackVideo ref={setScreenVideo} track={screenTrack} fit="contain" label="Your shared screen" />
+              {circleMode && tab === "screen" && <ScreenCircle video={screenVideo} onCircle={onCircle} />}
+            </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="text-sm text-slate-400">Share a window — your notes or a problem sheet — and the tutor can see it.</p>
