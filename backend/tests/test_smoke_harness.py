@@ -18,9 +18,7 @@ import pytest
 from fastapi import FastAPI, Response
 
 from app.core.fixtures import load_fixture
-from app.main import create_app
 from app.schemas import AskSpatialResponse, Graph, SimPayload
-from app.settings import Settings
 
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "smoke_live.py"
 _spec = importlib.util.spec_from_file_location("smoke_live", _SCRIPT)
@@ -34,7 +32,14 @@ class _FileCache:
 
 
 def stub_factory(offline: bool) -> FastAPI:
-    return create_app(Settings(_env_file=None, cache_mode="offline" if offline else "live"))
+    """A bare app (health only), so every other route is reported as missing."""
+    app = FastAPI()
+
+    @app.get("/api/health")
+    def health():
+        return {"status": "ok", "cache_mode": "offline" if offline else "live", "preset": None}
+
+    return app
 
 
 def make_fake_app(*, broken_ingest: bool = False, leak_http: bool = False) -> FastAPI:
@@ -164,8 +169,8 @@ def test_stub_app_missing_routes_are_skipped(tmp_path, capsys):
     assert steps["topic.build"]["label"] == "SKIP (route missing)"
     assert steps["sim.generate"]["label"] == "SKIP (route missing)"
     assert steps["voice.tts"]["label"] == "SKIP (route missing)"
-    assert steps["sim.seeded_get"]["status"] == "PASS"  # fixture-backed stand-in
-    assert steps["ask.spatial_v2"]["status"] == "PASS"
+    assert steps["sim.seeded_get"]["label"] == "SKIP (route missing)"
+    assert steps["ask.spatial_v2"]["label"] == "SKIP (route missing)"
     assert all(s["status"] != "FAIL" for s in steps.values())
     assert any("POST /api/ingest/lecture" in m for m in report["routes"]["missing"])
     assert report["offline_replay"]["verdict"] == "SKIP"  # in-memory cache only
