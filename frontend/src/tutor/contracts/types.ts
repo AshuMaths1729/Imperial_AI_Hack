@@ -16,7 +16,7 @@ export type BoardOp =
   | ({ op: "place_image"; id?: string; url: string; caption?: string; place: Place } & Steppable)
   | { op: "highlight"; target_id: string; color?: "yellow" | "red" | "green" | "blue" | "violet" }
   | { op: "reveal_step"; group_id: string; step: number }
-  /** Laser pointer: moves to the item and stays `hold_ms` (default ~2500), then fades. Never stored on the board. */
+  /** Laser pointer: glides to the item and stays there until the next point_at (always visible; hold_ms is ignored). Never stored on the board. */
   | { op: "point_at"; target_id: string; hold_ms?: number }
   /** Hand-drawn mark around/under an item or region (e.g. circle the student's mistake in red). */
   | { op: "annotate"; id?: string; mark: "circle" | "underline" | "cross" | "tick"; target_id?: string; region?: Box; color?: "yellow" | "red" | "green" | "blue" | "violet" }
