@@ -1,4 +1,4 @@
-"""Voice lane tests: no live calls (ElevenLabs / Anam are replaced by httpx.MockTransport)."""
+"""Voice lane tests: no live calls (ElevenLabs is replaced by httpx.MockTransport)."""
 
 from __future__ import annotations
 
@@ -17,18 +17,16 @@ from app.modules.voice.router import get_voice_http
 from app.settings import Settings
 
 ELEVEN_KEY = "sk_test_ELEVEN_SECRET_123"
-ANAM_KEY = "anam_test_SECRET_456"
 FAKE_MP3 = b"ID3" + b"\x00" * 2048
 
 
 class Upstream:
-    """Records every request and answers like ElevenLabs / Anam."""
+    """Records every request and answers like ElevenLabs."""
 
     def __init__(self) -> None:
         self.requests: list[httpx.Request] = []
         self.active = 0
         self.max_active = 0
-        self.anam_status = 200
 
     async def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -41,10 +39,6 @@ class Upstream:
             return httpx.Response(200, content=FAKE_MP3, headers={"content-type": "audio/mpeg"})
         if host == "api.elevenlabs.io" and path == "/v1/speech-to-text":
             return httpx.Response(200, json={"text": " hello world ", "language_code": "en"})
-        if host == "api.anam.ai":
-            if self.anam_status != 200:
-                return httpx.Response(self.anam_status, json={"error": "nope"})
-            return httpx.Response(200, json={"sessionToken": "tok_abc"})
         return httpx.Response(404)
 
     def calls(self, needle: str) -> list[httpx.Request]:
@@ -61,7 +55,6 @@ def make_client(tmp_path: Path, upstream: Upstream, **overrides) -> TestClient:
         "_env_file": None,
         "state_dir": tmp_path / "state",
         "elevenlabs_api_key": ELEVEN_KEY,
-        "anam_api_key": None,
     }
     kwargs.update(overrides)
     app = create_app(Settings(**kwargs))
@@ -72,9 +65,7 @@ def make_client(tmp_path: Path, upstream: Upstream, **overrides) -> TestClient:
 
 def no_secrets(resp) -> None:
     assert ELEVEN_KEY not in resp.text
-    assert ANAM_KEY not in resp.text
     assert ELEVEN_KEY not in str(resp.headers)
-    assert ANAM_KEY not in str(resp.headers)
 
 
 def test_tts_caches_on_disk_and_serves_media(tmp_path, upstream):
@@ -218,40 +209,9 @@ def test_stt_rejects_empty_file(tmp_path, upstream):
     assert not upstream.requests
 
 
-def test_avatar_session_with_key_returns_token_never_the_key(tmp_path, upstream):
-    with make_client(tmp_path, upstream, anam_api_key=ANAM_KEY) as c:
-        r1 = c.post("/api/avatar/session")
-        r2 = c.post("/api/avatar/session")
-    assert r1.status_code == 200
-    assert r1.json() == {"mode": "avatar", "session_token": "tok_abc"}
-    assert r1.headers["cache-control"] == "no-store"
-    no_secrets(r1)
-    no_secrets(r2)
-    calls = upstream.calls("api.anam.ai")
-    assert len(calls) == 2  # tokens are never cached
-    req = calls[0]
-    assert req.headers["authorization"] == f"Bearer {ANAM_KEY}"
-    persona = json.loads(req.content)["personaConfig"]
-    assert persona["llmId"] == "CUSTOMER_CLIENT_V1"
-
-
-def test_avatar_session_audio_only_without_key_or_offline_or_failure(tmp_path, upstream):
-    with make_client(tmp_path, upstream) as c:  # no anam key
-        assert c.post("/api/avatar/session").json() == {"mode": "audio_only"}
-    with make_client(tmp_path, upstream, anam_api_key=ANAM_KEY, cache_mode="offline") as c:
-        assert c.post("/api/avatar/session").json() == {"mode": "audio_only"}
-    assert not upstream.requests
-
-    upstream.anam_status = 500
-    with make_client(tmp_path, upstream, anam_api_key=ANAM_KEY) as c:
-        r = c.post("/api/avatar/session")
-    assert r.json() == {"mode": "audio_only"}
-    no_secrets(r)
-
-
 def test_module_is_mounted(client):
     paths = client.get("/openapi.json").json()["paths"]
-    for p in ("/api/tts", "/api/tts/segments", "/api/stt", "/api/avatar/session"):
+    for p in ("/api/tts", "/api/tts/segments", "/api/stt"):
         assert p in paths
     assert "/api/media/{media_id}" in paths
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Literal
 
 import httpx
-from fastapi import APIRouter, Depends, File, Response, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -44,12 +43,6 @@ class TtsSegmentsRequest(BaseModel):
 
 class SttResponse(BaseModel):
     transcript: str
-
-
-class AvatarSessionResponse(BaseModel):
-    mode: Literal["avatar", "audio_only"]
-    session_token: str | None = None
-    expires_at: str | None = None
 
 
 def _tts_response(result: service.TtsResult) -> TtsResponse:
@@ -108,20 +101,3 @@ async def stt(
         content_type=file.content_type or "application/octet-stream",
     )
     return SttResponse(transcript=transcript)
-
-
-@router.post(
-    "/avatar/session", response_model=AvatarSessionResponse, response_model_exclude_none=True
-)
-async def avatar_session(
-    response: Response,
-    settings: Settings = Depends(get_settings),
-    client: httpx.AsyncClient = Depends(get_voice_http),
-) -> AvatarSessionResponse:
-    response.headers["Cache-Control"] = "no-store"
-    session = await service.create_avatar_session(settings, client)
-    return AvatarSessionResponse(
-        mode=session.mode,  # type: ignore[arg-type]
-        session_token=session.session_token,
-        expires_at=session.expires_at,
-    )

@@ -1,4 +1,4 @@
-"""ElevenLabs TTS/STT and Anam session-token services (HTTP client is always injected)."""
+"""ElevenLabs TTS/STT services (the HTTP client is always injected)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import httpx
 
@@ -29,19 +28,6 @@ TTS_CONCURRENCY = 4
 VOICE_ID_RE = r"^[A-Za-z0-9_-]{1,64}$"
 MEDIA_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 MEDIA_URL_PREFIX = "/api/media"
-
-ANAM_SESSION_URL = "https://api.anam.ai/v1/auth/session-token"
-# Anam persona for the avatar. `llmId` CUSTOMER_CLIENT_V1 disables Anam's own LLM: the
-# backend (Claude) decides what to say and the client makes the avatar speak it. The avatar
-# and voice ids are Anam stock ids from their quickstart (override via env if they change).
-ANAM_PERSONA_CONFIG: dict[str, Any] = {
-    "name": "ScholarTwin",
-    "avatarId": os.environ.get("ANAM_AVATAR_ID", "30fa96d0-26c4-4e55-94a0-517025942e18"),
-    "voiceId": os.environ.get("ANAM_VOICE_ID", "6bfbe25a-979d-40f3-a92b-5394170af54b"),
-    "llmId": "CUSTOMER_CLIENT_V1",
-    "systemPrompt": "You are ScholarTwin, a concise, friendly tutor. Speak only what you are given.",  # noqa: E501
-}
-
 
 class VoiceUnavailable(AppError):
     """Voice service cannot run (no key / offline); the frontend should fall back."""
@@ -189,43 +175,3 @@ async def transcribe(
     except (ValueError, AttributeError) as exc:
         raise UpstreamError("ElevenLabs STT returned an unexpected body") from exc
     return str(text).strip()
-
-
-@dataclass(frozen=True)
-class AvatarSession:
-    mode: str  # "avatar" | "audio_only"
-    session_token: str | None = None
-    expires_at: str | None = None
-
-
-async def create_avatar_session(settings: Settings, client: httpx.AsyncClient) -> AvatarSession:
-    """Anam session token, or `audio_only` when there is no key / offline / Anam fails.
-    The key and the token are never logged or cached."""
-    key = _api_key(settings, "anam_api_key")
-    if key is None or settings.is_offline:
-        return AvatarSession("audio_only")
-    try:
-        resp = await client.post(
-            ANAM_SESSION_URL,
-            headers={"Authorization": f"Bearer {key}"},
-            json={"personaConfig": ANAM_PERSONA_CONFIG},
-            timeout=10.0,
-        )
-    except httpx.HTTPError as exc:
-        log.warning("anam session request failed (%s)", type(exc).__name__)
-        return AvatarSession("audio_only")
-    if resp.status_code not in (200, 201):
-        log.warning("anam session request failed (HTTP %s)", resp.status_code)
-        return AvatarSession("audio_only")
-    try:
-        body = resp.json()
-    except ValueError:
-        body = {}
-    if not isinstance(body, dict):
-        body = {}
-    token = body.get("sessionToken") or body.get("session_token") or body.get("token")
-    if not isinstance(token, str) or not token:
-        log.warning("anam session response had no token (HTTP %s)", resp.status_code)
-        return AvatarSession("audio_only")
-    expires = body.get("expiresAt") or body.get("expires_at")
-    return AvatarSession("avatar", token, str(expires) if expires else None)

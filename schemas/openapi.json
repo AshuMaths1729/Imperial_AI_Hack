@@ -186,43 +186,31 @@
         "title": "AskSpatialResponse",
         "type": "object"
       },
-      "AvatarSessionResponse": {
+      "AvatarClipSession": {
         "properties": {
-          "expires_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expires At"
+          "can_render": {
+            "title": "Can Render",
+            "type": "boolean"
           },
           "mode": {
             "enum": [
-              "avatar",
+              "clips",
               "audio_only"
             ],
             "title": "Mode",
             "type": "string"
           },
-          "session_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Session Token"
+          "ready_clips": {
+            "title": "Ready Clips",
+            "type": "integer"
           }
         },
         "required": [
-          "mode"
+          "mode",
+          "ready_clips",
+          "can_render"
         ],
-        "title": "AvatarSessionResponse",
+        "title": "AvatarClipSession",
         "type": "object"
       },
       "Body_generate_from_pdf_api_sim_generate_pdf_post": {
@@ -499,6 +487,213 @@
           "h"
         ],
         "title": "CircleRegion",
+        "type": "object"
+      },
+      "ClipCreateRequest": {
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "script": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Script",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "title": "ClipCreateRequest",
+        "type": "object"
+      },
+      "ClipCreateResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clip_id",
+          "status"
+        ],
+        "title": "ClipCreateResponse",
+        "type": "object"
+      },
+      "ClipLookupRequest": {
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "script": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Script",
+            "type": "string"
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "title": "ClipLookupRequest",
+        "type": "object"
+      },
+      "ClipLookupResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "ready": {
+            "default": false,
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          }
+        },
+        "required": [
+          "found",
+          "clip_id"
+        ],
+        "title": "ClipLookupResponse",
+        "type": "object"
+      },
+      "ClipStatusResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "script": {
+            "title": "Script",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          }
+        },
+        "required": [
+          "clip_id",
+          "status",
+          "ready",
+          "script"
+        ],
+        "title": "ClipStatusResponse",
+        "type": "object"
+      },
+      "ClipSummary": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clip_id",
+          "title",
+          "status",
+          "ready"
+        ],
+        "title": "ClipSummary",
         "type": "object"
       },
       "DocInfo": {
@@ -3103,6 +3298,193 @@
         ]
       }
     },
+    "/api/avatar/clips": {
+      "get": {
+        "operationId": "list_clips_api_avatar_clips_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClipSummary"
+                  },
+                  "title": "Response List Clips Api Avatar Clips Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Clips",
+        "tags": [
+          "synthesia"
+        ]
+      },
+      "post": {
+        "operationId": "create_clip_api_avatar_clips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/lookup": {
+      "post": {
+        "operationId": "lookup_clip_api_avatar_clips_lookup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipLookupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lookup Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/{clip_id}": {
+      "get": {
+        "operationId": "get_clip_api_avatar_clips__clip_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip_id",
+            "required": true,
+            "schema": {
+              "title": "Clip Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/{clip_id}/video": {
+      "get": {
+        "operationId": "clip_video_api_avatar_clips__clip_id__video_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip_id",
+            "required": true,
+            "schema": {
+              "title": "Clip Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clip Video",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
     "/api/avatar/session": {
       "post": {
         "operationId": "avatar_session_api_avatar_session_post",
@@ -3111,7 +3493,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AvatarSessionResponse"
+                  "$ref": "#/components/schemas/AvatarClipSession"
                 }
               }
             },
@@ -3120,7 +3502,7 @@
         },
         "summary": "Avatar Session",
         "tags": [
-          "voice"
+          "synthesia"
         ]
       }
     },

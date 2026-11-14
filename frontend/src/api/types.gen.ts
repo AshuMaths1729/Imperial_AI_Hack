@@ -38,6 +38,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/avatar/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Clips */
+        get: operations["list_clips_api_avatar_clips_get"];
+        put?: never;
+        /** Create Clip */
+        post: operations["create_clip_api_avatar_clips_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/avatar/clips/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lookup Clip */
+        post: operations["lookup_clip_api_avatar_clips_lookup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/avatar/clips/{clip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Clip */
+        get: operations["get_clip_api_avatar_clips__clip_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/avatar/clips/{clip_id}/video": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Clip Video */
+        get: operations["clip_video_api_avatar_clips__clip_id__video_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/avatar/session": {
         parameters: {
             query?: never;
@@ -649,17 +718,17 @@ export interface components {
              */
             spoken_answer: string;
         };
-        /** AvatarSessionResponse */
-        AvatarSessionResponse: {
-            /** Expires At */
-            expires_at?: string | null;
+        /** AvatarClipSession */
+        AvatarClipSession: {
+            /** Can Render */
+            can_render: boolean;
             /**
              * Mode
              * @enum {string}
              */
-            mode: "avatar" | "audio_only";
-            /** Session Token */
-            session_token?: string | null;
+            mode: "clips" | "audio_only";
+            /** Ready Clips */
+            ready_clips: number;
         };
         /** Body_generate_from_pdf_api_sim_generate_pdf_post */
         Body_generate_from_pdf_api_sim_generate_pdf_post: {
@@ -760,6 +829,71 @@ export interface components {
             x: number | null;
             /** Y */
             y: number | null;
+        };
+        /** ClipCreateRequest */
+        ClipCreateRequest: {
+            /** Avatar */
+            avatar?: string | null;
+            /** Script */
+            script: string;
+            /** Title */
+            title?: string | null;
+        };
+        /** ClipCreateResponse */
+        ClipCreateResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Status */
+            status: string;
+        };
+        /** ClipLookupRequest */
+        ClipLookupRequest: {
+            /** Avatar */
+            avatar?: string | null;
+            /** Script */
+            script: string;
+        };
+        /** ClipLookupResponse */
+        ClipLookupResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Found */
+            found: boolean;
+            /**
+             * Ready
+             * @default false
+             */
+            ready: boolean;
+            /** Status */
+            status?: string | null;
+            /** Video Url */
+            video_url?: string | null;
+        };
+        /** ClipStatusResponse */
+        ClipStatusResponse: {
+            /** Clip Id */
+            clip_id: string;
+            /** Error */
+            error?: string | null;
+            /** Ready */
+            ready: boolean;
+            /** Script */
+            script: string;
+            /** Status */
+            status: string;
+            /** Video Url */
+            video_url?: string | null;
+        };
+        /** ClipSummary */
+        ClipSummary: {
+            /** Clip Id */
+            clip_id: string;
+            /** Ready */
+            ready: boolean;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
         };
         /** DocInfo */
         DocInfo: {
@@ -1772,6 +1906,154 @@ export interface operations {
             };
         };
     };
+    list_clips_api_avatar_clips_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipSummary"][];
+                };
+            };
+        };
+    };
+    create_clip_api_avatar_clips_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_clip_api_avatar_clips_lookup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipLookupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipLookupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_clip_api_avatar_clips__clip_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClipStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clip_video_api_avatar_clips__clip_id__video_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     avatar_session_api_avatar_session_post: {
         parameters: {
             query?: never;
@@ -1787,7 +2069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AvatarSessionResponse"];
+                    "application/json": components["schemas"]["AvatarClipSession"];
                 };
             };
         };

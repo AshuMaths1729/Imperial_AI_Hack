@@ -63,7 +63,6 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
     elevenlabs_api_key: SecretStr | None = None
-    anam_api_key: SecretStr | None = None
     fal_key: SecretStr | None = None
     synthesia_api_key: SecretStr | None = None
     s2_api_key: SecretStr | None = None

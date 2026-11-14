@@ -58,7 +58,7 @@ cd frontend && npm run gen:types                         # writes src/api/types.
 
 ## Sponsor / Tool Stack Notes
 
-- `synthesia` / `anam`: avatar and video/graphic creation
+- `synthesia`: avatar and video/graphic creation (pre-rendered clips)
 - `tavily`: web crawl and search
 - `figma`: UI design
 - `adaption`: fine-tuning models
