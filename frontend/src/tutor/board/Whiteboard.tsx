@@ -281,6 +281,7 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
     // Circle-to-Ask: the first finished stroke in circle mode is a lasso, not ink.
     const offLasso = editor.sideEffects.registerAfterChangeHandler("shape", (prev, next) => {
       if (!circling.current || next.type !== "draw" || prev.type !== "draw" || prev.props.isComplete || !next.props.isComplete) return;
+      if (next.meta.author !== "user") return; // the tutor's animated annotate strokes also finish drawing; they are not a lasso
       const b = editor.getShapePageBounds(next);
       setCircleMode(false);
       setTimeout(async () => {
