@@ -1,25 +1,35 @@
 import type { Caption } from "./session";
 
-/** Last two caption lines over the stage, like Zoom's CC; sits above the board's pen toolbar and the slide controls. */
+/** The latest words of `text`, cut from the left at a word boundary (≤ `max` chars plus a leading "…"). */
+export function captionTail(text: string, max = 90): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(-max);
+  const sp = cut.indexOf(" ");
+  return `…${sp >= 0 ? cut.slice(sp + 1) : cut}`;
+}
+
+/**
+ * One-line captions: a thin bar under the stage with just the current speaker's latest words, so it never covers the
+ * board toolbar or the slide controls. Long lines lose their start (the flex end-alignment clips overflow on the left).
+ */
 export function CaptionsOverlay({ captions, tutorName }: { captions: Caption[]; tutorName: string }) {
-  const last = captions.slice(-2);
-  if (!last.length) return null;
+  const c = captions.at(-1);
   return (
     <div
       data-testid="captions-overlay"
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 bottom-20 z-10 flex justify-center px-4"
+      className="flex h-8 shrink-0 items-center gap-2 border-t border-slate-800 bg-slate-950/80 px-3 text-sm leading-none"
     >
-      <div className="max-w-2xl space-y-1 rounded-xl bg-slate-950/80 px-4 py-2.5 text-[15px] leading-snug shadow-lg backdrop-blur">
-        {last.map((c) => (
-          <p key={c.id} className={c.final ? "text-slate-50" : "text-slate-300"}>
-            <span className={`mr-2 text-xs font-semibold ${c.who === "tutor" ? "text-sky-300" : "text-amber-300"}`}>
-              {c.who === "tutor" ? tutorName : "You"}
-            </span>
-            {c.text}
+      {c && (
+        <>
+          <span className={`shrink-0 text-xs font-semibold ${c.who === "tutor" ? "text-sky-300" : "text-amber-300"}`}>
+            {c.who === "tutor" ? tutorName : "You"}
+          </span>
+          <p className={`flex min-w-0 justify-end overflow-hidden whitespace-nowrap ${c.final ? "text-slate-50" : "text-slate-300"}`}>
+            {captionTail(c.text)}
           </p>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
