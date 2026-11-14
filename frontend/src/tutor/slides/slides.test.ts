@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import gd from "./decks/gradient-descent.json";
-import { describeDeck, emptyDeck, goTo, pushSlide, slideErrors, stepTo } from "./deck";
+import { describeDeck, editSlide, emptyDeck, goTo, pushSlide, slideErrors, stepTo } from "./deck";
+import { laserSpot, LASER_PARK } from "./lasso";
 import { makeSlidesRpcHandlers, type StageHandle } from "./rpc";
-import { axesMap, dotXAt, evalExpr, functionPath, hopMs, slopeAt, stateAt, timeline } from "./scene";
+import { axesMap, dotXAt, entranceMs, evalExpr, functionPath, hopMs, PACE, slopeAt, stateAt, stepMs, timeline, writeMs } from "./scene";
 import type { AxesObj, Deck, Slide, SlidesHandle } from "./types";
 
 const deck = gd as unknown as Deck;
@@ -79,6 +80,43 @@ describe("scene", () => {
   });
 });
 
+describe("pacing", () => {
+  it("step animations run 1.6x the v2 durations", () => {
+    expect(PACE).toBe(1.6);
+    expect(timeline(tiny, [{ do: "hide", ids: ["c"] }]).total).toBe(720);
+    expect(timeline(tiny, [{ do: "move", id: "d", to: 2 }]).total).toBe(1760);
+    expect(timeline(tiny, [{ do: "morph", id: "c", expr: "2*x" }]).total).toBe(1600);
+    expect(entranceMs(tiny.objects[0])).toBe(1440); // axes: 900 -> 1440
+  });
+
+  it("equations and text are written at a handwriting pace: 1.5-2.5 s, longer for longer ones", () => {
+    const m = (latex: string) => ({ kind: "math" as const, id: "m", latex, x: 0, y: 0 });
+    expect(writeMs(m("x"))).toBe(1500);
+    expect(writeMs(m("f'(x)=\\lim_{h\\to 0}\\frac{f(x+h)-f(x)}{h}"))).toBeGreaterThan(writeMs(m("y=2x")));
+    expect(writeMs(m("x".repeat(500)))).toBe(2500);
+    expect(writeMs({ kind: "text", id: "t", text: "a fairly long sentence that is written in", x: 0, y: 0 })).toBe(2500);
+    expect(entranceMs(m("y=2x"))).toBe(writeMs(m("y=2x")));
+  });
+
+  it("stepMs is how long the next step's animation runs; jumps and going back are instant", () => {
+    expect(stepMs(tiny, 1, 2)).toBe(timeline(tiny, tiny.steps![1].actions).total);
+    expect(stepMs(tiny, 0, 1)).toBeGreaterThan(0);
+    expect(stepMs(tiny, 0, 3)).toBe(0);
+    expect(stepMs(tiny, 2, 1)).toBe(0);
+    expect(stepMs(tiny, 2, 2)).toBe(0);
+  });
+});
+
+describe("laser", () => {
+  it("parks left of the title; sits under text and on the centre of shapes", () => {
+    expect(LASER_PARK.x).toBeLessThan(80); // the title starts at x=80
+    expect(LASER_PARK.y).toBeGreaterThan(44);
+    const box = { x: 100, y: 200, w: 40, h: 20 };
+    expect(laserSpot(box, false)).toEqual({ x: 120, y: 210 });
+    expect(laserSpot(box, true)).toEqual({ x: 120, y: 234 });
+  });
+});
+
 describe("fallback deck", () => {
   it("passes the page-side checks and every dot path stays inside its axes", () => {
     for (const s of deck.slides) {
@@ -142,9 +180,73 @@ describe("deck navigation", () => {
     expect(d.slides.map((s) => s.title)).toContain("Momentum: a heavy ball");
     expect(d.current!.objects.find((o) => o.id === "tan")).toEqual({ id: "tan", kind: "tangent" });
     expect(d.current!.narration).toHaveLength(byId("gradient").steps!.length);
+    expect(d.current).not.toHaveProperty("idea");
+    const planned = { ...emptyDeck(deck.slides), slides: [{ ...tiny, idea: "One idea.", check: "What happens next?" }] };
+    expect(describeDeck(planned).current).toMatchObject({ idea: "One idea.", check: "What happens next?" });
     const small = describeDeck(goTo(st(), 3).state, 1500);
     expect(new TextEncoder().encode(JSON.stringify(small)).length).toBeLessThanOrEqual(1500);
     expect(small.slides.some((s) => s.index === 3)).toBe(true);
+  });
+});
+
+describe("edit in place", () => {
+  const opened = () => stepTo(emptyDeck(deck.slides), 2).state; // slide 1 (landscape), 2 of 4 steps shown
+  const patch = {
+    objects: [
+      { kind: "math", id: "eq", latex: "L(\\theta)", x: 1200, y: 300, color: "blue" },
+      { kind: "dot", id: "here", axes: "ax", curve: "loss", x: 1 },
+    ],
+    steps: [
+      { narration: "This is the height.", actions: [{ do: "show", ids: ["eq"] }, { do: "indicate", ids: ["loss"], with_prev: true }] },
+      { narration: "And here.", actions: [{ do: "show", ids: ["here"] }, { do: "hide", ids: ["you"] }] },
+    ],
+  };
+
+  it("adds objects, inserts the steps right after the current one, and keeps the current step", () => {
+    const r = editSlide(opened(), patch);
+    expect(r.errors).toEqual([]);
+    expect(r.newSteps).toEqual([3, 4]);
+    const s = r.state.slides[0];
+    expect([r.state.index, r.state.step]).toEqual([0, 2]);
+    expect(s.id).toBe("landscape");
+    expect(s.objects.slice(-2).map((o) => o.id)).toEqual(["eq", "here"]);
+    expect(s.steps!.map((x) => x.narration)).toEqual([
+      ...deck.slides[0].steps!.slice(0, 2).map((x) => x.narration),
+      "This is the height.",
+      "And here.",
+      ...deck.slides[0].steps!.slice(2).map((x) => x.narration), // later steps renumbered 5, 6
+    ]);
+    expect(r.state.slides).toHaveLength(deck.slides.length); // not a new slide
+    expect(describeDeck(r.state).slides[0].steps).toBe(6);
+    // what is on screen now is unchanged; the new objects wait for their steps
+    expect([...stateAt(s, 2).visible].sort()).toEqual([...stateAt(deck.slides[0], 2).visible].sort());
+    expect(stateAt(s, 3).visible.has("eq")).toBe(true);
+    expect(stateAt(s, 4).visible.has("you")).toBe(false);
+    expect(stateAt(s, 6).visible.has("fog")).toBe(true); // the old last step still runs
+    expect(deck.slides[0].steps).toHaveLength(4); // the original is not mutated
+  });
+
+  it("objects no step shows appear at once; steps alone may only use existing objects", () => {
+    const r = editSlide(opened(), { objects: [{ kind: "text", id: "note", text: "height", x: 1200, y: 200 }] });
+    expect(r.errors).toEqual([]);
+    expect(r.newSteps).toEqual([]);
+    expect(stateAt(r.state.slides[0], 2).visible.has("note")).toBe(true);
+    expect(editSlide(opened(), { steps: [{ narration: "look", actions: [{ do: "indicate", ids: ["you"] }] }] }).newSteps).toEqual([3]);
+  });
+
+  it("rejects reused ids, broken references, bad shapes and re-showing what is already on screen", () => {
+    const st = opened();
+    expect(editSlide(st, { objects: [{ kind: "text", id: "fog", text: "x", x: 0, y: 0 }] }).errors[0]).toMatch(/fog is already on this slide/);
+    expect(editSlide(st, { objects: [{ kind: "dot", id: "p", axes: "nope", x: 0 }] }).errors[0]).toMatch(/p\.axes refers to nope/);
+    expect(editSlide(st, { steps: [{ narration: "x", actions: [{ do: "show", ids: ["zz"] }] }] }).errors[0]).toMatch(/step 3 show: unknown object zz/);
+    expect(editSlide(st, { steps: [{ narration: "x", actions: [{ do: "show", ids: ["ax"] }] }] }).errors).toEqual([]); // shown by a step: a no-op
+    expect(editSlide(emptyDeck([tiny]), { steps: [{ narration: "x", actions: [{ do: "show", ids: ["m"] }] }] }).errors[0]).toMatch(/step 1 show: m is on screen from the start/);
+    expect(editSlide(st, { steps: [{ actions: [] }] }).errors[0]).toMatch(/step 3 needs narration/);
+    expect(editSlide(st, { steps: [{ narration: "x", actions: ["show"] }] }).errors[0]).toMatch(/step 3/);
+    expect(editSlide(st, { objects: "nope" as unknown as unknown[] }).errors[0]).toMatch(/lists/);
+    expect(editSlide(st, {}).errors[0]).toMatch(/nothing to add/);
+    expect(editSlide(emptyDeck(), patch).errors[0]).toMatch(/no slides/);
+    expect(editSlide(st, { objects: [{ kind: "text", id: "fog", text: "x", x: 0, y: 0 }] }).state).toBe(st);
   });
 });
 
@@ -185,6 +287,16 @@ describe("slides rpc", () => {
     expect(stage.slides!.point).toHaveBeenCalledWith("tan", 1000);
     await h["slides.push"](JSON.stringify({ slide: tiny }));
     expect(stage.slides!.push).toHaveBeenCalledWith(tiny);
+    await h["slides.edit"](JSON.stringify({ objects: [tiny.objects[3]], steps: [] }));
+    expect(stage.slides!.edit).toHaveBeenCalledWith({ objects: [tiny.objects[3]], steps: [] });
+  });
+
+  it("ui.clear_circle clears the mark by id wherever it is", async () => {
+    const { stage, h } = setup();
+    expect(JSON.parse(await h["ui.clear_circle"](JSON.stringify({ circle_id: "c1" })))).toEqual({ ok: true, errors: [], circle_id: "c1" });
+    expect(stage.clearCircle).toHaveBeenCalledWith("c1");
+    expect(JSON.parse(await h["ui.clear_circle"]("{}")).errors[0]).toMatch(/circle_id/);
+    expect(JSON.parse(await setup(null).h["ui.clear_circle"](JSON.stringify({ circle_id: "c2" }))).ok).toBe(true); // board circles: no deck needed
   });
 
   it("describe adds the open slide's JSON only when asked and when it fits", async () => {

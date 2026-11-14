@@ -4,14 +4,14 @@ import "katex/dist/katex.min.css";
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
 import type { CircleEvent } from "@/tutor/contracts/types";
-import { describeDeck, emptyDeck, goTo, pushSlide, stepTo, type DeckState, type Result } from "./deck";
-import { bboxOf, hitItems, objectBoxes, slidePng } from "./lasso";
-import { CANVAS, stateAt, stepCount } from "./scene";
+import { describeDeck, editSlide, emptyDeck, goTo, pushSlide, stepTo, type DeckState, type Result } from "./deck";
+import { bboxOf, hitItems, LASER_PARK, laserSpot, objectBoxes, slidePng } from "./lasso";
+import { CANVAS, stateAt, stepCount, stepMs } from "./scene";
 import { SlideView } from "./SlideView";
 import type { Deck, Slide, SlidesHandle, SlidesReply } from "./types";
 
 const EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
-const LASER_HOLD = 2500;
+const FADE_MS = 700; // slide-to-slide cross-fade
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -39,7 +39,12 @@ function useFit() {
   return [ref, k] as const;
 }
 
-type Laser = { id: string; x: number; y: number; nonce: number; hold: number };
+/** The laser is always on: parked near the title when a slide opens, then wherever it last pointed. */
+type Laser = { id: string | null; x: number; y: number; nonce: number };
+const parked = (l: Laser): Laser => ({ ...l, id: null, ...LASER_PARK });
+/** A student's circle: stays drawn (with a "?") until the tutor clears it by id. */
+type Mark = { id: string; slideId: string; pts: { x: number; y: number }[] };
+const newCircleId = () => `slide-circle-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 type Props = {
   deck: Deck | null;
@@ -55,8 +60,13 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
   const canvasRef = useRef<HTMLDivElement>(null);
   const [st, setSt] = useState<DeckState>(() => emptyDeck(deck?.slides ?? []));
   const stRef = useRef<DeckState>(st); // the RPC handle answers synchronously, before React re-renders
-  const [laser, setLaser] = useState<Laser | null>(null);
-  const [laserOn, setLaserOn] = useState(false);
+  const [laser, setLaser] = useState<Laser>(() => parked({ id: null, x: 0, y: 0, nonce: 0 }));
+  const [marks, setMarksState] = useState<Mark[]>([]);
+  const marksRef = useRef<Mark[]>(marks);
+  const setMarks = (next: Mark[]) => {
+    marksRef.current = next;
+    setMarksState(next);
+  };
   const [leaving, setLeaving] = useState<{ slide: Slide; step: number; key: number } | null>(null);
   const [lasso, setLasso] = useState<{ x: number; y: number }[] | null>(null);
 
@@ -64,7 +74,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     const cur = stRef.current;
     const was = cur.slides[cur.index];
     if (was && next.slides[next.index]?.id !== was.id && !reduced) setLeaving({ slide: was, step: cur.step, key: Date.now() });
-    if (next.slides[next.index]?.id !== was?.id) setLaser(null);
+    if (next.slides[next.index]?.id !== was?.id) setLaser(parked);
     stRef.current = next;
     setSt(next);
   };
@@ -77,46 +87,61 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
   useEffect(() => {
     stRef.current = emptyDeck(deck?.slides ?? []);
     setSt(stRef.current);
+    setLaser(parked);
+    marksRef.current = [];
+    setMarksState([]);
   }, [deck]);
 
   useImperativeHandle(ref, (): SlidesHandle => ({
     go: (n) => reply(goTo(stRef.current, n)),
-    step: (n) => reply(stepTo(stRef.current, n)),
+    step: (n) => {
+      const cur = stRef.current;
+      const r = reply(stepTo(cur, n));
+      const slide = cur.slides[cur.index];
+      return r.ok && slide ? { ...r, ms: reduced ? 0 : stepMs(slide, cur.step, n) } : r;
+    },
     describe: () => describeDeck(stRef.current),
     current: () => stRef.current.slides[stRef.current.index] ?? null,
     push: (raw) => reply(pushSlide(stRef.current, raw)),
-    edit: () => ({ ok: false, errors: ["slides.edit is not implemented yet"] }), // v3 WS-3
-    clearCircle: () => ({ ok: true, errors: [] }), // v3 WS-3
-    point: (id, holdMs) => {
+    edit: (patch) => {
+      const r = editSlide(stRef.current, patch);
+      const out = reply(r);
+      return out.ok ? { ...out, steps_added: r.newSteps.length, new_steps: r.newSteps } : out;
+    },
+    clearCircle: (id) => {
+      if (!marksRef.current.some((m) => m.id === id)) return { ok: false, errors: [`no circle ${id} on the slides`] };
+      setMarks(marksRef.current.filter((m) => m.id !== id));
+      return { ok: true, errors: [] };
+    },
+    point: (id) => {
       const cur = stRef.current;
       const slide = cur.slides[cur.index];
       if (!slide) return { ok: false, errors: ["no slides are loaded"] };
       if (!slide.objects.some((o) => o.id === id)) return { ok: false, errors: [`no object ${id} on this slide`] };
       if (!stateAt(slide, cur.step).visible.has(id)) return { ok: false, errors: [`${id} is not on screen yet; step to it first`] };
-      setLaser((l) => ({ id, x: l?.x ?? -1, y: l?.y ?? -1, nonce: (l?.nonce ?? 0) + 1, hold: Math.min(10000, Math.max(800, holdMs ?? LASER_HOLD)) }));
+      setLaser((l) => ({ ...l, id, nonce: l.nonce + 1 }));
       return { ok: true, errors: [], index: cur.index + 1, step: cur.step };
     },
   }));
 
-  // Laser: glide to the object's current centre, hold, fade.
+  // Laser: glide to the object it was asked to point at and stay there (measured even while it is still entering).
   useLayoutEffect(() => {
-    if (!laser) return;
+    if (!laser.id) return;
     const root = canvasRef.current?.querySelector<HTMLElement>("[data-slide-root='current']");
-    const box = root && objectBoxes(root).find((b) => b.id === laser.id)?.box;
-    if (!box) return;
+    const node = root?.querySelector<HTMLElement>(`[data-obj="${laser.id}"]`);
+    if (!root || !node) return;
+    const r = root.getBoundingClientRect(), b = node.getBoundingClientRect();
+    const s = r.width / CANVAS.w || 1;
+    if (!b.width && !b.height) return;
     // text and formulas: sit just under them (like an underline) instead of covering the words
-    const isText = root.querySelector(`[data-obj="${laser.id}"]`)?.tagName === "DIV";
-    const x = box.x + box.w / 2, y = isText ? box.y + box.h + 14 : box.y + box.h / 2;
+    const { x, y } = laserSpot({ x: (b.left - r.left) / s, y: (b.top - r.top) / s, w: b.width / s, h: b.height / s }, node.tagName === "DIV");
     if (x !== laser.x || y !== laser.y) setLaser({ ...laser, x, y });
-    setLaserOn(true);
-    const t = setTimeout(() => setLaserOn(false), laser.hold);
-    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-aim only when asked to point again
-  }, [laser?.nonce]);
+  }, [laser.nonce]);
 
   useEffect(() => {
     if (!leaving) return;
-    const t = setTimeout(() => setLeaving(null), 450);
+    const t = setTimeout(() => setLeaving(null), FADE_MS + 50);
     return () => clearTimeout(t);
   }, [leaving]);
 
@@ -135,13 +160,15 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     if (!pts || pts.length < 4 || !root || !slide) return;
     const region = bboxOf(pts);
     if (region.w < 12 && region.h < 12) return;
+    const circle_id = newCircleId();
+    setMarks([...marksRef.current, { id: circle_id, slideId: slide.id, pts }]);
     let png = "";
     try {
       png = await slidePng(root, region);
     } catch {
       png = ""; // the tutor still gets the slide and the circled object ids
     }
-    onCircle?.({ source: "slide", slide_id: slide.id, item_ids: hitItems(pts, objectBoxes(root)), region, png_b64: png });
+    onCircle?.({ source: "slide", slide_id: slide.id, item_ids: hitItems(pts, objectBoxes(root)), region, png_b64: png, circle_id });
   };
 
   const prev = () => reply(st.step > 0 ? stepTo(st, st.step - 1) : goTo(st, st.index)); // index is 0-based: previous slide
@@ -157,6 +184,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
       <style>{`
         @keyframes slide-leave { to { opacity: 0; transform: scale(0.985); filter: blur(2px); } }
         @keyframes slide-enter { from { opacity: 0; transform: scale(1.01); } }
+        @keyframes circle-badge { from { opacity: 0; transform: translate(-50%,-50%) scale(.4); } }
         @keyframes laser-ring { from { transform: translate(-50%,-50%) scale(0.6); opacity: .7; } to { transform: translate(-50%,-50%) scale(2.4); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { [data-slide-root] { animation: none !important; } }
       `}</style>
@@ -183,7 +211,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
             style={{ width: CANVAS.w, height: CANVAS.h, transform: `translate(-50%,-50%) scale(${k})` }}
           >
             {leaving && (
-              <div key={leaving.key} data-slide-root="leaving" className="pointer-events-none absolute inset-0" style={{ animation: `slide-leave 420ms ${EASE} forwards` }}>
+              <div key={leaving.key} data-slide-root="leaving" className="pointer-events-none absolute inset-0" style={{ animation: `slide-leave ${FADE_MS}ms ${EASE} forwards` }}>
                 <SlideView slide={leaving.slide} step={leaving.step} motion={false} />
               </div>
             )}
@@ -191,7 +219,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
               key={`${st.index}:${slide.id}`}
               data-slide-root="current"
               className="absolute inset-0"
-              style={{ animation: leaving ? `slide-enter 500ms ${EASE} both` : undefined }}
+              style={{ animation: leaving ? `slide-enter ${FADE_MS}ms ${EASE} both` : undefined }}
             >
               <SlideView slide={slide} step={st.step} motion={!reduced} />
             </div>
@@ -200,22 +228,33 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
                 <Sparkles className="h-5 w-5" aria-hidden /> New animation
               </span>
             )}
-            {laser && laser.x >= 0 && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute left-0 top-0"
-                style={{
-                  transform: `translate(${laser.x}px, ${laser.y}px)`,
-                  transition: reduced ? "opacity 200ms" : `transform 550ms ${EASE}, opacity 400ms ease-out`,
-                  opacity: laserOn ? 1 : 0,
-                }}
-              >
-                <span className="absolute left-0 top-0 h-7 w-7 rounded-full" style={{ transform: "translate(-50%,-50%)", background: "#ff3b3b", boxShadow: "0 0 18px 6px rgba(255,59,59,.55), 0 0 2px 1px #fff inset" }} />
-                {!reduced && (
-                  <span key={laser.nonce} className="absolute left-0 top-0 h-7 w-7 rounded-full border-2 border-red-400" style={{ animation: "laser-ring 1.1s ease-out 3" }} />
-                )}
-              </div>
-            )}
+            {marks.filter((m) => m.slideId === slide.id).map((m) => {
+              const b = bboxOf(m.pts);
+              return (
+                <div key={m.id} data-testid="slide-circle" data-circle-id={m.id} aria-hidden className="pointer-events-none absolute inset-0">
+                  <svg width={CANVAS.w} height={CANVAS.h} className="absolute inset-0">
+                    <polygon points={m.pts.map((p) => `${p.x},${p.y}`).join(" ")} fill="rgba(239,68,68,0.06)" stroke="#f87171" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span
+                    className="absolute grid h-11 w-11 place-items-center rounded-full bg-red-500 text-[26px] font-bold text-white shadow-lg"
+                    style={{ left: b.x + b.w, top: b.y, transform: "translate(-50%,-50%)", animation: reduced ? undefined : `circle-badge 300ms ${EASE} both` }}
+                  >
+                    ?
+                  </span>
+                </div>
+              );
+            })}
+            <div
+              data-testid="slide-laser"
+              aria-hidden
+              className="pointer-events-none absolute left-0 top-0"
+              style={{ transform: `translate(${laser.x}px, ${laser.y}px)`, transition: reduced ? "none" : `transform 450ms ${EASE}`, opacity: 1 }}
+            >
+              <span className="absolute left-0 top-0 h-7 w-7 rounded-full" style={{ transform: "translate(-50%,-50%)", background: "#ff3b3b", boxShadow: "0 0 18px 6px rgba(255,59,59,.55), 0 0 2px 1px #fff inset" }} />
+              {!reduced && laser.id && (
+                <span key={laser.nonce} className="absolute left-0 top-0 h-7 w-7 rounded-full border-2 border-red-400" style={{ animation: "laser-ring 1.1s ease-out 3" }} />
+              )}
+            </div>
             {circleMode && (
               <svg
                 data-testid="slide-lasso"

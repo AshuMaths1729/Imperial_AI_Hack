@@ -1,6 +1,6 @@
 // Deck navigation (which slide, which step), follow-up slides pushed by the agent, and the outline the agent reads.
 // Indexes the agent sees are 1-based ("slide 1"); `index` in DeckState is 0-based.
-import { stepCount } from "./scene";
+import { stateAt, stepCount } from "./scene";
 import type { Slide, SlideObject, SlidesDescription } from "./types";
 
 export type DeckState = { slides: Slide[]; followups: string[]; index: number; step: number };
@@ -61,7 +61,15 @@ export function slideErrors(raw: unknown): string[] {
     }
   }
   for (const [i, step] of (s.steps ?? []).entries()) {
-    for (const a of step?.actions ?? []) {
+    if (typeof step?.narration !== "string" || !Array.isArray(step.actions)) {
+      errs.push(`step ${i + 1} needs narration text and a list of actions`);
+      continue;
+    }
+    for (const a of step.actions) {
+      if (!a || typeof a !== "object" || typeof a.do !== "string") {
+        errs.push(`step ${i + 1}: every action needs a "do"`);
+        continue;
+      }
       const ids = "ids" in a ? a.ids : [a.id];
       for (const id of ids ?? []) if (!byId.has(id)) errs.push(`step ${i + 1} ${a.do}: unknown object ${id}`);
       if ((a.do === "move" || a.do === "path") && byId.get(a.id) && byId.get(a.id)!.kind !== "dot") errs.push(`step ${i + 1}: ${a.id} is not a dot`);
@@ -80,6 +88,36 @@ export function pushSlide(st: DeckState, raw: unknown): Result {
   const at = st.slides.length ? st.index + 1 : 0;
   const slides = [...st.slides.slice(0, at), slide, ...st.slides.slice(at)];
   return { state: { slides, followups: [...st.followups, slide.id], index: at, step: 0 }, errors: [] };
+}
+
+/**
+ * Adds objects and steps to the OPEN slide (explain in place). The new steps go right after the current step (later
+ * steps are renumbered) and are not played: the tutor plays `newSteps` with stepTo. What is on screen now does not
+ * change; objects no step shows appear at once.
+ */
+export function editSlide(st: DeckState, patch: { objects?: unknown; steps?: unknown }): Result & { newSteps: number[] } {
+  const no = (...errors: string[]) => ({ state: st, errors, newSteps: [] });
+  const slide = st.slides[st.index];
+  if (!slide) return no("no slides are loaded");
+  const objects = patch.objects ?? [], steps = patch.steps ?? [];
+  if (!Array.isArray(objects) || !Array.isArray(steps)) return no("objects and steps must be lists");
+  if (!objects.length && !steps.length) return no("nothing to add: give new objects and/or steps");
+  const old = new Set(slide.objects.map((o) => o.id));
+  const reused = objects.filter((o) => old.has(o?.id)).map((o) => `${o.id} is already on this slide; new objects need new ids`);
+  if (reused.length) return no(...reused);
+  const old_steps = slide.steps ?? [];
+  const merged: Slide = { ...slide, objects: [...slide.objects, ...objects], steps: [...old_steps.slice(0, st.step), ...steps, ...old_steps.slice(st.step)] };
+  const errors = slideErrors(merged);
+  if (errors.length) return no(...errors);
+  // An object visible from the start would turn hidden until its new "show" step: that would change what is on screen.
+  const fromStart = stateAt(slide, 0).visible;
+  for (const [i, step] of (steps as { actions: { do: string; ids?: string[] }[] }[]).entries())
+    for (const a of step.actions)
+      for (const id of a.do === "show" ? (a.ids ?? []) : [])
+        if (fromStart.has(id)) errors.push(`step ${st.step + i + 1} show: ${id} is on screen from the start; use indicate to point it out`);
+  if (errors.length) return no(...errors);
+  const slides = st.slides.map((s, i) => (i === st.index ? merged : s));
+  return { state: { ...st, slides }, errors: [], newSteps: steps.map((_, i) => st.step + i + 1) };
 }
 
 const label = (o: SlideObject): string | undefined => {
@@ -108,6 +146,8 @@ export function describeDeck(st: DeckState, limit = 14000): SlidesDescription {
       ? {
           id: cur.id,
           title: cur.title,
+          ...(cur.idea ? { idea: cur.idea } : {}),
+          ...(cur.check ? { check: cur.check } : {}),
           objects: cur.objects.map((o) => ({ id: o.id, kind: o.kind, ...(label(o) ? { label: label(o) } : {}) })),
           narration: (cur.steps ?? []).map((s) => s.narration),
         }

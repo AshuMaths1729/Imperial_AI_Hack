@@ -126,23 +126,36 @@ export const stepCount = (slide: Slide) => slide.steps?.length ?? 0;
 
 // ---- timeline -------------------------------------------------------------------------------------------
 
-export const STAGGER = 110;
-export const hopMs = (hops: number) => Math.round(Math.min(520, Math.max(110, 3600 / Math.max(1, hops))));
+/** v3 pacing: every step animation runs this much slower than v2 (one idea at a time). */
+export const PACE = 1.6;
+export const slow = (ms: number) => Math.round(ms * PACE);
+export const STAGGER = slow(110);
+export const hopMs = (hops: number) => slow(Math.min(520, Math.max(110, 3600 / Math.max(1, hops))));
+
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+/** Rough visible-glyph count of a LaTeX string (commands count as one glyph; braces, ^ and _ aren't written). */
+const latexChars = (latex: string) => latex.replace(/\\[a-zA-Z]+|[{}^_\s]/g, "").length + (latex.match(/\\[a-zA-Z]+/g)?.length ?? 0);
+
+/** Equations and text are written in by pen at a handwriting pace: 1.5-2.5 s, longer for longer ones. */
+export function writeMs(o: SlideObject): number {
+  const chars = o.kind === "math" ? latexChars(o.latex) : o.kind === "text" ? o.text.replace(/\s/g, "").length : 0;
+  return clamp(1100 + 70 * chars, 1500, 2500);
+}
 
 export function entranceMs(o: SlideObject | undefined): number {
   switch (o?.kind) {
-    case "axes":
-      return 900;
-    case "curve":
-    case "polyline":
-      return 1400;
     case "math":
     case "text":
-      return 900;
+      return writeMs(o);
+    case "axes":
+      return slow(900);
+    case "curve":
+    case "polyline":
+      return slow(1400);
     case "dot":
-      return 450;
+      return slow(450);
     default:
-      return 800;
+      return slow(800);
   }
 }
 
@@ -156,11 +169,11 @@ export function timeline(slide: Slide, actions: Action[]): { items: Timed[]; tot
   for (const act of actions) {
     let dur: number;
     if (act.do === "show") dur = (act.ids.length - 1) * STAGGER + Math.max(...act.ids.map((id) => entranceMs(byId.get(id))));
-    else if (act.do === "hide") dur = 450;
-    else if (act.do === "move") dur = 1100;
+    else if (act.do === "hide") dur = slow(450);
+    else if (act.do === "move") dur = slow(1100);
     else if (act.do === "path") dur = act.xs.length * hopMs(act.xs.length);
-    else if (act.do === "morph") dur = 1000;
-    else dur = 800;
+    else if (act.do === "morph") dur = slow(1000);
+    else dur = slow(800);
     const at = act.with_prev ? prevAt : cursor;
     items.push({ at, dur, act });
     prevAt = at;
@@ -169,6 +182,10 @@ export function timeline(slide: Slide, actions: Action[]): { items: Timed[]; tot
   }
   return { items, total };
 }
+
+/** How long going from step `from` to `to` animates (ms): only the next step is played; jumps and going back are instant. */
+export const stepMs = (slide: Slide, from: number, to: number) =>
+  to === from + 1 && slide.steps?.[to - 1] ? timeline(slide, slide.steps[to - 1].actions).total : 0;
 
 /** Smooth in-out (manim's "smooth"): slow start, slow landing. */
 export const smooth = (t: number) => {
