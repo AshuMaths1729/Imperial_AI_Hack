@@ -17,7 +17,7 @@ const plain = (n: unknown): string => {
 /** Board id: tutor shapes carry it in meta; user shapes use their tldraw id without "shape:". */
 export const boardIdOf = (s: TLShape) => (typeof s.meta.boardId === "string" ? s.meta.boardId : s.id.slice("shape:".length));
 
-const union = (a: Box, b: Box): Box => {
+export const union = (a: Box, b: Box): Box => {
   const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y);
   return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
 };

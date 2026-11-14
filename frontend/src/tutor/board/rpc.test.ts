@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { BoardHandle, Box } from "../contracts/types";
-import { fitSnapshot, makeBoardRpcHandlers, RPC_REPLY_LIMIT } from "./rpc";
+import type { BoardItem } from "../contracts/types";
+import { fitDescription, fitSnapshot, makeBoardRpcHandlers, RPC_REPLY_LIMIT } from "./rpc";
 
 function fakeBoard() {
   const calls: { applied: unknown[][]; regions: (Box | undefined)[] } = { applied: [], regions: [] };
@@ -89,5 +90,44 @@ describe("fitSnapshot", () => {
   it("errors when even the smallest size is too big", async () => {
     const r = await fitSnapshot("PNG", async () => "A".repeat(20000));
     expect(r).toEqual({ ok: false, ids: [], errors: ["snapshot too large"] });
+  });
+});
+
+describe("fitDescription", () => {
+  const size = (d: unknown) => new TextEncoder().encode(JSON.stringify(d)).length;
+  const ink = (i: number): BoardItem => ({ id: `stroke${i}`, type: "ink", author: "user", bbox: { x: i, y: i, w: 10, h: 10 } });
+  const tutorText = (i: number, len = 30): BoardItem => ({ id: `t${i}`, type: "text", author: "tutor", text: "w".repeat(len), bbox: { x: 0, y: 0, w: 1, h: 1 } });
+
+  it("leaves a small board unchanged", () => {
+    const d = { items: [tutorText(0), ink(1)] };
+    expect(fitDescription(d)).toEqual(d);
+  });
+
+  it("merges student ink into one item when the reply is too big", () => {
+    const d = { items: [tutorText(0), ...Array.from({ length: 300 }, (_, i) => ink(i))] };
+    expect(size(d)).toBeGreaterThan(RPC_REPLY_LIMIT);
+    const out = fitDescription(d);
+    expect(size(out)).toBeLessThanOrEqual(RPC_REPLY_LIMIT);
+    expect(out.items).toEqual([
+      tutorText(0),
+      { id: "user_ink", type: "ink", author: "user", label: "300 strokes", bbox: { x: 0, y: 0, w: 309, h: 309 } },
+    ]);
+  });
+
+  it("drops the oldest items with a note when merging is not enough", () => {
+    const d = { items: Array.from({ length: 200 }, (_, i) => tutorText(i, 120)) };
+    const out = fitDescription(d);
+    expect(size(out)).toBeLessThanOrEqual(RPC_REPLY_LIMIT);
+    const note = out.items[out.items.length - 1];
+    const omitted = 200 - (out.items.length - 1);
+    expect(omitted).toBeGreaterThan(0);
+    expect(note).toMatchObject({ type: "note", label: `(${omitted} items omitted)` });
+    expect(out.items[out.items.length - 2].id).toBe("t199"); // newest kept
+  });
+
+  it("the describe RPC reply always fits", async () => {
+    const big = { items: Array.from({ length: 2000 }, (_, i) => ink(i)) };
+    const h = makeBoardRpcHandlers(() => ({ ...fakeBoard().board, describe: () => big }));
+    expect(new TextEncoder().encode(await h["board.describe"]("{}")).length).toBeLessThanOrEqual(RPC_REPLY_LIMIT);
   });
 });

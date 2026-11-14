@@ -1,5 +1,6 @@
-import type { BoardHandle, BoardRpcMethod, Box } from "../contracts/types";
+import type { BoardDescription, BoardHandle, BoardItem, BoardRpcMethod, Box } from "../contracts/types";
 import { downscaleDims } from "./circle";
+import { union } from "./describe";
 
 type Handler = (payload: string) => Promise<string>;
 /** Re-encodes a PNG (base64) as JPEG (base64) with its long side ≤ maxSide. */
@@ -17,6 +18,29 @@ export async function fitSnapshot(pngB64: string, encode: JpegEncoder, limit = R
     if (bytes(JSON.stringify(reply)) <= limit) return reply;
   }
   return { ok: false, ids: [], errors: ["snapshot too large"] };
+}
+
+const SHORT = 40;
+const shorten = (s?: string) => (s && s.length > SHORT ? `${s.slice(0, SHORT - 1)}…` : s);
+const isInk = (it: BoardItem) => it.author === "user" && it.type === "ink";
+
+/**
+ * board.describe reply that fits the RPC limit: if too big, merge the student's ink strokes into one item,
+ * then shorten tutor text, then drop the oldest items behind a "(N items omitted)" note.
+ */
+export function fitDescription(desc: BoardDescription, limit = RPC_REPLY_LIMIT): BoardDescription {
+  const fits = (items: BoardItem[]) => bytes(JSON.stringify({ items })) <= limit;
+  if (fits(desc.items)) return desc;
+  const strokes = desc.items.filter(isInk);
+  let items = desc.items.filter((it) => !isInk(it));
+  if (strokes.length) items.push({ id: "user_ink", type: "ink", author: "user", label: `${strokes.length} strokes`, bbox: strokes.map((s) => s.bbox).reduce(union) });
+  if (fits(items)) return { items };
+  items = items.map((it) => (it.author === "tutor" ? { ...it, text: shorten(it.text), latex: shorten(it.latex), label: shorten(it.label) } : it));
+  for (let dropped = 0; ; dropped++) {
+    const kept = items.slice(dropped);
+    if (dropped) kept.push({ id: "omitted", type: "note", author: "tutor", label: `(${dropped} items omitted)`, bbox: { x: 0, y: 0, w: 0, h: 0 } });
+    if (fits(kept) || dropped >= items.length) return { items: kept };
+  }
 }
 
 /** Browser JPEG encoder: white background (JPEG has no alpha), quality 0.7. */
@@ -60,7 +84,7 @@ export function makeBoardRpcHandlers(getBoard: () => BoardHandle | null, encodeJ
 
   return {
     "board.apply": wrap((board, p) => (Array.isArray(p.ops) ? board.applyOps(p.ops) : { ok: false, ids: [], errors: ["payload.ops must be an array"] })),
-    "board.describe": wrap((board) => board.describe()),
+    "board.describe": wrap((board) => fitDescription(board.describe())),
     "board.snapshot": wrap(async (board, p) => {
       if (p.region !== undefined && !isRegion(p.region)) return { ok: false, ids: [], errors: ["region must be {x,y,w,h} in board units with w,h > 0"] };
       return fitSnapshot(await board.snapshot(p.region as Box | undefined), encodeJpeg);
