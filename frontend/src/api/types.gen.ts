@@ -4,23 +4,6 @@
  */
 
 export interface paths {
-    "/api/ask-spatial": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ask Spatial */
-        post: operations["ask_spatial_api_ask_spatial_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/ask-spatial/v2": {
         parameters: {
             query?: never;
@@ -118,23 +101,6 @@ export interface paths {
         put?: never;
         /** Avatar Session */
         post: operations["avatar_session_api_avatar_session_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/demo/{mode}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Demo Dataset */
-        get: operations["get_demo_dataset_api_demo__mode__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -252,57 +218,6 @@ export interface paths {
         };
         /** Get Paper */
         get: operations["get_paper_api_ingest_paper__paper_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ingest/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ingest Pdf */
-        post: operations["ingest_pdf_api_ingest_pdf_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ingest/url": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ingest Url */
-        post: operations["ingest_url_api_ingest_url_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/{job_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Job Events */
-        get: operations["job_events_api_jobs__job_id__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -569,23 +484,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/simulate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Simulate Paper */
-        post: operations["simulate_paper_api_simulate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/stt": {
         parameters: {
             query?: never;
@@ -762,16 +660,6 @@ export interface components {
              * @description arXiv link, direct .pdf link or web page
              */
             url?: string | null;
-        };
-        /** Body_ingest_pdf_api_ingest_pdf_post */
-        Body_ingest_pdf_api_ingest_pdf_post: {
-            /** File */
-            file: string;
-            /**
-             * Mode
-             * @default lecture
-             */
-            mode: string;
         };
         /** Body_stt_api_stt_post */
         Body_stt_api_stt_post: {
@@ -1040,24 +928,6 @@ export interface components {
             /** Nodes */
             nodes: components["schemas"]["Node"][];
         };
-        /** GraphEdge */
-        GraphEdge: {
-            /** Condition */
-            condition?: string | null;
-            /** Id */
-            id: string;
-            /** Label */
-            label?: string | null;
-            /** Source */
-            source: string;
-            /** Target */
-            target: string;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "prerequisite" | "supports" | "contradicts" | "gap";
-        };
         /** GraphMeta */
         GraphMeta: {
             /**
@@ -1070,45 +940,6 @@ export interface components {
              * @enum {string}
              */
             extractor_used: "frontier" | "finetuned";
-        };
-        /** GraphNode */
-        GraphNode: {
-            /** Authors Year */
-            authors_year?: string | null;
-            /**
-             * Category
-             * @default core
-             * @enum {string}
-             */
-            category: "core" | "prerequisite" | "claim" | "paper" | "gap";
-            /** Id */
-            id: string;
-            /** Label */
-            label: string;
-            /**
-             * Mastery
-             * @default 65
-             */
-            mastery: number;
-            /**
-             * Quiz
-             * @default []
-             */
-            quiz: components["schemas"]["app__modules__legacy__legacy_schemas__QuizQuestion"][];
-            /** Slide Ref */
-            slide_ref?: string | null;
-            /** Summary */
-            summary: string;
-            /**
-             * X
-             * @default 0
-             */
-            x: number;
-            /**
-             * Y
-             * @default 0
-             */
-            y: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1124,8 +955,6 @@ export interface components {
             cache_mode: "live" | "offline" | "refresh";
             /** Preset */
             preset: string | null;
-            /** Service */
-            service: string | null;
             /**
              * Status
              * @default ok
@@ -1400,6 +1229,19 @@ export interface components {
              */
             type: "pulse_node";
         };
+        /** QuizQuestion */
+        QuizQuestion: {
+            /** Correct Index */
+            correct_index: number;
+            /** Explanation */
+            explanation: string;
+            /** Id */
+            id: string;
+            /** Options */
+            options: string[];
+            /** Question */
+            question: string;
+        };
         /** QuizResponse */
         QuizResponse: {
             /** Graph Id */
@@ -1407,7 +1249,7 @@ export interface components {
             /** Node Id */
             node_id: string;
             /** Questions */
-            questions: components["schemas"]["app__modules__quiz__router__QuizQuestion"][];
+            questions: components["schemas"]["QuizQuestion"][];
         };
         /** RunRecord */
         RunRecord: {
@@ -1506,18 +1348,30 @@ export interface components {
          *     before any runtime (Pyodide) has loaded.
          */
         SimPayload: {
-            /** Arxiv Id */
+            /**
+             * Arxiv Id
+             * @default null
+             */
             arxiv_id: string | null;
             default_output: components["schemas"]["SimOutput"];
-            /** Equation Latex */
+            /**
+             * Equation Latex
+             * @default null
+             */
             equation_latex: string | null;
-            /** Paper Title */
+            /**
+             * Paper Title
+             * @default null
+             */
             paper_title: string | null;
             /** Params */
             params: {
                 [key: string]: components["schemas"]["ParamSpec"];
             };
-            /** Python Code */
+            /**
+             * Python Code
+             * @default null
+             */
             python_code: string | null;
         };
         /**
@@ -1551,58 +1405,6 @@ export interface components {
             title: string;
             validation: components["schemas"]["ValidationReport"];
         };
-        /** SimulationParam */
-        SimulationParam: {
-            /** Default Val */
-            default_val: number;
-            /** Key */
-            key: string;
-            /** Max Val */
-            max_val: number;
-            /** Min Val */
-            min_val: number;
-            /** Name */
-            name: string;
-            /** Step */
-            step: number;
-            /**
-             * Unit
-             * @default
-             */
-            unit: string;
-        };
-        /** SimulationPayload */
-        SimulationPayload: {
-            /** Arxiv Id */
-            arxiv_id: string;
-            /** Equation Latex */
-            equation_latex: string;
-            /** Paper Title */
-            paper_title: string;
-            /** Params */
-            params: components["schemas"]["SimulationParam"][];
-            /** Python Code */
-            python_code: string;
-            /** Series */
-            series: components["schemas"]["SimulationSeries"][];
-            /** Summary */
-            summary: string;
-            /** X */
-            x: number[];
-            /** X Label */
-            x_label: string;
-            /** Y Label */
-            y_label: string;
-        };
-        /** SimulationSeries */
-        SimulationSeries: {
-            /** Color */
-            color: string;
-            /** Name */
-            name: string;
-            /** Y */
-            y: number[];
-        };
         /** SourceRef */
         SourceRef: {
             /** Doc Id */
@@ -1612,54 +1414,6 @@ export interface components {
              * @description Slide number for lectures, page for papers
              */
             page: number | null;
-        };
-        /** SpatialAskRequest */
-        SpatialAskRequest: {
-            /** Bbox */
-            bbox?: {
-                [key: string]: number;
-            } | null;
-            /** Cropped Image B64 */
-            cropped_image_b64?: string | null;
-            /**
-             * Hit Edge Ids
-             * @default []
-             */
-            hit_edge_ids: string[];
-            /**
-             * Hit Node Ids
-             * @default []
-             */
-            hit_node_ids: string[];
-            /**
-             * Mode
-             * @enum {string}
-             */
-            mode: "lecture" | "paper2sim" | "hypothesis";
-            /** Sim Params */
-            sim_params?: {
-                [key: string]: number;
-            } | null;
-            /** Transcript */
-            transcript: string;
-        };
-        /** SpatialAskResponse */
-        SpatialAskResponse: {
-            /**
-             * Annotations
-             * @default []
-             */
-            annotations: components["schemas"]["UIAnnotation"][];
-            /**
-             * Avatar State
-             * @default explaining
-             * @enum {string}
-             */
-            avatar_state: "explaining" | "emphatic" | "questioning";
-            /** Spoken Answer */
-            spoken_answer: string;
-            /** Suggested Quiz Node Id */
-            suggested_quiz_node_id?: string | null;
         };
         /** SttResponse */
         SttResponse: {
@@ -1728,33 +1482,6 @@ export interface components {
             /** Voice Id */
             voice_id?: string | null;
         };
-        /** UIAnnotation */
-        UIAnnotation: {
-            /** Label */
-            label: string;
-            /** Target Id */
-            target_id?: string | null;
-            /**
-             * Type
-             * @enum {string}
-             */
-            type: "pulse_node" | "highlight_edge" | "callout_box";
-            /** X */
-            x?: number | null;
-            /** Y */
-            y?: number | null;
-        };
-        /** UrlIngestRequest */
-        UrlIngestRequest: {
-            /**
-             * Mode
-             * @default lecture
-             * @enum {string}
-             */
-            mode: "lecture" | "paper2sim" | "hypothesis";
-            /** Url */
-            url: string;
-        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1782,55 +1509,6 @@ export interface components {
             /** Warnings */
             warnings?: components["schemas"]["Issue"][];
         };
-        /** WorkspaceDataset */
-        WorkspaceDataset: {
-            /**
-             * Edges
-             * @default []
-             */
-            edges: components["schemas"]["GraphEdge"][];
-            /**
-             * Mode
-             * @enum {string}
-             */
-            mode: "lecture" | "paper2sim" | "hypothesis";
-            /**
-             * Nodes
-             * @default []
-             */
-            nodes: components["schemas"]["GraphNode"][];
-            simulation?: components["schemas"]["SimulationPayload"] | null;
-            /** Subtitle */
-            subtitle: string;
-            /** Title */
-            title: string;
-        };
-        /** QuizQuestion */
-        app__modules__legacy__legacy_schemas__QuizQuestion: {
-            /** Correct Index */
-            correct_index: number;
-            /** Explanation */
-            explanation: string;
-            /** Id */
-            id: string;
-            /** Options */
-            options: string[];
-            /** Question */
-            question: string;
-        };
-        /** QuizQuestion */
-        app__modules__quiz__router__QuizQuestion: {
-            /** Correct Index */
-            correct_index: number;
-            /** Explanation */
-            explanation: string;
-            /** Id */
-            id: string;
-            /** Options */
-            options: string[];
-            /** Question */
-            question: string;
-        };
     };
     responses: never;
     parameters: never;
@@ -1840,39 +1518,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    ask_spatial_api_ask_spatial_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SpatialAskRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpatialAskResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     ask_spatial_v2_api_ask_spatial_v2_post: {
         parameters: {
             query?: never;
@@ -2070,37 +1715,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AvatarClipSession"];
-                };
-            };
-        };
-    };
-    get_demo_dataset_api_demo__mode__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                mode: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceDataset"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2308,110 +1922,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaperSource"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_pdf_api_ingest_pdf_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_ingest_pdf_api_ingest_pdf_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceDataset"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_url_api_ingest_url_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UrlIngestRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceDataset"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    job_events_api_jobs__job_id__events_get: {
-        parameters: {
-            query?: {
-                /** @description Resume after this seq */
-                last_event_id?: number | null;
-                /** @description Pause between replayed events */
-                delay_ms?: number;
-            };
-            header?: {
-                "Last-Event-ID"?: string | null;
-            };
-            path: {
-                job_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2871,42 +2381,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SimPayload"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    simulate_paper_api_simulate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: number;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SimSpec"];
                 };
             };
             /** @description Validation Error */

@@ -49,7 +49,6 @@ from app.schemas import (  # noqa: E402
     HitMetadata,
     ParamSpec,
     SimOutput,
-    SimPayload,
 )
 
 GROUPS = ("health", "lecture", "topic", "sim", "ask", "voice")
@@ -92,7 +91,6 @@ SIM_HINT = (
 TTS_TEXT = "Gradient descent follows the negative gradient."
 TOPIC_QUERY = {"query": "solid-state battery electrolytes", "max_papers": 6}
 ARXIV_ID = "1503.01243"
-SEEDED_SIM = "sim_heavy_ball"
 
 
 # --------------------------------------------------------------------------- plumbing
@@ -415,13 +413,6 @@ class Smoke:
         )
 
         S = "sim"
-        self.step(S, "seeded_get", self.sim_seeded_get, (("GET", "/api/sim/{id}"),))
-        self.step(
-            S,
-            "seeded_run",
-            self.sim_seeded_run,
-            (("GET", "/api/sim/{id}"), ("POST", "/api/sim/run")),
-        )
         self.step(S, "paper_ingest", self.paper_ingest, (("POST", "/api/ingest/paper"),))
         self.step(S, "generate", self.sim_generate, (("POST", "/api/sim/generate"),))
         self.step(S, "run_default", self.sim_run_default, (("POST", "/api/sim/run"),))
@@ -583,21 +574,6 @@ class Smoke:
             raise StepFail(f"{what} has no slider `params`")
         return {k: validate(ParamSpec, v, f"{what} param {k!r}") for k, v in raw.items()}
 
-    def sim_seeded_get(self) -> str:
-        body = self.json(self.call("GET", f"/api/sim/{SEEDED_SIM}"))
-        p = validate(
-            SimPayload,
-            {k: v for k, v in body.items() if k in SimPayload.model_fields},
-            "seeded sim",
-        )
-        self.s["seeded_params"] = {k: v.default for k, v in p.params.items()}
-        return f"{len(p.params)} sliders, {len(p.default_output.series)} series"
-
-    def sim_seeded_run(self) -> str:
-        params = self.need("seeded_params", "seeded GET did not pass")
-        out = self._run_sim(SEEDED_SIM, params)
-        return f"{len(out.series)} series, {len(out.series[0].x)} points"
-
     def paper_ingest(self) -> str:
         body = self.json(self.call("POST", "/api/ingest/paper", data={"arxiv_id": ARXIV_ID}))
         if "method_text" not in body and body.get("job_id"):
@@ -663,11 +639,6 @@ class Smoke:
     def ask(self) -> str:
         graph: Graph | None = self.s.get("graph")
         note = ""
-        if graph is None:  # lecture ingest unavailable: fall back to the seeded demo graph
-            r = self.client.get("/api/graphs/g_demo_lecture")
-            if r.status_code == 200:
-                graph = Graph.model_validate(r.json())
-                note = " (seeded demo graph)"
         node = graph.nodes[0] if graph else None
         import base64
 

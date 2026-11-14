@@ -289,25 +289,6 @@
         "title": "Body_ingest_paper_api_ingest_paper_post",
         "type": "object"
       },
-      "Body_ingest_pdf_api_ingest_pdf_post": {
-        "properties": {
-          "file": {
-            "contentMediaType": "application/octet-stream",
-            "title": "File",
-            "type": "string"
-          },
-          "mode": {
-            "default": "lecture",
-            "title": "Mode",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "title": "Body_ingest_pdf_api_ingest_pdf_post",
-        "type": "object"
-      },
       "Body_stt_api_stt_post": {
         "properties": {
           "file": {
@@ -1101,62 +1082,6 @@
         "title": "Graph",
         "type": "object"
       },
-      "GraphEdge": {
-        "properties": {
-          "condition": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Condition"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "label": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Label"
-          },
-          "source": {
-            "title": "Source",
-            "type": "string"
-          },
-          "target": {
-            "title": "Target",
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              "prerequisite",
-              "supports",
-              "contradicts",
-              "gap"
-            ],
-            "title": "Type",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "source",
-          "target",
-          "type"
-        ],
-        "title": "GraphEdge",
-        "type": "object"
-      },
       "GraphMeta": {
         "additionalProperties": false,
         "properties": {
@@ -1179,88 +1104,6 @@
           "created_at"
         ],
         "title": "GraphMeta",
-        "type": "object"
-      },
-      "GraphNode": {
-        "properties": {
-          "authors_year": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Authors Year"
-          },
-          "category": {
-            "default": "core",
-            "enum": [
-              "core",
-              "prerequisite",
-              "claim",
-              "paper",
-              "gap"
-            ],
-            "title": "Category",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "mastery": {
-            "default": 65,
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Mastery",
-            "type": "integer"
-          },
-          "quiz": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/app__modules__legacy__legacy_schemas__QuizQuestion"
-            },
-            "title": "Quiz",
-            "type": "array"
-          },
-          "slide_ref": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slide Ref"
-          },
-          "summary": {
-            "title": "Summary",
-            "type": "string"
-          },
-          "x": {
-            "default": 0.0,
-            "title": "X",
-            "type": "number"
-          },
-          "y": {
-            "default": 0.0,
-            "title": "Y",
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "label",
-          "summary"
-        ],
-        "title": "GraphNode",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -1299,17 +1142,6 @@
             ],
             "title": "Preset"
           },
-          "service": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Service"
-          },
           "status": {
             "const": "ok",
             "default": "ok",
@@ -1320,8 +1152,7 @@
         "required": [
           "status",
           "cache_mode",
-          "preset",
-          "service"
+          "preset"
         ],
         "title": "HealthResponse",
         "type": "object"
@@ -1989,6 +1820,43 @@
         "title": "PulseNode",
         "type": "object"
       },
+      "QuizQuestion": {
+        "additionalProperties": false,
+        "properties": {
+          "correct_index": {
+            "title": "Correct Index",
+            "type": "integer"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "options",
+          "correct_index",
+          "explanation"
+        ],
+        "title": "QuizQuestion",
+        "type": "object"
+      },
       "QuizResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2002,7 +1870,7 @@
           },
           "questions": {
             "items": {
-              "$ref": "#/components/schemas/app__modules__quiz__router__QuizQuestion"
+              "$ref": "#/components/schemas/QuizQuestion"
             },
             "title": "Questions",
             "type": "array"
@@ -2288,6 +2156,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Arxiv Id"
           },
           "default_output": {
@@ -2302,6 +2171,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Equation Latex"
           },
           "paper_title": {
@@ -2313,6 +2183,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Paper Title"
           },
           "params": {
@@ -2331,6 +2202,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Python Code"
           }
         },
@@ -2443,142 +2315,6 @@
         "title": "SimSpec",
         "type": "object"
       },
-      "SimulationParam": {
-        "properties": {
-          "default_val": {
-            "title": "Default Val",
-            "type": "number"
-          },
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "max_val": {
-            "title": "Max Val",
-            "type": "number"
-          },
-          "min_val": {
-            "title": "Min Val",
-            "type": "number"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "step": {
-            "title": "Step",
-            "type": "number"
-          },
-          "unit": {
-            "default": "",
-            "title": "Unit",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "key",
-          "min_val",
-          "max_val",
-          "step",
-          "default_val"
-        ],
-        "title": "SimulationParam",
-        "type": "object"
-      },
-      "SimulationPayload": {
-        "properties": {
-          "arxiv_id": {
-            "title": "Arxiv Id",
-            "type": "string"
-          },
-          "equation_latex": {
-            "title": "Equation Latex",
-            "type": "string"
-          },
-          "paper_title": {
-            "title": "Paper Title",
-            "type": "string"
-          },
-          "params": {
-            "items": {
-              "$ref": "#/components/schemas/SimulationParam"
-            },
-            "title": "Params",
-            "type": "array"
-          },
-          "python_code": {
-            "title": "Python Code",
-            "type": "string"
-          },
-          "series": {
-            "items": {
-              "$ref": "#/components/schemas/SimulationSeries"
-            },
-            "title": "Series",
-            "type": "array"
-          },
-          "summary": {
-            "title": "Summary",
-            "type": "string"
-          },
-          "x": {
-            "items": {
-              "type": "number"
-            },
-            "title": "X",
-            "type": "array"
-          },
-          "x_label": {
-            "title": "X Label",
-            "type": "string"
-          },
-          "y_label": {
-            "title": "Y Label",
-            "type": "string"
-          }
-        },
-        "required": [
-          "paper_title",
-          "arxiv_id",
-          "equation_latex",
-          "summary",
-          "python_code",
-          "params",
-          "x_label",
-          "y_label",
-          "x",
-          "series"
-        ],
-        "title": "SimulationPayload",
-        "type": "object"
-      },
-      "SimulationSeries": {
-        "properties": {
-          "color": {
-            "title": "Color",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "y": {
-            "items": {
-              "type": "number"
-            },
-            "title": "Y",
-            "type": "array"
-          }
-        },
-        "required": [
-          "name",
-          "color",
-          "y"
-        ],
-        "title": "SimulationSeries",
-        "type": "object"
-      },
       "SourceRef": {
         "additionalProperties": false,
         "properties": {
@@ -2605,126 +2341,6 @@
           "page"
         ],
         "title": "SourceRef",
-        "type": "object"
-      },
-      "SpatialAskRequest": {
-        "properties": {
-          "bbox": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "number"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bbox"
-          },
-          "cropped_image_b64": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cropped Image B64"
-          },
-          "hit_edge_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Hit Edge Ids",
-            "type": "array"
-          },
-          "hit_node_ids": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Hit Node Ids",
-            "type": "array"
-          },
-          "mode": {
-            "enum": [
-              "lecture",
-              "paper2sim",
-              "hypothesis"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "sim_params": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "number"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sim Params"
-          },
-          "transcript": {
-            "title": "Transcript",
-            "type": "string"
-          }
-        },
-        "required": [
-          "mode",
-          "transcript"
-        ],
-        "title": "SpatialAskRequest",
-        "type": "object"
-      },
-      "SpatialAskResponse": {
-        "properties": {
-          "annotations": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/UIAnnotation"
-            },
-            "title": "Annotations",
-            "type": "array"
-          },
-          "avatar_state": {
-            "default": "explaining",
-            "enum": [
-              "explaining",
-              "emphatic",
-              "questioning"
-            ],
-            "title": "Avatar State",
-            "type": "string"
-          },
-          "spoken_answer": {
-            "title": "Spoken Answer",
-            "type": "string"
-          },
-          "suggested_quiz_node_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suggested Quiz Node Id"
-          }
-        },
-        "required": [
-          "spoken_answer"
-        ],
-        "title": "SpatialAskResponse",
         "type": "object"
       },
       "SttResponse": {
@@ -2924,85 +2540,6 @@
         "title": "TtsSegmentsRequest",
         "type": "object"
       },
-      "UIAnnotation": {
-        "properties": {
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "target_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Id"
-          },
-          "type": {
-            "enum": [
-              "pulse_node",
-              "highlight_edge",
-              "callout_box"
-            ],
-            "title": "Type",
-            "type": "string"
-          },
-          "x": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "X"
-          },
-          "y": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Y"
-          }
-        },
-        "required": [
-          "type",
-          "label"
-        ],
-        "title": "UIAnnotation",
-        "type": "object"
-      },
-      "UrlIngestRequest": {
-        "properties": {
-          "mode": {
-            "default": "lecture",
-            "enum": [
-              "lecture",
-              "paper2sim",
-              "hypothesis"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "url"
-        ],
-        "title": "UrlIngestRequest",
-        "type": "object"
-      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3080,133 +2617,6 @@
         ],
         "title": "ValidationReport",
         "type": "object"
-      },
-      "WorkspaceDataset": {
-        "properties": {
-          "edges": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/GraphEdge"
-            },
-            "title": "Edges",
-            "type": "array"
-          },
-          "mode": {
-            "enum": [
-              "lecture",
-              "paper2sim",
-              "hypothesis"
-            ],
-            "title": "Mode",
-            "type": "string"
-          },
-          "nodes": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/GraphNode"
-            },
-            "title": "Nodes",
-            "type": "array"
-          },
-          "simulation": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SimulationPayload"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "subtitle": {
-            "title": "Subtitle",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "mode",
-          "title",
-          "subtitle"
-        ],
-        "title": "WorkspaceDataset",
-        "type": "object"
-      },
-      "app__modules__legacy__legacy_schemas__QuizQuestion": {
-        "properties": {
-          "correct_index": {
-            "title": "Correct Index",
-            "type": "integer"
-          },
-          "explanation": {
-            "title": "Explanation",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "options": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Options",
-            "type": "array"
-          },
-          "question": {
-            "title": "Question",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "question",
-          "options",
-          "correct_index",
-          "explanation"
-        ],
-        "title": "QuizQuestion",
-        "type": "object"
-      },
-      "app__modules__quiz__router__QuizQuestion": {
-        "additionalProperties": false,
-        "properties": {
-          "correct_index": {
-            "title": "Correct Index",
-            "type": "integer"
-          },
-          "explanation": {
-            "title": "Explanation",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "options": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Options",
-            "type": "array"
-          },
-          "question": {
-            "title": "Question",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "question",
-          "options",
-          "correct_index",
-          "explanation"
-        ],
-        "title": "QuizQuestion",
-        "type": "object"
       }
     }
   },
@@ -3216,47 +2626,6 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/ask-spatial": {
-      "post": {
-        "operationId": "ask_spatial_api_ask_spatial_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpatialAskRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SpatialAskResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Ask Spatial",
-        "tags": [
-          "legacy"
-        ]
-      }
-    },
     "/api/ask-spatial/v2": {
       "post": {
         "operationId": "ask_spatial_v2_api_ask_spatial_v2_post",
@@ -3294,7 +2663,7 @@
         },
         "summary": "Ask Spatial V2",
         "tags": [
-          "fixtures"
+          "ask"
         ]
       }
     },
@@ -3506,48 +2875,6 @@
         ]
       }
     },
-    "/api/demo/{mode}": {
-      "get": {
-        "operationId": "get_demo_dataset_api_demo__mode__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "mode",
-            "required": true,
-            "schema": {
-              "title": "Mode",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceDataset"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Demo Dataset",
-        "tags": [
-          "legacy"
-        ]
-      }
-    },
     "/api/docs/{doc_id}": {
       "get": {
         "operationId": "get_doc_api_docs__doc_id__get",
@@ -3691,7 +3018,7 @@
         },
         "summary": "Get Graph",
         "tags": [
-          "fixtures"
+          "lecture"
         ]
       }
     },
@@ -3712,7 +3039,7 @@
         },
         "summary": "Health",
         "tags": [
-          "legacy"
+          "health"
         ]
       }
     },
@@ -3850,176 +3177,6 @@
         "summary": "Get Paper",
         "tags": [
           "ingest"
-        ]
-      }
-    },
-    "/api/ingest/pdf": {
-      "post": {
-        "operationId": "ingest_pdf_api_ingest_pdf_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_ingest_pdf_api_ingest_pdf_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceDataset"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Ingest Pdf",
-        "tags": [
-          "legacy"
-        ]
-      }
-    },
-    "/api/ingest/url": {
-      "post": {
-        "operationId": "ingest_url_api_ingest_url_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UrlIngestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkspaceDataset"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Ingest Url",
-        "tags": [
-          "legacy"
-        ]
-      }
-    },
-    "/api/jobs/{job_id}/events": {
-      "get": {
-        "operationId": "job_events_api_jobs__job_id__events_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "job_id",
-            "required": true,
-            "schema": {
-              "title": "Job Id",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Resume after this seq",
-            "in": "query",
-            "name": "last_event_id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Resume after this seq",
-              "title": "Last Event Id"
-            }
-          },
-          {
-            "description": "Pause between replayed events",
-            "in": "query",
-            "name": "delay_ms",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "description": "Pause between replayed events",
-              "maximum": 5000,
-              "minimum": 0,
-              "title": "Delay Ms",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "header",
-            "name": "Last-Event-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Last-Event-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Job Events",
-        "tags": [
-          "fixtures"
         ]
       }
     },
@@ -4646,7 +3803,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SimPayload"
+                  "$ref": "#/components/schemas/SimSpec"
                 }
               }
             },
@@ -4665,50 +3822,7 @@
         },
         "summary": "Get Sim",
         "tags": [
-          "fixtures"
-        ]
-      }
-    },
-    "/api/simulate": {
-      "post": {
-        "operationId": "simulate_paper_api_simulate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": {
-                  "type": "number"
-                },
-                "title": "Params",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Simulate Paper",
-        "tags": [
-          "legacy"
+          "sim"
         ]
       }
     },

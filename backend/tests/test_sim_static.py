@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.modules.sim.seed import HEAVY_BALL_CODE
 from app.tools.sandbox import check_static
+from tests.heavy_ball import HEAVY_BALL_CODE
 
 HEAD = "import numpy as np\nimport math\n"
 

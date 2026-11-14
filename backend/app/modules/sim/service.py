@@ -1,4 +1,4 @@
-"""Spec storage, seeded demo sim, run cache."""
+"""Spec storage and run cache."""
 
 from __future__ import annotations
 
@@ -11,10 +11,8 @@ from pathlib import Path
 
 from app.core.errors import AppError, NotFound
 from app.modules.sim.models import SimSpec
-from app.modules.sim.seed import HEAVY_BALL_CODE, SEED_ID, SEED_META
 from app.schemas.sim import SimOutput
 from app.settings import Settings
-from app.tools.sandbox import validate_code
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
 
@@ -57,37 +55,7 @@ def save_spec(settings: Settings, spec: SimSpec) -> None:
     os.replace(tmp, target)
 
 
-_seed_spec: SimSpec | None = None
-
-
-async def get_seed_spec() -> SimSpec:
-    """The trusted demo sim; validated once per process (first request)."""
-    global _seed_spec
-    if _seed_spec is None:
-        report = await validate_code(HEAVY_BALL_CODE)
-        if report.status != "passed" or report.params is None or report.default_output is None:
-            raise SimRunFailed(
-                "seeded sim failed validation",
-                details={"validation": report.model_dump(mode="json")},
-            )
-        _seed_spec = SimSpec(
-            sim_id=SEED_ID,
-            title=SEED_META["title"],
-            explanation=SEED_META["explanation"],
-            assumptions=SEED_META["assumptions"],
-            equation_latex=SEED_META["equation_latex"],
-            paper_title="Heavy-ball momentum (demo)",
-            params=report.params,
-            default_output=report.default_output,
-            python_code=HEAVY_BALL_CODE,
-            validation=report,
-        )
-    return _seed_spec
-
-
 async def load_spec(settings: Settings, sim_id: str) -> SimSpec:
-    if sim_id == SEED_ID:
-        return await get_seed_spec()
     if not _ID_RE.match(sim_id):
         raise NotFound(f"unknown simulation {sim_id!r}")
     path = sims_dir(settings) / f"{sim_id}.json"

@@ -169,7 +169,6 @@ def test_stub_app_missing_routes_are_skipped(tmp_path, capsys):
     assert steps["topic.build"]["label"] == "SKIP (route missing)"
     assert steps["sim.generate"]["label"] == "SKIP (route missing)"
     assert steps["voice.tts"]["label"] == "SKIP (route missing)"
-    assert steps["sim.seeded_get"]["label"] == "SKIP (route missing)"
     assert steps["ask.spatial_v2"]["label"] == "SKIP (route missing)"
     assert all(s["status"] != "FAIL" for s in steps.values())
     assert any("POST /api/ingest/lecture" in m for m in report["routes"]["missing"])
@@ -191,7 +190,7 @@ def test_all_steps_pass_on_fake_app(tmp_path):
     steps = by_name(report)
     assert code == 0, {n: s["detail"] for n, s in steps.items() if s["status"] == "FAIL"}
     assert [n for n, s in steps.items() if s["status"] != "PASS"] == []
-    assert len(steps) == 18
+    assert len(steps) == 16
     assert "papers=" in steps["topic.build"]["detail"]
     assert report["outbound_http_requests"] == 0
 

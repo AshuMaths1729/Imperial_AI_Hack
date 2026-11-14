@@ -3,7 +3,7 @@
 `ASK_BACKEND=claude` sends the cropped image + transcript + hit metadata (+ the active graph
 when it is on disk) in a single `llm.parse("ask", ...)`; any LLM-layer failure falls back to
 the canned answer so the live demo never dies on a flaky call. `ASK_BACKEND=canned`
-answers from `fixtures/ask_spatial_<view>.json`, else a built-in canned reply.
+answers with a built-in generic reply.
 """
 
 from __future__ import annotations
@@ -187,18 +187,8 @@ def sanitize(
 
 # ------------------------------------------------------------------------------- canned
 def canned_answer(req: AskSpatialRequest, settings: Settings) -> AskSpatialResponse:
-    view = req.active_context.view
-    path = Path(settings.fixtures_dir) / f"ask_spatial_{view}.json"
-    try:
-        canned = AskSpatialResponse.model_validate_json(path.read_text(encoding="utf-8"))
-    except (OSError, ValidationError, ValueError):
-        return _builtin_canned(req)
-    gid = req.active_context.graph_id or ""
-    if gid.startswith("g_demo"):  # the fixtures are written for the demo graphs
-        return canned
-    # a canned answer must not point at nodes that are not in the graph being viewed
-    node_ids, edge_ids = known_ids(req, load_graph(settings, req.active_context.graph_id))
-    return sanitize(canned, node_ids, edge_ids)
+    """Generic fallback used when Claude is unavailable (no key, or the call failed)."""
+    return _builtin_canned(req)
 
 
 def _builtin_canned(req: AskSpatialRequest) -> AskSpatialResponse:

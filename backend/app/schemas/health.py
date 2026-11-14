@@ -11,7 +11,6 @@ class HealthResponse(StrictModel):
     status: Literal["ok"] = "ok"
     cache_mode: Literal["live", "offline", "refresh"]
     preset: str | None = None  # name of the loaded Demo Preset, if any
-    service: str | None = None  # legacy field from the Phase-1 prototype
 
 
 class ErrorBody(StrictModel):

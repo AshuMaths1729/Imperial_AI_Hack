@@ -1,4 +1,4 @@
-"""/api/sim/*: seeded demo sim, generate flow (FakeLLM), run clamping. No live calls."""
+"""/api/sim/*: generate flow (FakeLLM), run clamping. No live calls."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from app.deps import get_llm
 from app.llm.testing import FakeLLM
 from app.main import create_app
-from app.modules.legacy.router import run_heavy_ball_sim
 from app.modules.sim.service import run_cache
 from app.settings import Settings
 
@@ -60,44 +59,6 @@ def client(tmp_path, fake_llm):
     with TestClient(app) as c:
         c.state_dir = tmp_path
         yield c
-
-
-# ----- seeded demo sim -----------------------------------------------------------------
-
-
-def _assert_matches_legacy(output: dict, **params: float) -> None:
-    xs, legacy = run_heavy_ball_sim(**params)
-    assert len(output["series"]) == len(legacy) == 3
-    for got, want in zip(output["series"], legacy, strict=True):
-        assert got["name"] == want.name
-        assert got["x"] == pytest.approx(xs, abs=1e-9)
-        assert got["y"] == pytest.approx(want.y, abs=1e-3)
-
-
-def test_seeded_sim_matches_legacy_defaults(client):
-    r = client.get("/api/sim/sim_heavy_ball")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["sim_id"] == "sim_heavy_ball"
-    assert set(body["params"]) == {"gamma", "eta", "theta0"}
-    assert body["params"]["gamma"]["default"] == 0.35
-    assert "def simulate" in body["python_code"]
-    assert body["validation"]["status"] == "passed"
-    _assert_matches_legacy(body["default_output"])
-
-
-def test_seeded_sim_matches_legacy_other_params(client):
-    r = client.post(
-        "/api/sim/run",
-        json={"sim_id": "sim_heavy_ball", "params": {"gamma": 1.0, "eta": 4.0, "theta0": 0.7}},
-    )
-    assert r.status_code == 200
-    _assert_matches_legacy(r.json()["output"], gamma=1.0, eta=4.0, theta0=0.7)
-
-
-def test_legacy_simulate_route_still_works(client):
-    r = client.post("/api/simulate", json={"gamma": 0.35, "eta": 2.4, "theta0": 1.8})
-    assert r.status_code == 200 and len(r.json()["series"]) == 3
 
 
 # ----- generate flow -------------------------------------------------------------------

@@ -157,19 +157,9 @@ def test_graph_get_and_doc_pages(lc, fake_llm):
     assert lc.get("/api/docs/..%2f..%2fetc").status_code == 404
 
 
-def test_graph_fallbacks(lc, tmp_path, fake_llm):
-    assert lc.get("/api/graphs/g_nope").status_code == 404
-    assert lc.get("/api/graphs/g_demo_lecture").status_code == 404  # no fixture file yet
-
-    fake_llm.queue("lecture.extract", DRAFT)
-    graph = Graph.model_validate(ingest(lc, make_pdf()).json()["graph"])
-    fixtures = tmp_path / "fixtures"
-    fixtures.mkdir()
-    demo = graph.model_copy(update={"graph_id": "g_demo_lecture"})
-    (fixtures / "lecture_graph.json").write_text(demo.model_dump_json(), encoding="utf-8")
-    r = lc.get("/api/graphs/g_demo_lecture")
-    assert r.status_code == 200 and r.json()["graph_id"] == "g_demo_lecture"
-    assert lc.get("/api/graphs/g_demo_hypothesis").status_code == 404  # fixture still missing
+def test_unknown_and_demo_graph_ids_are_404(lc):
+    for gid in ("g_nope", "g_demo_lecture", "g_demo_hypothesis"):
+        assert lc.get(f"/api/graphs/{gid}").status_code == 404
 
 
 def test_quiz_and_mastery_flow(lc, fake_llm):

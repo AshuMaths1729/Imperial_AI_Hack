@@ -73,17 +73,11 @@ def test_canned_builtin_per_view(tmp_path, view):
     assert resp.spoken_answer and resp.segments
 
 
-def test_canned_uses_fixture_when_present(tmp_path):
-    fx = tmp_path / "fixtures"
-    fx.mkdir()
-    canned = AskSpatialResponse.model_validate(
-        {"spoken_answer": "From fixture.", "segments": [{"text": "From fixture."}]}
-    )
-    (fx / "ask_spatial_sim.json").write_text(canned.model_dump_json(), encoding="utf-8")
+def test_canned_is_the_generic_builtin_reply(tmp_path):
     client, _ = make_client(tmp_path)
-    assert client.post(URL, json=body("sim")).json()["spoken_answer"] == "From fixture."
-    # other views still fall back to the built-in answer
-    assert client.post(URL, json=body("lecture")).json()["spoken_answer"] != "From fixture."
+    for view in ("lecture", "sim", "hypothesis"):
+        body_ = client.post(URL, json=body(view)).json()
+        assert body_["spoken_answer"] and body_["segments"]
 
 
 def test_invalid_request_is_422(tmp_path):
@@ -183,14 +177,6 @@ def test_canned_backend_never_calls_llm(tmp_path):
     client, _ = make_client(tmp_path, llm=llm, ask_backend="canned")
     client.post(URL, json=body())
     assert llm.calls == []
-
-
-def test_legacy_ask_spatial_still_works(client):
-    r = client.post(
-        "/api/ask-spatial",
-        json={"mode": "lecture", "transcript": "hi", "hit_node_ids": ["n3"]},
-    )
-    assert r.status_code == 200 and "spoken_answer" in r.json()
 
 
 def test_container_uses_real_llm_only_with_key(tmp_path):
