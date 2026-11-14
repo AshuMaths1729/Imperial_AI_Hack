@@ -6,6 +6,7 @@ import "tldraw/tldraw.css";
 import "katex/dist/katex.min.css";
 import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, Box, CircleEvent } from "../contracts/types";
 import { downscaleDims, itemsInRegion, lassoRegion } from "./circle";
+import { fitBoardCamera } from "./camera";
 import { boardIdOf, describeShapes } from "./describe";
 import { BOARD, resolvePlace } from "./layout";
 import { validateOp } from "./ops";
@@ -162,15 +163,10 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
   const onMount = (editor: Editor) => {
     editorRef.current = editor;
     preloadMathFonts();
-    editor.setCameraOptions({
-      constraints: {
-        bounds: { x: 0, y: 0, w: BOARD * S, h: BOARD * S }, padding: { x: 16, y: 16 }, origin: { x: 0.5, y: 0.5 },
-        initialZoom: "fit-max", baseZoom: "fit-max", behavior: "contain",
-      },
-    });
-    const fit = () => editor.setCamera(editor.getCamera(), { reset: true });
+    const fit = () => fitBoardCamera(editor, BOARD * S);
     fit();
-    // Re-fit the whole board when the container resizes (side panels open/close).
+    // Re-fit when the container resizes (side panels open/close) — this also does the first fit if the
+    // viewport had no size yet at mount.
     const ro = new ResizeObserver(() => requestAnimationFrame(fit));
     ro.observe(editor.getContainer());
 

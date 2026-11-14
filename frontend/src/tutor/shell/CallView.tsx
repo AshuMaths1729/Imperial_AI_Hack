@@ -60,7 +60,8 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
         )}
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col gap-3 p-3 lg:flex-row">
+      {/* Narrow windows stack stage over side panel and scroll; the stage keeps real height so the board can render. */}
+      <main className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 lg:flex-row lg:overflow-hidden">
         <Stage
           tab={tab}
           onTab={setTab}

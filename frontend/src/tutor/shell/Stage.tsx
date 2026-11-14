@@ -28,7 +28,7 @@ export function Stage({ tab, onTab, boardRef, onCircle, screenTrack, circleMode,
     ["screen", "Shared screen"],
   ];
   return (
-    <section aria-label="Main stage" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+    <section aria-label="Main stage" className="flex min-h-[60vh] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900 lg:min-h-0 lg:flex-1 lg:shrink">
       <div role="tablist" aria-label="Stage" className="flex shrink-0 items-center gap-1 border-b border-slate-800 px-2 py-1.5">
         {tabs.map(([id, label]) => (
           <button

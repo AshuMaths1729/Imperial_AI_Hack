@@ -90,7 +90,10 @@ export function LessonPanel({ track, lessons, lessonId }: { track: Track; lesson
 
 function Transcript({ captions, tutorName }: { captions: Caption[]; tutorName: string }) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView?.({ block: "end" }), [captions]);
+  // Block body on purpose: scrollIntoView returns a Promise in recent browsers, and an effect must not return one.
+  useEffect(() => {
+    end.current?.scrollIntoView?.({ block: "end" });
+  }, [captions]);
   if (!captions.length) return <p className="text-xs text-slate-500">The conversation will appear here.</p>;
   return (
     <>
