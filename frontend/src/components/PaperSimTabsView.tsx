@@ -274,6 +274,12 @@ export function PaperSimTabsView({
               <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
                 Extracted Model Summary
               </h2>
+              {dataset.simulation.sim_title &&
+                dataset.simulation.sim_title !== dataset.simulation.paper_title && (
+                  <p className="mt-2 text-sm font-semibold text-slate-100">
+                    {dataset.simulation.sim_title}
+                  </p>
+                )}
               <p className="mt-2 text-xs leading-relaxed text-slate-300">
                 {dataset.simulation.summary}
               </p>
@@ -283,6 +289,18 @@ export function PaperSimTabsView({
                 </pre>
               )}
             </div>
+            {dataset.simulation.assumptions && dataset.simulation.assumptions.length > 0 && (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                  Assumptions &amp; Simplifications
+                </h2>
+                <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs leading-relaxed text-slate-300">
+                  {dataset.simulation.assumptions.map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Python Simulation Code

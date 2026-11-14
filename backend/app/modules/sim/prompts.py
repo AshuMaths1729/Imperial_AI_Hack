@@ -1,6 +1,6 @@
 """Prompts for Paper2Sim code generation and repair (versioned: bump on any edit)."""
 
-PROMPT_VERSION = "sim-v1"
+PROMPT_VERSION = "sim-v2"
 
 CONTRACT = """\
 The code must be ONE self-contained Python module with exactly this contract:
@@ -36,9 +36,13 @@ for every combination of extremes.
 `rtol`/`atol` set explicitly) or closed-form numpy for algebraic models.
 - Include an analytic reference / theoretical-bound series whenever the paper gives one, \
 as an extra series.
-- Reply with: `title` (the simulation title), `code` (the complete module), `explanation` \
-(2-4 sentences: what the plot shows and what to try), `assumptions` (list of simplifications \
-you made), `equation_latex` (the main equation in LaTeX, without $ delimiters).
+- If the paper has no equation of its own (e.g. a survey or position paper), simulate the most \
+central quantitative model it describes or cites, and say so in the FIRST sentence of \
+`explanation` and the first entry of `assumptions`, naming the cited work.
+- Reply with: `paper_title` (the source paper's exact title as printed on it; "" if the input \
+is only a description), `title` (the simulation title), `code` (the complete module), \
+`explanation` (2-4 sentences: what the plot shows and what to try), `assumptions` (list of \
+simplifications you made), `equation_latex` (the main equation in LaTeX, without $ delimiters).
 The paper (or the user's description) follows. Hint from the user, if any, is in the text.
 """
 

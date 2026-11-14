@@ -17,6 +17,8 @@ class SimDraft(StrictModel):
     explanation: str
     assumptions: list[str]
     equation_latex: str
+    # The source paper's own title (not the simulation's); "" when unknown, e.g. on repair.
+    paper_title: str = ""
 
 
 class GenerateRequest(StrictModel):

@@ -89,6 +89,7 @@ async def _generate(
             prompt_version=prompts.PROMPT_VERSION,
         )
     ).output
+    paper_title = draft.paper_title.strip()  # the repair call never sees the paper
     report = await validate_code(draft.code)
     attempts = 1
     if report.status != "passed":
@@ -119,7 +120,7 @@ async def _generate(
         explanation=draft.explanation,
         assumptions=draft.assumptions,
         equation_latex=draft.equation_latex or None,
-        paper_title=draft.title,
+        paper_title=paper_title or draft.title,
         arxiv_id=arxiv_id,
         params=report.params,
         default_output=report.default_output,

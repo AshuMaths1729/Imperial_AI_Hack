@@ -85,7 +85,7 @@ export function simSpecToWorkspaceDataset(
   title?: string,
   subtitle?: string
 ): WorkspaceDataset {
-  const params: SimulationParam[] = Object.entries(spec.payload.params).map(([key, p]) => ({
+  const params: SimulationParam[] = Object.entries(spec.params ?? {}).map(([key, p]) => ({
     key,
     name: p.label ?? key,
     min_val: p.min,
@@ -95,23 +95,33 @@ export function simSpecToWorkspaceDataset(
     unit: p.unit ?? "",
   }));
 
-  const { x, series } = simOutputToSeries(spec.payload.default_output);
+  const out = spec.default_output;
+  const { x, series } = simOutputToSeries(out);
+  // Show the source paper first; the simulated model's name goes in the subtitle.
+  const simTitle = spec.title || out.title || "";
+  const displayTitle = spec.paper_title || simTitle || title || "Paper Simulation";
+  const simNote =
+    simTitle && simTitle !== displayTitle ? `Simulates: ${simTitle}` : "";
 
   return {
     mode: "paper2sim",
-    title: title || spec.payload.default_output.title || "Paper Simulation",
-    subtitle: subtitle || `${params.length} interactive parameters`,
+    title: displayTitle,
+    subtitle:
+      subtitle ||
+      [simNote, `${params.length} interactive parameters`].filter(Boolean).join(" · "),
     nodes: [],
     edges: [],
     simulation: {
-      paper_title: title || spec.payload.default_output.title || "Paper Simulation",
-      arxiv_id: spec.sim_id,
-      equation_latex: "",
-      summary: spec.payload.default_output.title || "Interactive parameter simulation",
-      python_code: typeof spec.code === "string" ? spec.code : "",
+      paper_title: displayTitle,
+      arxiv_id: spec.arxiv_id || spec.sim_id,
+      equation_latex: spec.equation_latex ?? "",
+      summary: spec.explanation || out.title || "Interactive parameter simulation",
+      python_code: spec.python_code ?? (typeof spec.code === "string" ? spec.code : ""),
+      sim_title: simTitle || undefined,
+      assumptions: Array.isArray(spec.assumptions) ? spec.assumptions : undefined,
       params,
-      x_label: spec.payload.default_output.x_label ?? "x",
-      y_label: spec.payload.default_output.y_label ?? "y",
+      x_label: out.x_label ?? "x",
+      y_label: out.y_label ?? "y",
       x,
       series,
     },

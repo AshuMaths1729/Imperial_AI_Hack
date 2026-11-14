@@ -121,12 +121,14 @@ export interface SimGenerateRequest {
   hint?: string;
 }
 
-// TODO(gen): replace with generated type
-export interface SimSpec {
+/** Backend `SimSpec` extends `SimPayload`, so params/default_output are top-level (not nested). */
+export type SimSpec = SimPayload & {
   sim_id: string;
-  payload: SimPayload;
+  title?: string;
+  explanation?: string;
+  assumptions?: string[];
   [extra: string]: unknown;
-}
+};
 
 // TODO(gen): replace with generated type
 export interface SimRunResult {

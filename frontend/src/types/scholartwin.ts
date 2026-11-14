@@ -53,6 +53,9 @@ export interface SimulationPayload {
   equation_latex: string;
   summary: string;
   python_code: string;
+  /** Name of the simulated model (may differ from the paper, e.g. a model a survey cites). */
+  sim_title?: string;
+  assumptions?: string[];
   params: SimulationParam[];
   x_label: string;
   y_label: string;
