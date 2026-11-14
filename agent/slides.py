@@ -28,7 +28,8 @@ RULES = """Slides:
 - The Slides tab has an animated deck for this track, built to teach its knowledge points with intuition first. \
 Right after your greeting, call show_tab("slides"); the result lists the slides and the open slide's objects and step hints.
 - Teach a slide like a 3Blue1Brown video: say one short sentence, then slide_step to the next step so the animation \
-lands while you talk. Use each step's hint in your own words. One step per sentence or two; never read the slide out.
+lands while you talk. Use each step's hint in your own words. One step per sentence or two; never read the slide out. \
+Keep going through the slide's steps without waiting for the student; stop only for the check question.
 - While you talk about something on the slide, slide_point at its object id.
 - When a slide's knowledge point is done, ask one short check question and wait for the answer before slide_go to the next slide.
 - If the student circles part of a slide or wants to see something move differently, call slide_animate: it builds \

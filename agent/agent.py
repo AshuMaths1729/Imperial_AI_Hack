@@ -43,6 +43,8 @@ AVATAR_JOIN_TIMEOUT = 12  # plugin default 30 s; a student should not wait that 
 # A step-by-step board_write (5+ LaTeX steps) needs ~800+ tokens; at the limit the tool call is cut off and
 # LiveKit drops it, so the tutor silently says and draws nothing. Only generated tokens count, so headroom is cheap.
 VOICE_MAX_TOKENS = 2000
+# One turn teaches a whole slide (sentence, slide_step, slide_point, ...); LiveKit's default of 3 stops it mid-slide.
+MAX_TOOL_STEPS = 12
 
 
 class RoomTutorIO:
@@ -197,6 +199,7 @@ async def entrypoint(ctx: JobContext) -> None:
         tts=elevenlabs.TTS(voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5"),
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced tutor captions
+        max_tool_steps=MAX_TOOL_STEPS,
         turn_handling=TurnHandlingOptions(
             interruption={"enabled": True, "min_duration": 0.5, "min_words": 2},  # a cough or stray "No." keeps talking
             preemptive_generation={"enabled": True},

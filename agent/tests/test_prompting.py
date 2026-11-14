@@ -55,3 +55,11 @@ def test_rules_speak_before_drawing_and_keep_board_calls_small():
 def test_voice_llm_has_room_for_step_by_step_board_calls():
     import agent
     assert agent.VOICE_MAX_TOKENS >= 2000
+
+
+def test_tutor_can_teach_a_whole_slide_in_one_turn():
+    # LiveKit's default (3 tool calls per reply) stops the tutor mid-slide, waiting for the student
+    import agent
+    import slides
+    assert agent.MAX_TOOL_STEPS >= 10
+    assert "without waiting" in slides.RULES
