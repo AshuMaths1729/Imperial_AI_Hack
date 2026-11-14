@@ -217,10 +217,11 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
             {circleMode && (
               <svg
                 data-testid="slide-lasso"
-                className="absolute inset-0 cursor-crosshair touch-none"
+                className="absolute inset-0 cursor-crosshair touch-none select-none"
                 width={CANVAS.w}
                 height={CANVAS.h}
                 onPointerDown={(e) => {
+                  e.preventDefault(); // a lasso drag must not also select the slide's text
                   e.currentTarget.setPointerCapture(e.pointerId);
                   setLasso([toCanvas(e)]);
                 }}

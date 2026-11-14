@@ -196,6 +196,23 @@ def test_animate_retries_with_errors_and_stays_quiet_while_someone_talks():
     assert "unavailable" in ctx.notes[0] and ctx.replies == []
 
 
+def test_ready_slide_is_introduced_once_the_tutor_finishes_talking():
+    # live: the slide landed while the tutor was mid-sentence, the prompt was dropped, and nobody ever presented it
+    io = FakeIO({"slides.describe": DESCRIBE, "slides.push": {"ok": True, "errors": [], "index": 2}})
+    t = SlideTools(io, "L1", client=FakeAnthropic(SLIDE))
+    ctx = FakeCtx(agent_state="speaking")
+
+    async def run():
+        await t.slide_animate("more", [], ctx)
+        await asyncio.sleep(0.3)
+        assert ctx.replies == []  # never talks over the tutor
+        ctx.session.agent_state = "listening"
+        await drain(t)
+
+    asyncio.run(run())
+    assert len(ctx.replies) == 1 and "follow-up" in ctx.replies[0]
+
+
 def test_animate_timeout_tells_the_tutor_it_is_unavailable():
     io = FakeIO({"slides.describe": DESCRIBE})
     t = SlideTools(io, "L1", client=FakeAnthropic(SLIDE, delay=1), timeout_s=0.05)

@@ -80,8 +80,11 @@ def outline_text(d: dict) -> str:
     return "\n".join(lines)
 
 
+SPEAK_WAIT_S = 20.0  # how long a ready follow-up waits for the tutor to finish their sentence
+
+
 async def _note(ctx: RunContext | None, text: str, speak: str | None = None) -> None:
-    """Tell the tutor (chat context) that something happened in the background; speak up if nobody is talking."""
+    """Tell the tutor (chat context) that something happened in the background; speak up once nobody is talking."""
     if ctx is None:
         return
     session = ctx.session
@@ -89,8 +92,15 @@ async def _note(ctx: RunContext | None, text: str, speak: str | None = None) -> 
     chat = agent.chat_ctx.copy()
     chat.add_message(role="system", content=text)
     await agent.update_chat_ctx(chat)
-    if speak and session.agent_state == "listening" and session.user_state != "speaking":
-        session.generate_reply(instructions=speak)
+    if not speak:
+        return
+    # A visual usually lands mid-sentence; a prompt dropped then would leave it unpresented forever.
+    for _ in range(int(SPEAK_WAIT_S / 0.25)):
+        if session.agent_state == "listening" and session.user_state != "speaking":
+            session.generate_reply(instructions=speak)
+            return
+        await asyncio.sleep(0.25)
+    logger.info("follow-up slide: tutor stayed busy; not prompting")
 
 
 class SlideTools:
@@ -145,6 +155,7 @@ class SlideTools:
         task = asyncio.create_task(self._animate(brief, object_ids or [], ctx))
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
+        task.add_done_callback(lambda t: t.cancelled() and logger.warning("follow-up slide task was cancelled"))
         return ("queued: building the follow-up animation; it opens on the Slides tab by itself in about 10-20 seconds. "
                 "Meanwhile talk about the idea itself; do not describe the animation until a note says it is on screen.")
 
@@ -168,20 +179,24 @@ class SlideTools:
         note = f"Follow-up animation unavailable: {brief}. Explain it in words or on the board instead."
         speak = None
         try:
+            logger.info("follow-up slide: reading the open slide")
             d = await self._rpc("slides.describe", {"slide": True})
             context = json.dumps(d.get("slide")) if d.get("slide") else outline_text(d)
+            logger.info("follow-up slide: planning (%d chars of slide context)", len(context))
             messages: list = [{"role": "user", "content": (
                 f"The student asked about: {brief}\nCircled objects: {', '.join(object_ids) or 'none'}\n\n"
                 f"The open slide:\n{context}"
             )}]
             for attempt in range(2):
                 resp, use = await self._plan(messages)
+                logger.info("follow-up slide: attempt %d planned", attempt + 1)
                 slide = use.input
                 problems = slide_problems(slide)
                 if not problems and len(json.dumps(slide)) > RPC_LIMIT:
                     problems = [f"the slide JSON is over {RPC_LIMIT} bytes; use fewer objects, points and path iterates"]
                 if not problems:
                     reply = await self._rpc("slides.push", {"slide": slide})
+                    logger.info("follow-up slide: push replied %s", str(reply)[:120])
                     if reply.get("ok"):
                         steps = len(slide.get("steps") or [])
                         hints = "; ".join(f"step {i}: {s.get('narration', '')}" for i, s in enumerate(slide.get("steps") or [], 1))
@@ -200,7 +215,9 @@ class SlideTools:
         except Exception:
             logger.exception("follow-up slide failed")
         try:
+            logger.info("follow-up slide: telling the tutor (%s)", "ready" if speak else "unavailable")
             await _note(ctx, note, speak)
+            logger.info("follow-up slide: tutor told")
         except Exception:
             logger.exception("follow-up note failed")
 
