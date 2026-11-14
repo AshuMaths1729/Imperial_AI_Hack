@@ -2074,6 +2074,47 @@
         "title": "Series",
         "type": "object"
       },
+      "SessionRequest": {
+        "properties": {
+          "tutor_id": {
+            "title": "Tutor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tutor_id"
+        ],
+        "title": "SessionRequest",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "properties": {
+          "identity": {
+            "title": "Identity",
+            "type": "string"
+          },
+          "room": {
+            "title": "Room",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "token",
+          "room",
+          "identity"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
       "ShowCard": {
         "additionalProperties": false,
         "properties": {
@@ -2538,6 +2579,44 @@
           "segments"
         ],
         "title": "TtsSegmentsRequest",
+        "type": "object"
+      },
+      "Tutor": {
+        "properties": {
+          "avatar_id": {
+            "title": "Avatar Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "style_prompt": {
+            "title": "Style Prompt",
+            "type": "string"
+          },
+          "tagline": {
+            "title": "Tagline",
+            "type": "string"
+          },
+          "tutor_id": {
+            "title": "Tutor Id",
+            "type": "string"
+          },
+          "voice_id": {
+            "title": "Voice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tutor_id",
+          "name",
+          "tagline",
+          "avatar_id",
+          "voice_id",
+          "style_prompt"
+        ],
+        "title": "Tutor",
         "type": "object"
       },
       "ValidationError": {
@@ -3992,6 +4071,72 @@
         "summary": "Tts Segments",
         "tags": [
           "voice"
+        ]
+      }
+    },
+    "/api/tutor/session": {
+      "post": {
+        "operationId": "start_session_api_tutor_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Session",
+        "tags": [
+          "tutor"
+        ]
+      }
+    },
+    "/api/tutor/tutors": {
+      "get": {
+        "operationId": "list_tutors_api_tutor_tutors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Tutor"
+                  },
+                  "title": "Response List Tutors Api Tutor Tutors Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tutors",
+        "tags": [
+          "tutor"
         ]
       }
     }
