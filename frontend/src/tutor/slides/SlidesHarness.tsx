@@ -36,7 +36,7 @@ export function SlidesHarness() {
   const [log, setLog] = useState<string[]>([]);
   const [crop, setCrop] = useState<string>();
   const call = async (method: SlidesRpcMethod, payload: object) => {
-    const rpc = makeSlidesRpcHandlers(() => ({ showTab: () => {}, slides: handle.current }));
+    const rpc = makeSlidesRpcHandlers(() => ({ showTab: () => {}, slides: handle.current, clearCircle: () => {} }));
     const reply = await rpc[method](JSON.stringify(payload));
     setLog((l) => [`${method} ${JSON.stringify(payload).slice(0, 60)} → ${reply.slice(0, 160)}`, ...l].slice(0, 20));
   };

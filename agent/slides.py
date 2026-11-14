@@ -273,6 +273,7 @@ class SlideTools:
         return [show_tab, slide_go, slide_step, slide_point, slide_animate]
 
 
-def slide_tools(io, lesson_id: str) -> list[llm.FunctionTool | llm.RawFunctionTool]:
-    """Function tools for the deck and the stage tabs (show_tab, slide navigation, slide pointer, follow-up animation)."""
+def slide_tools(io, lesson_id: str, lesson=None) -> list[llm.FunctionTool | llm.RawFunctionTool]:
+    """Function tools for the deck and the stage tabs (show_tab, slide navigation, slide pointer, follow-up animation).
+    `lesson` (lesson_state.LessonState) is told about slide/step changes (v3 WS-2 wires the calls)."""
     return SlideTools(io, lesson_id).function_tools()

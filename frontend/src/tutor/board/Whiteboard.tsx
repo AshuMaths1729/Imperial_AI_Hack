@@ -260,6 +260,7 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
     describe: () => (editorRef.current ? describe(editorRef.current) : { items: [] }),
     snapshot: (region) => (editorRef.current ? snapshot(editorRef.current, region) : Promise.reject(new Error("whiteboard not ready"))),
     setCircleMode,
+    clearCircle: () => {}, // v3 WS-4: the board circle mark persists until cleared
   }), []);
 
   const onMount = (editor: Editor) => {

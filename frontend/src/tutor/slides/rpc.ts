@@ -1,7 +1,12 @@
 // LiveKit RPC handlers for the stage tabs and the Slides tab (same pattern as board/rpc.ts).
 import type { SlidesHandle, StageTab } from "./types";
 
-export type StageHandle = { showTab(tab: StageTab): void; slides: SlidesHandle | null };
+export type StageHandle = {
+  showTab(tab: StageTab): void;
+  slides: SlidesHandle | null;
+  /** Clears a student's circle mark wherever it is (slides or whiteboard). */
+  clearCircle(circleId: string): void;
+};
 export type SlidesRpcMethod = "ui.show_tab" | "slides.go" | "slides.step" | "slides.point" | "slides.describe" | "slides.push";
 
 type Handler = (payload: string) => Promise<string>;

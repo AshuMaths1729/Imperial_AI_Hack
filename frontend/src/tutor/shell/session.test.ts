@@ -59,7 +59,7 @@ describe("session", () => {
   it("registers all board, stage and slides rpcs on connect", async () => {
     const room = fakeRoom();
     const showTab = vi.fn();
-    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => null, undefined, () => ({ showTab, slides: null }));
+    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => null, undefined, () => ({ showTab, slides: null, clearCircle: vi.fn() }));
 
     expect([...room.rpcs.keys()].sort()).toEqual([
       "board.apply", "board.describe", "board.snapshot",
@@ -78,7 +78,7 @@ describe("session", () => {
     const room = fakeRoom();
     const showTab = vi.fn();
     const board = { applyOps: vi.fn(() => ({ ok: true, ids: ["eq1"], errors: [] })) } as unknown as BoardHandle;
-    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => board, undefined, () => ({ showTab, slides: null }));
+    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => board, undefined, () => ({ showTab, slides: null, clearCircle: vi.fn() }));
 
     await room.rpcs.get("board.apply")!({ payload: '{"ops":[{"op":"point_at","target_id":"eq1"}]}' });
     expect(showTab).toHaveBeenCalledWith("board"); // anything the tutor does on the board must be visible

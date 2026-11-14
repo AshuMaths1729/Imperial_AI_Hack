@@ -50,9 +50,13 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
       get slides() {
         return slidesRef.current;
       },
+      clearCircle: (id) => {
+        slidesRef.current?.clearCircle(id);
+        boardRef.current?.clearCircle(id);
+      },
     });
     return () => setStage(null);
-  }, [setStage]);
+  }, [setStage, boardRef]);
 
   // Shared content takes the stage when sharing starts, like Zoom; back to the board when it stops.
   const sharing = !!s.screenTrack;

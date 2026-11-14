@@ -208,6 +208,10 @@ class Slide(BaseModel):
     id: Id
     title: Annotated[str, Field(max_length=80)]
     kp_ids: List[str] = []
+    # Lesson plan (main branch): the one idea this slide teaches, the slide it builds on, the check before moving on.
+    idea: Optional[Annotated[str, Field(max_length=200)]] = None
+    builds_on: Optional[Id] = None
+    check: Optional[Annotated[str, Field(max_length=200)]] = None
     objects: Annotated[List[SlideObject], Field(min_length=1, max_length=40)]
     steps: Annotated[List[Step], Field(max_length=12)] = []
 

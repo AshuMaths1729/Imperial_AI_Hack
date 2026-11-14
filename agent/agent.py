@@ -33,6 +33,7 @@ from prompting import build_instructions, greeting_instruction
 from rolling import RollingSummary, haiku_summarize
 import slides
 import watch
+from lesson_state import LessonState
 from tutor_tools import TutorTools
 
 load_dotenv()
@@ -45,6 +46,8 @@ AVATAR_JOIN_TIMEOUT = 12  # plugin default 30 s; a student should not wait that 
 VOICE_MAX_TOKENS = 2000
 # One turn teaches a whole slide (sentence, slide_step, slide_point, ...); LiveKit's default of 3 stops it mid-slide.
 MAX_TOOL_STEPS = 12
+SPEECH_SPEED = 0.9  # 3Blue1Brown pace; ElevenLabs allows 0.8-1.2
+CHECKPOINT_EVERY_S = 60
 
 
 class RoomTutorIO:
@@ -196,7 +199,10 @@ async def entrypoint(ctx: JobContext) -> None:
     session = AgentSession(
         stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
         llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
-        tts=elevenlabs.TTS(voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5"),
+        tts=elevenlabs.TTS(
+            voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5",
+            voice_settings=elevenlabs.VoiceSettings(stability=0.5, similarity_boost=0.75, speed=SPEECH_SPEED),
+        ),
         vad=ctx.proc.userdata["vad"],
         use_tts_aligned_transcript=True,  # word-synced tutor captions
         max_tool_steps=MAX_TOOL_STEPS,
@@ -205,9 +211,17 @@ async def entrypoint(ctx: JobContext) -> None:
             preemptive_generation={"enabled": True},
         ),
     )
-    agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools() + slides.slide_tools(io, lesson_id))
+    lesson = LessonState(lesson_id, io.post)
+    agent = Agent(
+        instructions=build_instructions(tctx),
+        tools=tools.function_tools() + slides.slide_tools(io, lesson_id, lesson) + lesson.function_tools(),
+    )
 
-    track_turns(session, rolling, lambda: spawn(fold()))
+    def after_tutor_turn() -> None:
+        spawn(fold())
+        spawn(lesson.checkpoint(agent))
+
+    track_turns(session, rolling, after_tutor_turn)
     log_session(session)
 
     async def fold() -> None:
@@ -261,6 +275,13 @@ async def entrypoint(ctx: JobContext) -> None:
         ),
     )
     session.generate_reply(instructions=greeting_instruction(tctx))
+
+    async def checkpoint_loop() -> None:
+        while True:
+            await asyncio.sleep(CHECKPOINT_EVERY_S)
+            await lesson.checkpoint(agent)
+
+    spawn(checkpoint_loop())
 
 
 if __name__ == "__main__":

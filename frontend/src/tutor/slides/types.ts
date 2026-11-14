@@ -30,7 +30,17 @@ export type Action = ActBase &
   );
 
 export type Step = { narration: string; actions: Action[] };
-export type Slide = { id: string; title: string; kp_ids?: string[]; objects: SlideObject[]; steps?: Step[] };
+export type Slide = {
+  id: string;
+  title: string;
+  kp_ids?: string[];
+  /** Lesson plan (main branch): the one idea, the slide it builds on, the check question before moving on. */
+  idea?: string | null;
+  builds_on?: string | null;
+  check?: string | null;
+  objects: SlideObject[];
+  steps?: Step[];
+};
 export type Deck = { title: string; slides: Slide[] };
 
 /** GET/POST /api/tutor/tracks/{id}/deck */
@@ -55,6 +65,10 @@ export type SlidesHandle = {
   current(): Slide | null;
   /** Inserts an extra (follow-up) slide after the current one and opens it. */
   push(slide: unknown): SlidesReply;
+  /** Adds objects and steps to the OPEN slide and plays the new steps (explain in place, keep the context). */
+  edit(patch: { objects?: unknown[]; steps?: unknown[] }): SlidesReply;
+  /** Removes the student's persistent circle mark (it stays until the tutor has answered). */
+  clearCircle(circleId: string): SlidesReply;
 };
 
 export type SlidesReply = { ok: boolean; errors: string[]; index?: number; step?: number };

@@ -156,10 +156,12 @@ describe("slides rpc", () => {
       point: vi.fn(() => ({ ok: true, errors: [] })),
       describe: vi.fn(() => ({ ok: true as const, index: 1, step: 0, slides: [], current: null })),
       push: vi.fn(() => ({ ok: true, errors: [] })),
+      edit: vi.fn(() => ({ ok: true, errors: [] })),
+      clearCircle: vi.fn(() => ({ ok: true, errors: [] })),
       current: vi.fn(() => tiny),
       ...slides,
     };
-    const stage: StageHandle = { showTab: vi.fn(), slides: handle };
+    const stage: StageHandle = { showTab: vi.fn(), slides: handle, clearCircle: vi.fn() };
     return { stage, h: makeSlidesRpcHandlers(() => stage) };
   }
 

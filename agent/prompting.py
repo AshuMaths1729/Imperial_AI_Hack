@@ -1,5 +1,6 @@
 """System prompt and greeting for the live tutor, built from GET /api/tutor/context/{lesson_id}."""
 
+import lesson_state
 import slides
 import watch
 
@@ -23,7 +24,7 @@ def build_instructions(ctx: dict) -> str:
         ctx["tutor"]["style_prompt"],
         "",
         RULES,
-        *(r for r in (watch.RULES, slides.RULES) if r),
+        *(r for r in (lesson_state.RULES, watch.RULES, slides.RULES) if r),
         "",
         f"Learner: {p['name']}, prefers {p['style']} explanations, level {p['level']}, pace {p.get('pace', 'normal')}."
         + (f" Notes: {'; '.join(p['notes'])}." if p.get("notes") else ""),

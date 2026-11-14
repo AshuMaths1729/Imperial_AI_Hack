@@ -7,6 +7,7 @@ function fakeBoard() {
   const calls: { applied: unknown[][]; regions: (Box | undefined)[] } = { applied: [], regions: [] };
   const board: BoardHandle = {
     applyOps: (ops) => { calls.applied.push(ops); return { ok: true, ids: ["a"], errors: [] }; },
+    clearCircle: () => {},
     describe: () => ({ items: [{ id: "a", type: "text", author: "tutor", text: "hi", bbox: { x: 0, y: 0, w: 10, h: 10 } }] }),
     snapshot: async (region) => { calls.regions.push(region); return "PNG"; },
     setCircleMode: () => {},

@@ -45,6 +45,8 @@ export type CircleEvent = {
   item_ids: string[];
   user_text?: string;
   source: "board" | "screen" | "slide";
+  /** The circle mark stays on screen until the tutor clears it (ui.clear_circle) after answering. */
+  circle_id?: string;
   /** Set when source is "slide": which slide and which of its objects were circled. */
   slide_id?: string;
 };
@@ -73,6 +75,8 @@ export type BoardHandle = {
   describe(): BoardDescription;
   snapshot(region?: Box): Promise<string>;
   setCircleMode(on: boolean): void;
+  /** Removes the student's persistent circle mark. */
+  clearCircle(circleId: string): void;
 };
 
 export type BoardRpcMethod = "board.apply" | "board.describe" | "board.snapshot";
