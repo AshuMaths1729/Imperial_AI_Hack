@@ -1,0 +1,11 @@
+{
+  "cases": [
+    { "why": "unknown op", "op": { "op": "dance", "place": "next" } },
+    { "why": "write_math without latex", "op": { "op": "write_math", "id": "m1", "place": "next" } },
+    { "why": "bad place", "op": { "op": "write_text", "text": "hi", "place": "somewhere" } },
+    { "why": "draw_arrow missing to_id", "op": { "op": "draw_arrow", "from_id": "a" } },
+    { "why": "plot_function with neither expr nor points", "op": { "op": "plot_function", "x_range": [0, 1], "place": "next" } },
+    { "why": "pixel coordinates are not allowed", "op": { "op": "write_text", "text": "hi", "place": "next", "x": 120, "y": 40 } },
+    { "why": "image url must be https or data", "op": { "op": "place_image", "url": "file:///etc/passwd", "place": "next" } }
+  ]
+}
