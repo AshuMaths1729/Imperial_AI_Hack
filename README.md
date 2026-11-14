@@ -11,20 +11,24 @@ An interactive multimodal AI research & learning workspace that unifies **Lectur
 
 ## Quick Start
 
+Prerequisites: [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you) and Node 20+.
+
 Run both the FastAPI backend (`http://127.0.0.1:8000`) and Next.js frontend (`http://localhost:3000`):
 
 ```bash
-./start.sh
+./start.sh          # macOS / Linux / Git Bash
+./start.ps1         # Windows PowerShell
 ```
 
 ### Manual Setup (if needed)
 
 ```bash
-# Backend
+# Backend (Python deps are managed by uv: backend/pyproject.toml + uv.lock)
 cd backend
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn main:app --reload --port 8000
+uv sync                                        # creates backend/.venv with Python 3.12
+uv run uvicorn app.main:app --reload --port 8000
+uv run pytest -q                               # tests
+uv run ruff check .                            # lint
 
 # Frontend
 cd frontend
@@ -32,11 +36,24 @@ npm install
 npm run dev
 ```
 
+API keys and settings go in a `.env` file (copy `.env.example`, names only; never commit it).
+
+### Shared types
+
+The backend's Pydantic models are the contract. After changing routes or `backend/app/schemas/`:
+
+```bash
+cd backend && uv run python scripts/export_openapi.py   # writes schemas/openapi.json
+cd frontend && npm run gen:types                         # writes src/api/types.gen.ts
+```
+
 ## Project Structure
 
-- `backend/` — FastAPI server, Pydantic schemas, live ODE simulator, and pre-cached demo datasets (`demo_data/`).
+- `backend/app/` — FastAPI app: `main.py` (`create_app()`, auto-discovers `modules/*`), `settings.py`, `deps.py`, `schemas/` (shared contracts), `core/` (cache, jobs, errors), `llm/`, `tools/` (broker, registry), `modules/` (one package per feature; `legacy` holds the Phase-1 prototype routes, `fixtures_api` serves the shared fixtures).
+- `fixtures/` — shared JSON samples (lecture/hypothesis graphs, simulation, ask-spatial answers, job events) validated against the schemas by the tests.
+- `schemas/openapi.json` — generated OpenAPI document (source of the frontend types).
 - `frontend/` — Next.js + Tailwind CSS + React Flow 3-pane workspace (`AvatarDock`, `GraphCanvas`, `PaperSimCanvas`, `LassoOverlay`, `InspectorPane`).
-- `start.sh` — Launches backend and frontend together with clean `Ctrl+C` shutdown.
+- `start.sh` / `start.ps1` — Launch backend and frontend together with clean `Ctrl+C` shutdown.
 - `implementation_guide.md` — Full hackathon architecture and phase roadmap.
 
 ## Sponsor / Tool Stack Notes
