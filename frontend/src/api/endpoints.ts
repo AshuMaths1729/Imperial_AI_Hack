@@ -74,8 +74,18 @@ export const getMastery = (graphId: string, { signal }: Opts = {}) =>
   request<Mastery>(`/mastery/${enc(graphId)}`, { signal });
 
 // ---- topics / papers --------------------------------------------------------------------
-export const createTopicGraph = (query: string, maxPapers = 30, { signal }: Opts = {}) =>
-  request<Graph>("/topics", { method: "POST", json: { query, max_papers: maxPapers }, signal });
+export const createTopicGraph = async (
+  query: string,
+  maxPapers = 30,
+  { signal }: Opts = {},
+): Promise<Graph> => {
+  const res = await request<Graph | { graph: Graph }>("/topics", {
+    method: "POST",
+    json: { query, max_papers: maxPapers },
+    signal,
+  });
+  return "graph" in res ? res.graph : res;
+};
 
 export const getPaper = (paperId: string, { signal }: Opts = {}) =>
   request<PaperSource>(`/papers/${enc(paperId)}`, { signal });

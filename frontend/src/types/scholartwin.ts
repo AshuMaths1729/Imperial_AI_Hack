@@ -28,6 +28,7 @@ export interface GraphEdgeData {
   type: "prerequisite" | "supports" | "contradicts" | "gap";
   label?: string;
   condition?: string;
+  evidence?: { paper_id: string; quote: string }[];
 }
 
 export interface SimulationParam {

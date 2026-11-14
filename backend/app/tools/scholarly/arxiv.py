@@ -14,9 +14,10 @@ from urllib.parse import quote, urlparse
 import httpx
 
 from app.core.errors import NotFound, UpstreamError
+from app.tools.scholarly.models import Paper, authors_year
 
 USER_AGENT = "ScholarTwin-hackathon/0.2 (paper ingestion for simulation; research prototype)"
-API_URL = "http://export.arxiv.org/api/query"
+API_URL = "https://export.arxiv.org/api/query"
 EPRINT_URL = "https://arxiv.org/e-print/{id}"
 PDF_URL = "https://arxiv.org/pdf/{id}"
 TIMEOUT_S = 30.0
@@ -140,3 +141,49 @@ async def fetch_pdf(arxiv_id: str, client: httpx.AsyncClient) -> bytes:
     if not got.content.startswith(b"%PDF"):
         raise UpstreamError(f"arXiv PDF for {arxiv_id} is not a PDF")
     return got.content
+
+
+async def search_arxiv_works(
+    query: str, limit: int, *, client: httpx.AsyncClient
+) -> list[Paper]:
+    """Search arXiv Atom feed by query and return normalised `Paper` records."""
+    max_results = min(max(limit, 1), 50)
+    url = f"{API_URL}?search_query=all:{quote(query)}&start=0&max_results={max_results}"
+    got = await get_capped(client, url, 4 * 1024 * 1024)
+    xml = got.content.decode("utf-8", "replace")
+    if "<!DOCTYPE" in xml or "<!ENTITY" in xml:
+        raise UpstreamError("arXiv search response rejected (DTD)")
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as exc:
+        raise UpstreamError(f"arXiv search response is not valid XML: {exc}") from exc
+
+    ns = {"a": "http://www.w3.org/2005/Atom"}
+
+    def clean(s: str | None) -> str:
+        return " ".join((s or "").split())
+
+    papers: list[Paper] = []
+    for entry in root.findall("a:entry", ns):
+        entry_id = clean(entry.findtext("a:id", "", ns))
+        aid = parse_arxiv_id(entry_id) or entry_id.rsplit("/", 1)[-1]
+        title = clean(entry.findtext("a:title", "", ns))
+        abstract = clean(entry.findtext("a:summary", "", ns))
+        if not aid or not title:
+            continue
+        published = clean(entry.findtext("a:published", "", ns))
+        year = int(published[:4]) if len(published) >= 4 and published[:4].isdigit() else None
+        names = [clean(a.findtext("a:name", "", ns)) for a in entry.findall("a:author", ns)]
+        safe_id = re.sub(r"[^a-zA-Z0-9._-]", "_", aid)
+        papers.append(
+            Paper(
+                id=f"arxiv_{safe_id}",
+                title=title,
+                abstract=abstract,
+                year=year,
+                venue="arXiv",
+                authors_year=authors_year([n for n in names if n], year),
+                source="arxiv",
+            )
+        )
+    return papers

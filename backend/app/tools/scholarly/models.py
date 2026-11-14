@@ -17,7 +17,7 @@ class Paper(BaseModel):
     venue: str = ""
     doi: str | None = None
     authors_year: str = ""
-    source: Literal["s2", "openalex"] = "s2"
+    source: Literal["s2", "openalex", "arxiv", "europepmc"] = "s2"
     citation_count: int | None = None
 
     @property

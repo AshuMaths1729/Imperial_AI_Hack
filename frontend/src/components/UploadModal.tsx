@@ -1,21 +1,32 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { X, Upload, Link2, Loader2 } from "lucide-react";
+import { X, Upload, Link2, Loader2, MessageSquarePlus } from "lucide-react";
+import { WorkspaceMode } from "../types/scholartwin";
 
 interface UploadModalProps {
   open: boolean;
   loading: boolean;
   error: string | null;
+  mode?: WorkspaceMode;
+  onModeChange?: (mode: WorkspaceMode) => void;
   onClose: () => void;
   onUploadPdf: (file: File) => void;
   onIngestUrl: (url: string) => void;
 }
 
+const MODE_OPTIONS: { id: WorkspaceMode; label: string }[] = [
+  { id: "lecture", label: "LectureGraph" },
+  { id: "paper2sim", label: "Paper2Sim" },
+  { id: "hypothesis", label: "HypothesisGraph" },
+];
+
 export function UploadModal({
   open,
   loading,
   error,
+  mode,
+  onModeChange,
   onClose,
   onUploadPdf,
   onIngestUrl,
@@ -38,17 +49,47 @@ export function UploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-100">Load Lecture PDF or arXiv URL</h2>
+    <div
+      role="dialog"
+      aria-label="New conversation"
+      className="fixed bottom-5 right-5 left-5 z-50 sm:left-auto sm:w-full sm:max-w-md"
+    >
+      <div className="rounded-2xl border border-sky-500/40 bg-slate-900/95 p-5 shadow-2xl shadow-slate-950/90 backdrop-blur-md">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-sky-500/15 text-sky-400">
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+            </span>
+            <h2 className="text-sm font-semibold text-slate-100">New Conversation</h2>
+          </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close"
             className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {mode && onModeChange && (
+          <div className="mb-3 flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+            {MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onModeChange(opt.id)}
+                className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition ${
+                  mode === opt.id
+                    ? "bg-sky-500 text-slate-950"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Drag & Drop PDF Zone */}
         <div

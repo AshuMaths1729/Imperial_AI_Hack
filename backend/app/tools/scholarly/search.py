@@ -10,6 +10,8 @@ import httpx
 
 from app.core.errors import UpstreamError
 from app.settings import Settings
+from app.tools.scholarly.arxiv import search_arxiv_works
+from app.tools.scholarly.europepmc import search_europepmc
 from app.tools.scholarly.models import Paper, dedupe_papers
 from app.tools.scholarly.openalex import search_openalex
 from app.tools.scholarly.s2 import Sleep, search_s2
@@ -51,16 +53,36 @@ async def search_papers(
             log.info("S2_API_KEY not set; using OpenAlex only")
 
         if len(found) < max(1, limit // 2):
+            oa_error: UpstreamError | None = None
             try:
                 oa = await search_openalex(
-                    query, limit * 2, http=client, mailto=settings.openalex_mailto
+                    query, limit * 2, http=client, mailto=settings.openalex_mailto, sleep=sleep
                 )
             except UpstreamError as exc:
-                if not found:
-                    raise (s2_error or exc) from exc
-                log.warning("OpenAlex fallback failed too: %s", exc.message)
+                oa_error = exc
+                log.warning("OpenAlex failed (%s); falling back to arXiv", exc.message)
             else:
                 found = _usable(found + oa)
+
+            if len(found) < max(1, limit // 2):
+                ax_error: UpstreamError | None = None
+                try:
+                    ax = await search_arxiv_works(query, limit * 2, client=client)
+                except UpstreamError as exc:
+                    ax_error = exc
+                    log.warning("arXiv fallback failed (%s); trying Europe PMC", exc.message)
+                else:
+                    found = _usable(found + ax)
+
+                if len(found) < max(1, limit // 2):
+                    try:
+                        ep = await search_europepmc(query, limit * 2, http=client)
+                    except UpstreamError as exc:
+                        if not found:
+                            raise (s2_error or oa_error or ax_error or exc) from exc
+                        log.warning("Europe PMC fallback failed too: %s", exc.message)
+                    else:
+                        found = _usable(found + ep)
         return found[:limit]
     finally:
         if own:
