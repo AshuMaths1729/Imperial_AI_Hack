@@ -27,6 +27,10 @@ type Props = {
   children?: ReactNode; // overlays (captions)
 };
 
+// Hidden panes stay mounted for the agent's RPCs. opacity-0 too: slide animations set visibility:visible on
+// their own dots and lines, which beats the parent's visibility:hidden and paints them over the whiteboard.
+const HIDDEN = "invisible opacity-0 pointer-events-none";
+
 export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   const tabs: [StageTab, string][] = [
@@ -54,14 +58,14 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
       </div>
       <div className="relative min-h-0 flex-1">
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
-        <div className={`absolute inset-0 bg-white ${tab === "board" ? "" : "invisible"}`}>
+        <div className={`absolute inset-0 bg-white ${tab === "board" ? "" : HIDDEN}`}>
           <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
         </div>
         {/* Mounted for the whole lesson too: the agent drives the deck over RPC even before the tab is shown. */}
-        <div className={`absolute inset-0 ${tab === "slides" ? "" : "invisible"}`}>
+        <div className={`absolute inset-0 ${tab === "slides" ? "" : HIDDEN}`}>
           <SlidesStage ref={slidesRef} deck={deck} loading={deckLoading} circleMode={circleMode && tab === "slides"} onCircle={onCircle} />
         </div>
-        <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : "invisible"}`}>
+        <div className={`absolute inset-0 bg-slate-950 ${tab === "screen" ? "" : HIDDEN}`}>
           {screenTrack ? (
             <>
               <TrackVideo ref={setScreenVideo} track={screenTrack} fit="contain" label="Your shared screen" />

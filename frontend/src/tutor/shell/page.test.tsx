@@ -161,6 +161,17 @@ describe("slides", () => {
     await screen.findByRole("region", { name: /Slide 1 of 7: Lost in the fog/ });
   });
 
+  it("a hidden Slides tab paints nothing over the whiteboard", async () => {
+    // Slide animations set visibility:visible on their own dots and lines, which beats a parent's visibility:hidden.
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    const slide = await screen.findByRole("region", { name: /Slide 1 of 7/ });
+    const pane = slide.closest(".absolute.inset-0") as HTMLElement;
+    expect(pane.className).toContain("opacity-0");
+    fireEvent.click(screen.getByRole("tab", { name: "Slides" }));
+    expect(pane.className).not.toContain("opacity-0");
+  });
+
   it("the agent switches tabs and drives the deck through the session's stage handle", async () => {
     session = fakeSession({ status: "live", lessonId: "L1" });
     render(<TutorPage />);
