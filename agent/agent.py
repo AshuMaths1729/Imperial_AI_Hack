@@ -25,7 +25,7 @@ from livekit.agents import (
     room_io,
 )
 from livekit.agents.utils import images
-from livekit.plugins import anthropic, elevenlabs, silero, synthesia
+from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
 from circle import handle_circle, handle_lost
 from lesson_end import LessonEnder, finish_lesson
@@ -241,7 +241,11 @@ async def entrypoint(ctx: JobContext) -> None:
     await session.start(
         agent=agent,
         room=ctx.room,
-        room_options=room_io.RoomOptions(delete_room_on_close=True),
+        room_options=room_io.RoomOptions(
+            delete_room_on_close=True,
+            # LiveKit Cloud BVC: strips background voices (noisy room) before VAD/STT
+            audio_input=room_io.AudioInputOptions(noise_cancellation=noise_cancellation.BVC()),
+        ),
     )
     session.generate_reply(instructions=greeting_instruction(tctx))
 
