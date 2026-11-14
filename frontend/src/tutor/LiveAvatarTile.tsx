@@ -13,6 +13,8 @@ export function LiveAvatarTile() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [picked, setPicked] = useState<string>();
   const [expanded, setExpanded] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  const [attempt, setAttempt] = useState(0); // bump to retry loading the tutors
 
   useEffect(() => {
     const ctl = new AbortController();
@@ -20,11 +22,14 @@ export function LiveAvatarTile() {
       (t) => {
         setTutors(t);
         setPicked((p) => p ?? t[0]?.tutor_id);
+        setLoadError(undefined);
       },
-      () => {} // backend down: the tile stays on its placeholder and Start shows the error
+      (e) => {
+        if (!ctl.signal.aborted) setLoadError(e instanceof Error ? e.message : String(e));
+      }
     );
     return () => ctl.abort();
-  }, []);
+  }, [attempt]);
 
   const inCall = call.status === "connecting" || call.status === "live";
   const activeId = inCall ? call.activeTutorId ?? picked : picked;
@@ -143,6 +148,14 @@ export function LiveAvatarTile() {
         </button>
       )}
 
+      {loadError && tutors.length === 0 && (
+        <p role="alert" className="flex items-center justify-between gap-2 text-[11px] text-rose-400">
+          <span>Couldn&apos;t reach the tutor service ({loadError}).</span>
+          <button type="button" onClick={() => setAttempt((a) => a + 1)} className="shrink-0 rounded-md bg-slate-800 px-2 py-1 font-semibold text-slate-200 hover:bg-slate-700">
+            Retry
+          </button>
+        </p>
+      )}
       {call.status === "error" && <p role="alert" className="text-[11px] text-rose-400">{call.error}</p>}
       {inCall && lastTutorLine && !popped && (
         <p aria-live="polite" className="line-clamp-3 text-[11px] leading-relaxed text-slate-300">
