@@ -15,6 +15,7 @@ export interface GraphNodeData {
   summary: string;
   slide_ref?: string;
   authors_year?: string;
+  doc_id?: string;
   mastery: number;
   x: number;
   y: number;

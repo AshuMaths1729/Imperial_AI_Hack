@@ -19,6 +19,7 @@ import {
 } from "../types/scholartwin";
 import { PaperSimCanvas } from "./PaperSimCanvas";
 import { GraphCanvas } from "./GraphCanvas";
+import { ThemeToggle } from "./ThemeProvider";
 
 type PaperSimTab = "plot" | "concepts" | "series" | "code";
 
@@ -114,26 +115,26 @@ export function PaperSimTabsView({
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4">
+    <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+      <header className="apple-glass z-30 flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBackToLibrary}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-emerald-500/60 hover:text-emerald-300"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--status-support-border)] hover:text-[var(--status-support)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             PaperSim Library
           </button>
           <div className="hidden items-center gap-2 sm:flex">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--status-support-soft)] text-[var(--status-support)]">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <div>
-              <h1 className="text-xs font-bold text-slate-100">
+              <h1 className="apple-heading text-xs font-bold text-[var(--text-primary)]">
                 {dataset?.title ?? "PaperSim Workspace"}
               </h1>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-[var(--text-muted)]">
                 {dataset?.subtitle ?? "Interactive Paper Visualisations"}
               </p>
             </div>
@@ -141,26 +142,27 @@ export function PaperSimTabsView({
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             onClick={onNewConversation}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--status-support-border)] bg-[var(--status-support-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--status-support)] hover:opacity-90"
           >
             <MessageSquarePlus className="h-3.5 w-3.5" />
             New Conversation
           </button>
           <a
             href="/tutor"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
           >
-            <GraduationCap className="h-3.5 w-3.5" />
+            <GraduationCap className="h-3.5 w-3.5 text-[var(--accent)]" />
             Live Tutor
           </a>
         </div>
       </header>
 
       {/* Visualisation Tabs */}
-      <div className="flex items-center gap-1 border-b border-slate-800 bg-slate-900/50 px-4 py-2">
+      <div className="flex items-center gap-1 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -169,10 +171,10 @@ export function PaperSimTabsView({
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              className={`apple-press apple-focus flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${
                 active
-                  ? "bg-emerald-500 text-slate-950 font-semibold"
-                  : "text-slate-300 hover:bg-slate-800"
+                  ? "bg-[var(--status-support)] font-semibold text-[var(--accent-fg)] shadow-sm"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)]"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -183,14 +185,14 @@ export function PaperSimTabsView({
       </div>
 
       {statusMsg && (
-        <div className="m-4 rounded-lg border border-amber-700/60 bg-amber-950/40 px-4 py-2 text-xs text-amber-200">
+        <div className="m-4 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
           {statusMsg}
         </div>
       )}
 
       <main className="relative min-h-0 flex-1 overflow-auto">
         {!dataset?.simulation ? (
-          <div className="flex h-full items-center justify-center text-xs text-slate-400">
+          <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
             Loading simulation visualisations...
           </div>
         ) : activeTab === "plot" ? (
@@ -211,25 +213,25 @@ export function PaperSimTabsView({
                 onSelectNode={(n) => setSelectedConceptId(n.id)}
               />
             </div>
-            <aside className="border-l border-slate-800 bg-slate-900/60 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
+            <aside className="border-l border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+              <p className="apple-label text-[11px] font-semibold uppercase text-[var(--status-support)]">
                 Concept Details
               </p>
               {selectedConcept ? (
                 <div className="mt-3 space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-100">{selectedConcept.label}</h3>
-                  <p className="text-xs leading-relaxed text-slate-300">
+                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">{selectedConcept.label}</h3>
+                  <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                     {selectedConcept.summary}
                   </p>
                 </div>
               ) : (
-                <p className="mt-3 text-xs text-slate-400">Select a node to inspect it.</p>
+                <p className="mt-3 text-xs text-[var(--text-muted)]">Select a node to inspect it.</p>
               )}
             </aside>
           </div>
         ) : activeTab === "series" ? (
           <div className="mx-auto max-w-5xl space-y-4 p-6">
-            <h2 className="text-sm font-semibold text-slate-100">
+            <h2 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
               Output Series Summary ({dataset.simulation.x_label} vs {dataset.simulation.y_label})
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -240,27 +242,27 @@ export function PaperSimTabsView({
                 return (
                   <div
                     key={s.name}
-                    className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4"
                   >
                     <div className="flex items-center gap-2">
                       <span
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: s.color }}
                       />
-                      <h3 className="text-xs font-semibold text-slate-100">{s.name}</h3>
+                      <h3 className="text-xs font-semibold text-[var(--text-primary)]">{s.name}</h3>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded-lg bg-slate-950/70 p-2">
-                        <p className="text-[10px] text-slate-500">Min</p>
-                        <p className="text-xs font-semibold text-slate-200">{min.toFixed(3)}</p>
+                      <div className="rounded-xl bg-[var(--bg-surface-muted)] p-2">
+                        <p className="text-[10px] text-[var(--text-muted)]">Min</p>
+                        <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">{min.toFixed(3)}</p>
                       </div>
-                      <div className="rounded-lg bg-slate-950/70 p-2">
-                        <p className="text-[10px] text-slate-500">Max</p>
-                        <p className="text-xs font-semibold text-slate-200">{max.toFixed(3)}</p>
+                      <div className="rounded-xl bg-[var(--bg-surface-muted)] p-2">
+                        <p className="text-[10px] text-[var(--text-muted)]">Max</p>
+                        <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">{max.toFixed(3)}</p>
                       </div>
-                      <div className="rounded-lg bg-slate-950/70 p-2">
-                        <p className="text-[10px] text-slate-500">Final</p>
-                        <p className="text-xs font-semibold text-slate-200">{finalVal.toFixed(3)}</p>
+                      <div className="rounded-xl bg-[var(--bg-surface-muted)] p-2">
+                        <p className="text-[10px] text-[var(--text-muted)]">Final</p>
+                        <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">{finalVal.toFixed(3)}</p>
                       </div>
                     </div>
                   </div>
@@ -270,24 +272,24 @@ export function PaperSimTabsView({
           </div>
         ) : (
           <div className="mx-auto max-w-4xl space-y-4 p-6">
-            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+              <h2 className="apple-label text-xs font-semibold uppercase text-[var(--status-support)]">
                 Extracted Model Summary
               </h2>
-              <p className="mt-2 text-xs leading-relaxed text-slate-300">
+              <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
                 {dataset.simulation.summary}
               </p>
               {dataset.simulation.equation_latex && (
-                <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs text-sky-300">
+                <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-3 font-mono text-xs text-[var(--accent)]">
                   {dataset.simulation.equation_latex}
                 </pre>
               )}
             </div>
-            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+              <h2 className="apple-label text-xs font-semibold uppercase text-[var(--text-muted)]">
                 Python Simulation Code
               </h2>
-              <pre className="mt-3 overflow-x-auto rounded-lg bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
+              <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-4 font-mono text-xs leading-relaxed text-[var(--text-primary)]">
                 {dataset.simulation.python_code || "# Generated simulation code runs on the backend sandbox."}
               </pre>
             </div>

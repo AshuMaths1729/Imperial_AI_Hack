@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { WorkspaceMode } from "../types/scholartwin";
+import { ThemeToggle } from "./ThemeProvider";
 
 interface HomeHubProps {
   onSelectMode: (mode: WorkspaceMode) => void;
@@ -21,8 +22,9 @@ const OPTIONS: {
   tagline: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  accent: string;
-  badge: string;
+  accentVar: string;
+  softVar: string;
+  borderVar: string;
 }[] = [
   {
     mode: "lecture",
@@ -31,8 +33,9 @@ const OPTIONS: {
     description:
       "Browse your saved lecture conversations or upload a lecture PDF/URL to explore prerequisite concepts in a 2-pane avatar & canvas workspace.",
     icon: Layers,
-    accent: "border-sky-500/40 hover:border-sky-400 hover:shadow-sky-500/10",
-    badge: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+    accentVar: "var(--accent)",
+    softVar: "var(--accent-soft)",
+    borderVar: "var(--accent-border)",
   },
   {
     mode: "paper2sim",
@@ -41,8 +44,9 @@ const OPTIONS: {
     description:
       "Open saved paper simulations or ingest a paper PDF/URL to generate tabbed interactive plots, concept maps, and runnable equation models.",
     icon: Activity,
-    accent: "border-emerald-500/40 hover:border-emerald-400 hover:shadow-emerald-500/10",
-    badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    accentVar: "var(--status-support)",
+    softVar: "var(--status-support-soft)",
+    borderVar: "var(--status-support-border)",
   },
   {
     mode: "hypothesis",
@@ -51,44 +55,48 @@ const OPTIONS: {
     description:
       "Ask a research question by text or voice to search arXiv, bioRxiv, and PubMed and map supporting evidence, contradictions, and research gaps.",
     icon: GitCompare,
-    accent: "border-purple-500/40 hover:border-purple-400 hover:shadow-purple-500/10",
-    badge: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+    accentVar: "var(--status-gap)",
+    softVar: "var(--status-gap-soft)",
+    borderVar: "var(--status-gap-border)",
   },
 ];
 
 export function HomeHub({ onSelectMode }: HomeHubProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/90 px-6">
+    <div className="apple-hero-glow flex min-h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+      <header className="apple-glass sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight text-slate-100">ScholarTwin</h1>
-            <p className="text-[11px] text-slate-400">Spatial AI Research & Learning Workspace</p>
+            <h1 className="apple-heading text-sm font-bold text-[var(--text-primary)]">ScholarTwin</h1>
+            <p className="text-[11px] text-[var(--text-muted)]">Spatial AI Research & Learning Workspace</p>
           </div>
         </div>
 
-        <a
-          href="/tutor"
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
-        >
-          <GraduationCap className="h-3.5 w-3.5" />
-          Live Tutor
-        </a>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <a
+            href="/tutor"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
+          >
+            <GraduationCap className="h-3.5 w-3.5 text-[var(--accent)]" />
+            Live Tutor
+          </a>
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-6 py-12">
         <div className="mb-10 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-[11px] font-medium text-sky-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--accent)]">
             <Sparkles className="h-3 w-3" />
             Choose a Workspace
           </span>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-slate-100 sm:text-4xl">
+          <h2 className="apple-display mt-4 text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
             What would you like to explore?
           </h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-400">
+          <p className="mx-auto mt-3 max-w-2xl text-base text-[var(--text-secondary)]">
             Select a workflow to understand lectures, simulate paper equations, or map grounded
             hypotheses across scientific literature.
           </p>
@@ -102,25 +110,43 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
                 key={opt.mode}
                 type="button"
                 onClick={() => onSelectMode(opt.mode)}
-                className={`group flex flex-col justify-between rounded-2xl border bg-slate-900/75 p-6 text-left shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-900 ${opt.accent}`}
+                style={{
+                  borderColor: opt.borderVar,
+                }}
+                className="apple-card apple-press apple-focus group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-6 text-left hover:-translate-y-0.5"
               >
+                <div
+                  aria-hidden
+                  style={{ backgroundColor: opt.accentVar }}
+                  className="absolute inset-x-0 top-0 h-1 opacity-85"
+                />
                 <div>
                   <div className="mb-4 flex items-center justify-between">
                     <span
-                      className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${opt.badge}`}
+                      style={{
+                        backgroundColor: opt.softVar,
+                        color: opt.accentVar,
+                        borderColor: opt.borderVar,
+                      }}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border"
                     >
                       <Icon className="h-5 w-5" />
                     </span>
-                    <ArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-1 group-hover:text-slate-200" />
+                    <ArrowRight className="h-4 w-4 text-[var(--text-muted)] transition-transform duration-150 group-hover:translate-x-1 group-hover:text-[var(--text-primary)]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-100">{opt.title}</h3>
-                  <p className="mt-1 text-xs font-medium text-slate-300">{opt.tagline}</p>
-                  <p className="mt-3 text-xs leading-relaxed text-slate-400">{opt.description}</p>
+                  <h3 className="apple-heading text-lg font-semibold text-[var(--text-primary)]">
+                    {opt.title}
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">{opt.tagline}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{opt.description}</p>
                 </div>
 
-                <div className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-sky-400 group-hover:text-sky-300">
+                <div
+                  style={{ color: opt.accentVar }}
+                  className="mt-6 flex items-center gap-1.5 text-xs font-semibold"
+                >
                   Open {opt.title}
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
                 </div>
               </button>
             );

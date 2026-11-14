@@ -1,26 +1,312 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * ScholarTwin Design System
+ * - Apple-inspired materials, optical typography, & instant pointer-down feedback (SKILL.md)
+ * - Okabe-Ito / CVD-safe semantic palette (distinguishable across protanopia, deuteranopia, tritanopia)
+ * - Light (default), Dark, and High-Contrast themes
+ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-canvas: #f4f5f8;
+  --bg-surface: #ffffff;
+  --bg-surface-muted: #eceef3;
+  --bg-glass: rgba(255, 255, 255, 0.78);
+  --bg-glass-elevated: rgba(255, 255, 255, 0.92);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+
+  /* Primary Accent: Apple Cobalt Blue (CVD-safe, >4.5:1 on white) */
+  --accent: #0066cc;
+  --accent-hover: #0052a3;
+  --accent-soft: rgba(0, 102, 204, 0.1);
+  --accent-border: rgba(0, 102, 204, 0.28);
+  --accent-fg: #ffffff;
+
+  /* CVD-Safe Semantic Statuses (Okabe-Ito inspired) */
+  --status-support: #007d67;
+  --status-support-soft: rgba(0, 125, 103, 0.1);
+  --status-support-border: rgba(0, 125, 103, 0.3);
+
+  --status-contradict: #d55e00;
+  --status-contradict-soft: rgba(213, 94, 0, 0.1);
+  --status-contradict-border: rgba(213, 94, 0, 0.32);
+
+  --status-gap: #9d2b7d;
+  --status-gap-soft: rgba(157, 43, 125, 0.1);
+  --status-gap-border: rgba(157, 43, 125, 0.3);
+
+  --status-warning: #b45309;
+  --status-warning-soft: rgba(180, 83, 9, 0.1);
+  --status-warning-border: rgba(180, 83, 9, 0.3);
+
+  /* Elevation & Graph tokens */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(0, 102, 204, 0.14);
+  --shadow-elevated: 0 20px 50px rgba(15, 23, 42, 0.14);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0, 102, 204, 0.1), transparent 70%);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #0d0f14;
+  --bg-surface: #161922;
+  --bg-surface-muted: #1f2430;
+  --bg-glass: rgba(22, 25, 34, 0.76);
+  --bg-glass-elevated: rgba(31, 36, 48, 0.9);
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+
+  /* Primary Accent: Luminous Apple Blue */
+  --accent: #4d9eff;
+  --accent-hover: #7ab8ff;
+  --accent-soft: rgba(77, 158, 255, 0.15);
+  --accent-border: rgba(77, 158, 255, 0.36);
+  --accent-fg: #081226;
+
+  /* CVD-Safe Semantic Statuses */
+  --status-support: #2dd4bf;
+  --status-support-soft: rgba(45, 212, 191, 0.14);
+  --status-support-border: rgba(45, 212, 191, 0.36);
+
+  --status-contradict: #ff8a3d;
+  --status-contradict-soft: rgba(255, 138, 61, 0.14);
+  --status-contradict-border: rgba(255, 138, 61, 0.38);
+
+  --status-gap: #e879f9;
+  --status-gap-soft: rgba(232, 121, 249, 0.14);
+  --status-gap-border: rgba(232, 121, 249, 0.36);
+
+  --status-warning: #fbbf24;
+  --status-warning-soft: rgba(251, 191, 36, 0.14);
+  --status-warning-border: rgba(251, 191, 36, 0.36);
+
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.65);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(77, 158, 255, 0.14), transparent 70%);
+}
+
+[data-theme="contrast"] {
+  color-scheme: dark;
+  --bg-canvas: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-muted: #171717;
+  --bg-glass: #0a0a0a;
+  --bg-glass-elevated: #121212;
+  --border-subtle: rgba(255, 255, 255, 0.35);
+  --border-strong: rgba(255, 255, 255, 0.65);
+  --glass-highlight: rgba(255, 255, 255, 0.25);
+
+  --text-primary: #ffffff;
+  --text-secondary: #f3f4f6;
+  --text-muted: #d1d5db;
+
+  /* Maximum-Contrast CVD-Safe Palette (Okabe-Ito) */
+  --accent: #56b4e9;
+  --accent-hover: #8cd0f5;
+  --accent-soft: rgba(86, 180, 233, 0.22);
+  --accent-border: #56b4e9;
+  --accent-fg: #000000;
+
+  --status-support: #00d09c;
+  --status-support-soft: rgba(0, 208, 156, 0.2);
+  --status-support-border: #00d09c;
+
+  --status-contradict: #ff944d;
+  --status-contradict-soft: rgba(255, 148, 77, 0.22);
+  --status-contradict-border: #ff944d;
+
+  --status-gap: #f094d8;
+  --status-gap-soft: rgba(240, 148, 216, 0.2);
+  --status-gap-border: #f094d8;
+
+  --status-warning: #ffd13b;
+  --status-warning-soft: rgba(255, 209, 59, 0.2);
+  --status-warning-border: #ffd13b;
+
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-elevated: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  --hero-glow: none;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-canvas);
+  --color-foreground: var(--text-primary);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  font-size: 17.5px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+/* Subtle Apple-style ambient hero glow */
+.apple-hero-glow {
+  background-image: var(--hero-glow);
+}
+
+/* Elevated Apple-style card */
+.apple-card {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease;
+}
+.apple-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Apple-style translucent material (SKILL.md §12) */
+.apple-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: var(--border-subtle);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.apple-glass-elevated {
+  background: var(--bg-glass-elevated);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-elevated), inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Instant pointer-down feedback (SKILL.md §1) */
+.apple-press {
+  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.apple-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Optical typography helpers (SKILL.md §15) */
+.apple-display {
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  font-optical-sizing: auto;
+}
+
+.apple-heading {
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
+}
+
+.apple-label {
+  letter-spacing: 0.05em;
+}
+
+/* Accessible focus ring */
+.apple-focus:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Custom Apple-style range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 100ms ease-out;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.12);
+}
+
+/* Materialize animation for floating sheets */
+@keyframes materialize-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.apple-materialize {
+  animation: materialize-in 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Accessibility: Reduced Motion, Reduced Transparency, High Contrast (SKILL.md §14) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .apple-press:active:not(:disabled) {
+    transform: none !important;
+  }
+  .apple-materialize {
+    animation: none !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .apple-glass,
+  .apple-glass-elevated {
+    background: var(--bg-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme="dark"],
+  [data-theme="light"] {
+    --border-subtle: var(--border-strong);
+  }
+  .apple-glass,
+  .apple-glass-elevated {
+    background: var(--bg-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-width: 1.5px;
+  }
 }

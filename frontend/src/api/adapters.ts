@@ -1,4 +1,5 @@
 import type { Graph, SimOutput, SimSpec } from "./types";
+import { formatCitationLabel } from "./citations";
 import type {
   GraphEdgeData,
   GraphNodeData,
@@ -8,7 +9,8 @@ import type {
   WorkspaceMode,
 } from "../types/scholartwin";
 
-const SERIES_COLORS = ["#38bdf8", "#34d399", "#f472b6", "#fbbf24", "#a78bfa"];
+// Okabe-Ito color-blind-safe palette (distinguishable across protanopia, deuteranopia, tritanopia)
+const SERIES_COLORS = ["#0284c7", "#e69f00", "#009e73", "#cc79a7", "#d55e00"];
 
 function mapNodeCategory(kind: string, mode: WorkspaceMode): GraphNodeData["category"] {
   if (kind === "prerequisite") return "prerequisite";
@@ -40,7 +42,8 @@ export function graphToWorkspaceDataset(
       category: mapNodeCategory(n.kind, mode),
       summary: n.summary,
       slide_ref: n.source_ref?.page ? `Slide / Page ${n.source_ref.page}` : undefined,
-      authors_year: n.authors_year ?? (n.source_ref?.doc_id ? n.source_ref.doc_id : undefined),
+      authors_year: n.authors_year ?? formatCitationLabel(n.source_ref?.doc_id),
+      doc_id: n.source_ref?.doc_id ?? undefined,
       mastery: 0,
       x: 80 + col * 280,
       y: 70 + row * 170,

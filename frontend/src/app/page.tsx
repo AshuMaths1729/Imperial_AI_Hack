@@ -36,6 +36,7 @@ import { LibraryTopic, LibraryView } from "../components/LibraryView";
 import { HomeHub } from "../components/HomeHub";
 import { PaperSimTabsView } from "../components/PaperSimTabsView";
 import { HypothesisChatView } from "../components/HypothesisChatView";
+import { ThemeToggle } from "../components/ThemeProvider";
 import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
 import { useAvatarCall } from "../tutor/useAvatarCall";
 import type { Tutor } from "../tutor/api";
@@ -559,50 +560,52 @@ export default function ScholarTwinWorkspace() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
+    <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* Top Workspace Bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4">
+      <header className="apple-glass z-30 flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setScreen("library")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-sky-500/60 hover:text-sky-300"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
           >
-            <BookOpen className="h-3.5 w-3.5 text-sky-400" />
+            <BookOpen className="h-3.5 w-3.5 text-[var(--accent)]" />
             Lecture Library
           </button>
           <div className="hidden items-center gap-2.5 sm:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight text-slate-100">
+              <h1 className="apple-heading text-sm font-bold text-[var(--text-primary)]">
                 LectureUnderstanding
               </h1>
-              <p className="text-[11px] text-slate-400">2-Pane Avatar & Concept Canvas</p>
+              <p className="text-[11px] text-[var(--text-muted)]">2-Pane Avatar & Concept Canvas</p>
             </div>
           </div>
         </div>
 
         {/* Circle-to-Ask & New Conversation */}
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => {
               setUploadError(null);
               setUploadOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/25"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:opacity-90"
           >
             <MessageSquarePlus className="h-3.5 w-3.5" />
             New Conversation
           </button>
           <button
+            type="button"
             onClick={() => setLassoActive((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+            className={`apple-press apple-focus flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
               lassoActive
-                ? "border-sky-400 bg-sky-500/20 text-sky-300 shadow-sm shadow-sky-500/20"
-                : "border-slate-700 bg-slate-800 text-slate-200 hover:border-slate-600"
+                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-primary)] hover:border-[var(--border-strong)]"
             }`}
           >
             <PenTool className="h-3.5 w-3.5" />
@@ -610,12 +613,12 @@ export default function ScholarTwinWorkspace() {
           </button>
           <a
             href="/tutor"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
           >
-            <GraduationCap className="h-3.5 w-3.5" />
+            <GraduationCap className="h-3.5 w-3.5 text-[var(--accent)]" />
             Live Tutor
           </a>
-          <span className="hidden rounded-md border border-emerald-800/70 bg-emerald-950/50 px-2.5 py-1 text-[11px] font-medium text-emerald-300 md:inline-block">
+          <span className="hidden rounded-lg border border-[var(--status-support-border)] bg-[var(--status-support-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-support)] md:inline-block">
             Demo Preset Ready
           </span>
         </div>
@@ -642,24 +645,24 @@ export default function ScholarTwinWorkspace() {
         />
 
         {/* Right Pane: Interactive Concept Canvas + Circle-to-Ask Overlay */}
-        <main className="relative flex min-h-0 flex-col bg-slate-950">
+        <main className="relative flex min-h-0 flex-col bg-[var(--bg-canvas)]">
           {dataset && (
-            <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-900/40 px-4 py-2">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
               <div>
-                <h2 className="text-xs font-semibold text-slate-100">{dataset.title}</h2>
-                <p className="text-[11px] text-slate-400">{dataset.subtitle}</p>
+                <h2 className="text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
+                <p className="text-[11px] text-[var(--text-muted)]">{dataset.subtitle}</p>
               </div>
-              <div className="hidden items-center gap-3 text-[10px] text-slate-400 sm:flex">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />Prereq</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Supports</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Contradicts</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500" />Gap</span>
+              <div className="hidden items-center gap-3 text-[10px] font-medium text-[var(--text-muted)] sm:flex">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Prereq</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />Supports</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />Contradicts</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-gap)]" />Gap</span>
               </div>
             </div>
           )}
 
           {statusMsg && (
-            <div className="m-4 rounded-lg border border-amber-700/60 bg-amber-950/40 px-4 py-2 text-xs text-amber-200">
+            <div className="m-4 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
               {statusMsg}
             </div>
           )}
@@ -679,9 +682,9 @@ export default function ScholarTwinWorkspace() {
 
             {selectedNode && (
               <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex justify-center">
-                <div className="pointer-events-auto max-w-xl rounded-xl border border-slate-800 bg-slate-900/90 px-4 py-2.5 shadow-xl backdrop-blur-md">
-                  <p className="text-xs font-semibold text-sky-300">{selectedNode.label}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-300">
+                <div className="apple-glass-elevated pointer-events-auto max-w-xl rounded-2xl border px-4 py-2.5">
+                  <p className="text-xs font-semibold text-[var(--accent)]">{selectedNode.label}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
                     {selectedNode.summary}
                   </p>
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { X, Upload, Link2, Loader2, MessageSquarePlus } from "lucide-react";
+import { X, Upload, Link2, Loader2, MessageSquarePlus, AlertTriangle } from "lucide-react";
 import { WorkspaceMode } from "../types/scholartwin";
 
 interface UploadModalProps {
@@ -52,37 +52,39 @@ export function UploadModal({
     <div
       role="dialog"
       aria-label="New conversation"
-      className="fixed bottom-5 right-5 left-5 z-50 sm:left-auto sm:w-full sm:max-w-md"
+      className="apple-materialize fixed bottom-5 right-5 left-5 z-50 origin-bottom-right sm:left-auto sm:w-full sm:max-w-md"
     >
-      <div className="rounded-2xl border border-sky-500/40 bg-slate-900/95 p-5 shadow-2xl shadow-slate-950/90 backdrop-blur-md">
+      <div className="apple-glass-elevated rounded-2xl border p-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-sky-500/15 text-sky-400">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
               <MessageSquarePlus className="h-3.5 w-3.5" />
             </span>
-            <h2 className="text-sm font-semibold text-slate-100">New Conversation</h2>
+            <h2 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
+              New Conversation
+            </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+            className="apple-press apple-focus rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {mode && onModeChange && (
-          <div className="mb-3 flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+          <div className="mb-3 flex items-center gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-1">
             {MODE_OPTIONS.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => onModeChange(opt.id)}
-                className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition ${
+                className={`apple-press apple-focus flex-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition ${
                   mode === opt.id
-                    ? "bg-sky-500 text-slate-950"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 {opt.label}
@@ -104,17 +106,19 @@ export function UploadModal({
             handleFiles(e.dataTransfer.files);
           }}
           onClick={() => fileInputRef.current?.click()}
-          className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition ${
+          className={`apple-press flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition ${
             dragOver
-              ? "border-sky-400 bg-sky-500/10"
-              : "border-slate-700 bg-slate-950/60 hover:border-sky-500"
+              ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+              : "border-[var(--border-strong)] bg-[var(--bg-surface-muted)]/60 hover:border-[var(--accent)]"
           }`}
         >
-          <Upload className="mb-2 h-6 w-6 text-sky-400" />
-          <p className="text-xs font-medium text-slate-200">
+          <Upload className="mb-2 h-6 w-6 text-[var(--accent)]" />
+          <p className="text-xs font-medium text-[var(--text-primary)]">
             Drop a lecture or paper PDF here, or click to browse
           </p>
-          <p className="mt-1 text-[11px] text-slate-500">Extracts slides/sections into a clickable graph</p>
+          <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+            Extracts slides/sections into a clickable graph
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -124,37 +128,38 @@ export function UploadModal({
           />
         </div>
 
-        <div className="my-4 flex items-center gap-2 text-[11px] text-slate-500">
-          <div className="h-px flex-1 bg-slate-800" />
+        <div className="my-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
           OR PASTE ARXIV URL / ID
-          <div className="h-px flex-1 bg-slate-800" />
+          <div className="h-px flex-1 bg-[var(--border-subtle)]" />
         </div>
 
         {/* URL / arXiv ID Form */}
         <form onSubmit={handleUrlSubmit} className="flex gap-2">
           <div className="relative flex-1">
-            <Link2 className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+            <Link2 className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
             <input
               type="text"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://arxiv.org/abs/1706.03762"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-8 pr-3 text-xs text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
+              className="apple-focus w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2 pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)]"
             />
           </div>
           <button
             type="submit"
             disabled={loading || !urlInput.trim()}
-            className="flex items-center gap-1.5 rounded-lg bg-sky-500 px-3.5 py-2 text-xs font-semibold text-slate-950 transition hover:bg-sky-400 disabled:opacity-50"
+            className="apple-press apple-focus flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-[var(--accent-fg)] hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Load"}
           </button>
         </form>
 
         {error && (
-          <p className="mt-3 rounded-lg border border-rose-800/60 bg-rose-950/40 px-3 py-2 text-xs text-rose-300">
-            {error}
-          </p>
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3 py-2 text-xs text-[var(--status-contradict)]">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{error}</span>
+          </div>
         )}
       </div>
     </div>
