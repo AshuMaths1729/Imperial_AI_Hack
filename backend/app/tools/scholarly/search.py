@@ -1,4 +1,5 @@
-"""`search_papers`: Semantic Scholar first, OpenAlex when S2 fails, is throttled or is thin."""
+"""`search_papers`: Semantic Scholar first (only when `S2_API_KEY` is set), OpenAlex when S2
+is skipped, fails, is throttled or is thin."""
 
 from __future__ import annotations
 
@@ -35,14 +36,19 @@ async def search_papers(
         key = settings.s2_api_key.get_secret_value() if settings.s2_api_key else None
         found: list[Paper] = []
         s2_error: UpstreamError | None = None
-        try:
-            # over-fetch: papers without an abstract/TLDR are dropped
-            found = _usable(
-                await search_s2(query, limit * 2, http=client, api_key=key, sleep=sleep)
-            )
-        except UpstreamError as exc:
-            s2_error = exc
-            log.warning("Semantic Scholar failed (%s); falling back to OpenAlex", exc.message)
+        if key:
+            try:
+                # over-fetch: papers without an abstract/TLDR are dropped
+                found = _usable(
+                    await search_s2(query, limit * 2, http=client, api_key=key, sleep=sleep)
+                )
+            except UpstreamError as exc:
+                s2_error = exc
+                log.warning("Semantic Scholar failed (%s); falling back to OpenAlex", exc.message)
+        else:
+            # No key: the shared anonymous S2 pool is throttled and its retries stall a live
+            # query for seconds, so go straight to OpenAlex (no key needed).
+            log.info("S2_API_KEY not set; using OpenAlex only")
 
         if len(found) < max(1, limit // 2):
             try:

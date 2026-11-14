@@ -2,7 +2,7 @@
 
 `ASK_BACKEND=claude` sends the cropped image + transcript + hit metadata (+ the active graph
 when it is on disk) in a single `llm.parse("ask", ...)`; any LLM-layer failure falls back to
-the canned answer so the live demo never dies on a flaky call. `ASK_BACKEND=canned` (default)
+the canned answer so the live demo never dies on a flaky call. `ASK_BACKEND=canned`
 answers from `fixtures/ask_spatial_<view>.json`, else a built-in canned reply.
 """
 
@@ -66,7 +66,10 @@ question in the answer. Ground claims in the graph / image; do not make up citat
 async def answer_spatial(
     req: AskSpatialRequest, llm: LLMClient, settings: Settings
 ) -> AskSpatialResponse:
-    if settings.ask_backend == "claude":
+    use_claude = settings.ask_backend == "claude" or (
+        settings.ask_backend == "auto" and settings.anthropic_api_key is not None
+    )
+    if use_claude:
         try:
             return await _ask_claude(req, llm, settings)
         except (AppError, NotImplementedError) as exc:
@@ -187,10 +190,15 @@ def canned_answer(req: AskSpatialRequest, settings: Settings) -> AskSpatialRespo
     view = req.active_context.view
     path = Path(settings.fixtures_dir) / f"ask_spatial_{view}.json"
     try:
-        return AskSpatialResponse.model_validate_json(path.read_text(encoding="utf-8"))
+        canned = AskSpatialResponse.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValidationError, ValueError):
-        pass
-    return _builtin_canned(req)
+        return _builtin_canned(req)
+    gid = req.active_context.graph_id or ""
+    if gid.startswith("g_demo"):  # the fixtures are written for the demo graphs
+        return canned
+    # a canned answer must not point at nodes that are not in the graph being viewed
+    node_ids, edge_ids = known_ids(req, load_graph(settings, req.active_context.graph_id))
+    return sanitize(canned, node_ids, edge_ids)
 
 
 def _builtin_canned(req: AskSpatialRequest) -> AskSpatialResponse:

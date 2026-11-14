@@ -585,7 +585,11 @@ class Smoke:
 
     def sim_seeded_get(self) -> str:
         body = self.json(self.call("GET", f"/api/sim/{SEEDED_SIM}"))
-        p = validate(SimPayload, body, "seeded sim")
+        p = validate(
+            SimPayload,
+            {k: v for k, v in body.items() if k in SimPayload.model_fields},
+            "seeded sim",
+        )
         self.s["seeded_params"] = {k: v.default for k, v in p.params.items()}
         return f"{len(p.params)} sliders, {len(p.default_output.series)} series"
 

@@ -80,7 +80,7 @@ class Settings(BaseSettings):
 
     # --- backends / feature flags ---------------------------------------------------
     extractor_backend: Literal["frontier", "finetuned"] = "frontier"
-    ask_backend: Literal["canned", "claude"] = "canned"
+    ask_backend: Literal["canned", "claude", "auto"] = "auto"  # auto = claude when a key is set
     fal_mcp_enabled: bool = False
     research_agent: bool = False
 
