@@ -10,7 +10,7 @@ declare module "@tldraw/tlschema" {
   }
 }
 
-/** Page units per board unit. The camera zooms the 1000×1000 board to fit the viewport. */
+/** Page units per board unit. The camera fits the 1000-wide page and follows the pen down it. */
 export const BOARD_SCALE = 1;
 
 const HIGHLIGHT_PAD = 8;
@@ -42,11 +42,11 @@ export const generateId = () => `t${Date.now().toString(36)}${(counter++).toStri
 export function naturalSize(op: BoardOp, measureMath?: (latex: string) => { w: number; h: number }): { w: number; h: number } {
   switch (op.op) {
     case "write_text": {
-      // ~13 units per char at tldraw size "m" sans; wrap at 560 units.
+      // ~14 units per char at tldraw size "m" in the draw font; wrap at 600 units.
       const lines = op.text.split("\n");
       const longest = Math.max(...lines.map((l) => l.length));
-      const w = Math.min(560, Math.max(60, longest * 13 + 16));
-      const rows = lines.reduce((n, l) => n + Math.max(1, Math.ceil((l.length * 13) / w)), 0);
+      const w = Math.min(600, Math.max(60, longest * 14 + 16));
+      const rows = lines.reduce((n, l) => n + Math.max(1, Math.ceil((l.length * 14) / w)), 0);
       return { w, h: rows * 33 + 8 };
     }
     case "write_math":
@@ -85,7 +85,7 @@ export function opToShapePartials(op: BoardOp, box: Box, scale: number, shapes: 
       props: { geo: "rectangle", w: w + 2 * HIGHLIGHT_PAD, h: h + 2 * HIGHLIGHT_PAD, color: op.color ?? "yellow", fill: "solid", dash: "solid", size: "s" },
     }];
   }
-  // point_at / annotate / focus are handled by the board itself (WS-A), not mapped to stored shapes here.
+  // point_at and focus are never stored; annotate strokes are built and animated by the board (annotate.ts).
   if (op.op === "erase" || op.op === "clear_tutor_layer" || op.op === "point_at" || op.op === "annotate" || op.op === "focus") return [];
 
   const boardId = op.id ?? generateId();
@@ -101,7 +101,7 @@ export function opToShapePartials(op: BoardOp, box: Box, scale: number, shapes: 
 
   switch (op.op) {
     case "write_text":
-      return [{ ...base, type: "text", meta: meta("text"), props: { richText: toRichText(op.text), w, autoSize: false, size: "m", font: "sans", color: "black", textAlign: "start" } }];
+      return [{ ...base, type: "text", meta: meta("text"), props: { richText: toRichText(op.text), w, autoSize: false, size: "m", font: "draw", color: "black", textAlign: "start" } }];
     case "write_math":
       return [{ ...base, type: "math", meta: meta("math"), props: { w, h, latex: op.latex } }];
     case "plot_function":
@@ -113,12 +113,12 @@ export function opToShapePartials(op: BoardOp, box: Box, scale: number, shapes: 
       }
       return [{
         ...base, type: "geo", meta: meta(op.shape),
-        props: { geo: op.shape === "rect" ? "rectangle" : "ellipse", w, h, richText: toRichText(op.label ?? ""), color: "blue", fill: "none", dash: "solid", size: "m", font: "sans" },
+        props: { geo: op.shape === "rect" ? "rectangle" : "ellipse", w, h, richText: toRichText(op.label ?? ""), color: "blue", fill: "none", dash: "solid", size: "m", font: "draw" },
       }];
     case "draw_arrow":
       return [{
         ...base, type: "arrow", meta: meta("arrow"),
-        props: { start: { x: 0, y: 0 }, end: { x: w, y: h }, richText: toRichText(op.label ?? ""), color: "black", size: "m", dash: "solid", font: "sans", arrowheadEnd: "arrow" },
+        props: { start: { x: 0, y: 0 }, end: { x: w, y: h }, richText: toRichText(op.label ?? ""), color: "black", size: "m", dash: "solid", font: "draw", arrowheadEnd: "arrow" },
       }];
     case "place_image": {
       const imgH = op.caption ? h - CAPTION_H * scale : h;

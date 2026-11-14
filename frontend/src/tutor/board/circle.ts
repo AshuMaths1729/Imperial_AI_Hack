@@ -1,5 +1,5 @@
 import type { BoardItem, Box } from "../contracts/types";
-import { BOARD } from "./layout";
+import { BOARD_H, BOARD_W } from "./layout";
 
 export type { CircleEvent } from "../contracts/types";
 
@@ -27,16 +27,16 @@ export function downscaleDims(w: number, h: number, max = 1024): { w: number; h:
 
 const MIN_REGION = 32; // a tap still yields a usable crop
 
-/** Lasso bounds (board units) → integer region clipped to the board, at least 32×32. */
+/** Lasso bounds (board units) → integer region clipped to the page, at least 32×32. */
 export function lassoRegion(b: Box): Box {
-  const axis = (start: number, size: number): [number, number] => {
-    let lo = Math.max(0, start), hi = Math.min(BOARD, start + size);
+  const axis = (start: number, size: number, max: number): [number, number] => {
+    let lo = Math.max(0, start), hi = Math.min(max, start + size);
     if (hi - lo < MIN_REGION) {
-      lo = Math.min(Math.max(0, (lo + hi) / 2 - MIN_REGION / 2), BOARD - MIN_REGION);
+      lo = Math.min(Math.max(0, (lo + hi) / 2 - MIN_REGION / 2), max - MIN_REGION);
       hi = lo + MIN_REGION;
     }
     return [Math.round(lo), Math.round(hi - lo)];
   };
-  const [x, w] = axis(b.x, b.w), [y, h] = axis(b.y, b.h);
+  const [x, w] = axis(b.x, b.w, BOARD_W), [y, h] = axis(b.y, b.h, BOARD_H);
   return { x, y, w, h };
 }

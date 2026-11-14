@@ -44,7 +44,7 @@ export function fitDescription(desc: BoardDescription, limit = RPC_REPLY_LIMIT):
 }
 
 /** Browser JPEG encoder: white background (JPEG has no alpha), quality 0.7. */
-const browserJpeg: JpegEncoder = async (pngB64, maxSide) => {
+export const browserJpeg: JpegEncoder = async (pngB64, maxSide) => {
   const img = new Image();
   img.src = `data:image/png;base64,${pngB64}`;
   await img.decode();

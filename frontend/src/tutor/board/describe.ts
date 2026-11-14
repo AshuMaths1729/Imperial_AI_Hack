@@ -7,7 +7,8 @@ const MAX = 120;
 const clip = (s: string) => (s.length > MAX ? `${s.slice(0, MAX - 1)}…` : s);
 
 type RichNode = { type?: string; text?: string; content?: RichNode[] };
-const plain = (n: unknown): string => {
+/** Plain text of a tldraw rich-text document. */
+export const plain = (n: unknown): string => {
   const node = n as RichNode | undefined;
   if (!node) return "";
   if (typeof node.text === "string") return node.text;
