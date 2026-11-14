@@ -1,8 +1,7 @@
 import type { TLShape } from "tldraw";
 import type { BoardPlugin, Box, IdleEvent } from "../../contracts/types";
-import { downscaleDims } from "../circle";
 import { boardIdOf, union } from "../describe";
-import type { JpegEncoder } from "../rpc";
+import { browserJpeg, type JpegEncoder } from "../rpc";
 
 /** Quiet time after the student's last finished stroke before the tutor takes a look. */
 export const IDLE_MS = 6000;
@@ -15,20 +14,6 @@ export function padRegion(b: Box, pad = PAD): Box {
   const x = Math.max(0, Math.round(b.x - pad)), y = Math.max(0, Math.round(b.y - pad));
   return { x, y, w: Math.min(1000, Math.round(b.x + b.w + pad)) - x, h: Math.min(3000, Math.round(b.y + b.h + pad)) - y };
 }
-
-/** JPEG on white (no alpha), quality 0.7, long side ≤ maxSide. */
-const browserJpeg: JpegEncoder = async (pngB64, maxSide) => {
-  const img = new Image();
-  img.src = `data:image/png;base64,${pngB64}`;
-  await img.decode();
-  const { w, h } = downscaleDims(img.naturalWidth, img.naturalHeight, maxSide);
-  const c = Object.assign(document.createElement("canvas"), { width: w, height: h });
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#fff";
-  g.fillRect(0, 0, w, h);
-  g.drawImage(img, 0, 0, w, h);
-  return c.toDataURL("image/jpeg", 0.7).split(",")[1];
-};
 
 type Options = { encodeJpeg?: JpegEncoder; maxBytes?: number };
 
