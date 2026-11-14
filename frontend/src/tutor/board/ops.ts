@@ -10,8 +10,11 @@ const OP_NAMES = Object.keys(schema.$defs).filter((k) => (schema.$defs as Record
 // One validator per op type gives a precise error instead of a wall of oneOf failures.
 const validators = new Map(OP_NAMES.map((name) => [name, ajv.getSchema(`${schema.$id}#/$defs/${name}`)!]));
 
-/** Schema-check one op and make sure every id it references already exists. Never throws. */
-export function validateOp(op: unknown, existingIds: Set<string>): { op: BoardOp } | { error: string } {
+/**
+ * Schema-check one op and make sure every id it references already exists. Never throws.
+ * Student items (`studentIds`) may be pointed at (highlight, arrows, places) but never replaced or erased.
+ */
+export function validateOp(op: unknown, existingIds: Set<string>, studentIds: Set<string> = new Set()): { op: BoardOp } | { error: string } {
   if (!op || typeof op !== "object" || Array.isArray(op)) return { error: "op must be an object" };
   const name = (op as { op?: unknown }).op;
   const validate = typeof name === "string" ? validators.get(name) : undefined;
@@ -28,5 +31,7 @@ export function validateOp(op: unknown, existingIds: Set<string>): { op: BoardOp
   }
   const missing = refs.filter((id) => !existingIds.has(id));
   if (missing.length) return { error: `${name}: unknown id ${missing.map((id) => `"${id}"`).join(", ")}` };
+  const owned = o.op === "erase" ? o.target_id : "id" in o ? o.id : undefined;
+  if (owned && studentIds.has(owned)) return { error: `${name}: id "${owned}" belongs to the student` };
   return { op: o };
 }

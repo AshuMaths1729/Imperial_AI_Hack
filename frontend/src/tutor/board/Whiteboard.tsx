@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import { Box as PageBox, DefaultColorStyle, Tldraw, type Editor, type TLDefaultColorStyle } from "tldraw";
+import { Box as PageBox, DefaultColorStyle, Tldraw, type Editor, type TLDefaultColorStyle, type TLShape } from "tldraw";
 import "tldraw/tldraw.css";
 import "katex/dist/katex.min.css";
 import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, Box, CircleEvent } from "../contracts/types";
@@ -15,15 +15,18 @@ import { PlotShapeUtil, plotYDomain } from "./shapes/PlotShape";
 
 const shapeUtils = [MathShapeUtil, PlotShapeUtil];
 
+// Unrevealed stepped shapes are not rendered, hit-tested or selectable (opacity alone is not enough).
+const hideUnrevealed = (s: TLShape) => (s.opacity === 0 ? "hidden" : "inherit");
 const toBoard = (b: { x: number; y: number; w: number; h: number }): Box =>
   ({ x: Math.round(b.x / S), y: Math.round(b.y / S), w: Math.round(b.w / S), h: Math.round(b.h / S) });
 const shapesOf = (editor: Editor, id: string) => editor.getCurrentPageShapes().filter((s) => boardIdOf(s) === id);
 
-function describe(editor: Editor): BoardDescription {
+/** What the student sees; `includeHidden` adds unrevealed stepped items (layout and highlight still need them). */
+function describe(editor: Editor, includeHidden = false): BoardDescription {
   return describeShapes(editor.getCurrentPageShapes(), (s) => {
     const b = editor.getShapePageBounds(s);
     return b && toBoard(b);
-  });
+  }, { includeHidden });
 }
 
 /** PNG (base64, no data: prefix) of a board region, long side ≤ 1024 px. */
@@ -51,7 +54,7 @@ async function snapshot(editor: Editor, region: Box = { x: 0, y: 0, w: BOARD, h:
 }
 
 function applyOne(editor: Editor, op: BoardOp): string | undefined {
-  const items = new Map<string, BoardItem>(describe(editor).items.map((i) => [i.id, i]));
+  const items = new Map<string, BoardItem>(describe(editor, true).items.map((i) => [i.id, i]));
   const page = editor.getCurrentPageShapes();
   switch (op.op) {
     case "erase":
@@ -111,8 +114,10 @@ function applyOps(editor: Editor, ops: unknown[]): ApplyResult {
   const errors: string[] = [];
   ops.forEach((raw, i) => {
     try {
-      const existing = new Set(editor.getCurrentPageShapes().map(boardIdOf));
-      const v = validateOp(raw, existing);
+      const shapes = editor.getCurrentPageShapes();
+      const existing = new Set(shapes.map(boardIdOf));
+      const student = new Set(shapes.filter((s) => s.meta.author !== "tutor").map(boardIdOf));
+      const v = validateOp(raw, existing, student);
       if ("error" in v) throw new Error(v.error);
       let id: string | undefined;
       editor.run(() => { id = applyOne(editor, v.op); });
@@ -195,7 +200,7 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
 
   return (
     <div className={className} style={{ position: "relative", width: "100%", height: "100%" }} role="region" aria-label="Shared whiteboard">
-      <Tldraw shapeUtils={shapeUtils} onMount={onMount} />
+      <Tldraw shapeUtils={shapeUtils} onMount={onMount} getShapeVisibility={hideUnrevealed} />
     </div>
   );
 });

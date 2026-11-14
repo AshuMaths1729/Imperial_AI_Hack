@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { BoardHandle, Box } from "../contracts/types";
-import { makeBoardRpcHandlers } from "./rpc";
+import { fitSnapshot, makeBoardRpcHandlers, RPC_REPLY_LIMIT } from "./rpc";
 
 function fakeBoard() {
   const calls: { applied: unknown[][]; regions: (Box | undefined)[] } = { applied: [], regions: [] };
@@ -24,11 +24,11 @@ describe("makeBoardRpcHandlers", () => {
 
   it("describe and snapshot reply per contract", async () => {
     const { board, calls } = fakeBoard();
-    const h = makeBoardRpcHandlers(() => board);
+    const h = makeBoardRpcHandlers(() => board, async (png, side) => `${png}@${side}`);
     expect(JSON.parse(await h["board.describe"]("{}")).items[0].id).toBe("a");
     const region = { x: 1, y: 2, w: 3, h: 4 };
-    expect(JSON.parse(await h["board.snapshot"](JSON.stringify({ region })))).toEqual({ png_b64: "PNG" });
-    expect(JSON.parse(await h["board.snapshot"]("{}"))).toEqual({ png_b64: "PNG" });
+    expect(JSON.parse(await h["board.snapshot"](JSON.stringify({ region })))).toEqual({ png_b64: "PNG@768", mime: "image/jpeg" });
+    expect(JSON.parse(await h["board.snapshot"]("{}"))).toEqual({ png_b64: "PNG@768", mime: "image/jpeg" });
     expect(calls.regions).toEqual([region, undefined]);
   });
 
@@ -58,5 +58,36 @@ describe("makeBoardRpcHandlers", () => {
     board.snapshot = async () => { throw new Error("export failed"); };
     const reply = JSON.parse(await makeBoardRpcHandlers(() => board)["board.snapshot"]("{}"));
     expect(reply).toEqual({ ok: false, ids: [], errors: ["export failed"] });
+  });
+
+  it("snapshot reply stays under the RPC limit", async () => {
+    const { board } = fakeBoard();
+    // ~40 bytes per px of long side: 768 → 30 KB, 512 → 20 KB, 384 → 15 KB, 256 → 10 KB
+    const h = makeBoardRpcHandlers(() => board, async (_png, side) => "A".repeat(side * 40));
+    const reply = await h["board.snapshot"]("{}");
+    expect(new TextEncoder().encode(reply).length).toBeLessThanOrEqual(14000);
+    expect(JSON.parse(reply).png_b64).toHaveLength(256 * 40);
+  });
+});
+
+describe("fitSnapshot", () => {
+  it("fits on first try", async () => {
+    const sides: number[] = [];
+    const r = await fitSnapshot("PNG", async (_p, side) => { sides.push(side); return "small"; });
+    expect(r).toEqual({ png_b64: "small", mime: "image/jpeg" });
+    expect(sides).toEqual([768]);
+  });
+
+  it("downscales until it fits", async () => {
+    const sides: number[] = [];
+    const r = await fitSnapshot("PNG", async (_p, side) => { sides.push(side); return "A".repeat(side * 30); });
+    expect(sides).toEqual([768, 512, 384]);
+    expect(r).toEqual({ png_b64: "A".repeat(384 * 30), mime: "image/jpeg" });
+    expect(RPC_REPLY_LIMIT).toBe(14000);
+  });
+
+  it("errors when even the smallest size is too big", async () => {
+    const r = await fitSnapshot("PNG", async () => "A".repeat(20000));
+    expect(r).toEqual({ ok: false, ids: [], errors: ["snapshot too large"] });
   });
 });

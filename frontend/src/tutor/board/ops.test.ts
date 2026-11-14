@@ -33,4 +33,35 @@ describe("validateOp", () => {
     expect(validateOp(null, seeded)).toHaveProperty("error");
     expect(validateOp("write_text", seeded)).toHaveProperty("error");
   });
+
+  describe("student items are read-only", () => {
+    const ids = new Set([...seeded, "ink1"]);
+    const student = new Set(["ink1"]);
+
+    it("rejects a drawable op that reuses a student id", () => {
+      for (const op of [
+        { op: "write_text", id: "ink1", text: "x", place: "next" },
+        { op: "write_math", id: "ink1", latex: "x", place: "next" },
+        { op: "draw_shape", id: "ink1", shape: "rect", place: "next" },
+        { op: "plot_function", id: "ink1", expr: "x", x_range: [0, 1], place: "next" },
+        { op: "place_image", id: "ink1", url: "https://a.b/c.png", place: "next" },
+        { op: "draw_arrow", id: "ink1", from_id: "title", to_id: "eq_update" },
+      ]) {
+        const r = validateOp(op, ids, student);
+        expect("error" in r && r.error, op.op).toContain('id "ink1" belongs to the student');
+      }
+    });
+
+    it("rejects erasing a student item", () => {
+      const r = validateOp({ op: "erase", target_id: "ink1" }, ids, student);
+      expect("error" in r && r.error).toContain('id "ink1" belongs to the student');
+    });
+
+    it("still lets the tutor point at student work", () => {
+      expect(validateOp({ op: "highlight", target_id: "ink1" }, ids, student)).toHaveProperty("op");
+      expect(validateOp({ op: "draw_arrow", from_id: "title", to_id: "ink1" }, ids, student)).toHaveProperty("op");
+      expect(validateOp({ op: "write_text", text: "see", place: "below:ink1" }, ids, student)).toHaveProperty("op");
+      expect(validateOp({ op: "erase", target_id: "title" }, ids, student)).toHaveProperty("op");
+    });
+  });
 });

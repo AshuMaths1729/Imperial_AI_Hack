@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import valid from "../contracts/examples/valid_ops.json";
 import type { BoardHandle, CircleEvent } from "../contracts/types";
+import { makeBoardRpcHandlers } from "./rpc";
 import { Whiteboard } from "./Whiteboard";
 
 // Offline stand-in for the example's placeholder image URL.
@@ -27,6 +28,12 @@ export function BoardHarness() {
       await sleep(500);
     }
   };
+  const rpcSnapshot = async () => {
+    const reply = await makeBoardRpcHandlers(() => board.current)["board.snapshot"]("{}");
+    const r = JSON.parse(reply);
+    say(`board.snapshot RPC → ${reply.length} bytes, ${r.mime ?? JSON.stringify(r.errors)}`);
+    if (r.png_b64) setCrop(`data:${r.mime ?? "image/png"};base64,${r.png_b64}`);
+  };
   const run = (op: object) => say(`${JSON.stringify(op)} → ${JSON.stringify(board.current?.applyOps([op]))}`);
   const onCircle = (e: CircleEvent) => {
     setCrop(`data:image/png;base64,${e.png_b64}`);
@@ -44,6 +51,7 @@ export function BoardHarness() {
           <button onClick={() => run({ op: "clear_tutor_layer" })}>Clear tutor</button>
           <button onClick={() => say(JSON.stringify(board.current?.describe()))}>Describe</button>
           <button onClick={async () => { const b = await board.current?.snapshot(); if (b) setCrop(`data:image/png;base64,${b}`); }}>Snapshot</button>
+          <button onClick={rpcSnapshot}>Snapshot (RPC)</button>
           <button onClick={() => board.current?.setCircleMode(true)}>Circle to ask</button>
         </div>
         {crop && <img src={crop} alt="Last snapshot or circled crop" style={{ maxWidth: "100%", border: "1px solid #e5e7eb" }} />}

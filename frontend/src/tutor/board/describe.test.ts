@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TLShape } from "tldraw";
+import { itemsInRegion } from "./circle";
 import { describeShapes } from "./describe";
 import { toRichText } from "./toShapes";
 
@@ -42,5 +43,19 @@ describe("describeShapes", () => {
     bboxes["shape:m"] = { x: 0, y: 0, w: 10, h: 10 };
     const { items } = describeShapes([shape("m", "math", { author: "tutor", boardId: "m", kind: "math" }, { latex: "x^2" })], toBoard);
     expect(items[0]).toMatchObject({ type: "math", latex: "x^2" });
+  });
+
+  it("skips unrevealed (opacity 0) shapes", () => {
+    bboxes["shape:h"] = { x: 10, y: 10, w: 50, h: 40 };
+    const hidden = { ...shape("h", "math", { author: "tutor", boardId: "h", kind: "math", group: "g", step: 2 }, { latex: "y" }), opacity: 0 } as TLShape;
+    const { items } = describeShapes([hidden, shape("ink1", "draw", { author: "user" })], toBoard);
+    expect(items.map((i) => i.id)).toEqual(["ink1"]);
+    // circle hit-testing is fed from describe, so blank space over a hidden item selects nothing
+    expect(itemsInRegion(describeShapes([hidden], toBoard).items, { x: 0, y: 0, w: 100, h: 100 })).toEqual([]);
+  });
+
+  it("can include hidden shapes for layout", () => {
+    const hidden = { ...shape("ink1", "draw", { author: "user" }), opacity: 0 } as TLShape;
+    expect(describeShapes([hidden], toBoard, { includeHidden: true }).items).toHaveLength(1);
   });
 });

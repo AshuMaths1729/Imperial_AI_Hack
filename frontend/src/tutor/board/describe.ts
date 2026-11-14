@@ -25,11 +25,16 @@ const union = (a: Box, b: Box): Box => {
 /**
  * Compact text view of the board for the tutor: one item per board id (parts merged),
  * user freehand reported as "ink", strings clipped to 120 chars. Highlight overlays are not items.
+ * Unrevealed stepped shapes (opacity 0) are skipped unless `includeHidden` (layout still needs their space).
  */
-export function describeShapes(shapes: TLShape[], toBoardUnits: (s: TLShape) => Box | undefined): BoardDescription {
+export function describeShapes(
+  shapes: TLShape[],
+  toBoardUnits: (s: TLShape) => Box | undefined,
+  { includeHidden = false } = {},
+): BoardDescription {
   const items = new Map<string, BoardItem>();
   for (const s of shapes) {
-    if (s.meta.part === "highlight") continue;
+    if (s.meta.part === "highlight" || (!includeHidden && s.opacity === 0)) continue;
     const bbox = toBoardUnits(s);
     if (!bbox) continue;
     const id = boardIdOf(s);
