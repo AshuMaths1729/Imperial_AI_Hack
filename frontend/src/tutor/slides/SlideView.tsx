@@ -5,6 +5,7 @@
 // snaps to the true state. Moving geometry (dots, tangents, step arrows, morphing curves) is painted by
 // `paint`, both after every render and per frame while a step plays, so there is one copy of that maths.
 import katex from "katex";
+import { PenLine } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   CANVAS,
@@ -19,6 +20,7 @@ import {
   functionPath,
   paramsOf,
   place,
+  slow,
   smooth,
   stateAt,
   timeline,
@@ -35,6 +37,9 @@ const MUTED = "#7d8494";
 const INK = PALETTE.white;
 const SERIF = "KaTeX_Main, 'Latin Modern Roman', 'Times New Roman', serif";
 const MASK = "linear-gradient(90deg, #000 42%, transparent 58%)";
+const HAND = "cubic-bezier(.35,.05,.6,1)"; // the pen starts gently and keeps going, like writing
+// Written left to right: the clip's right edge runs from -5% to 105% of the box; the pen tip rides on it.
+const WRITE_CLIP = ["inset(-30% 105% -30% -5%)", "inset(-30% -5% -30% -5%)"];
 
 type CurveY = (curveId: string, x: number) => number;
 
@@ -93,7 +98,7 @@ function ArrowHead({ id, color }: { id: string; color: string }) {
   );
 }
 
-function Html({ slide, o, children, visible }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean }) {
+function Html({ slide, o, children, visible, pen }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean; pen?: boolean }) {
   const p = place(slide, o);
   return (
     <div
@@ -103,6 +108,11 @@ function Html({ slide, o, children, visible }: { slide: Slide; o: SlideObject & 
       style={{ left: p.x, top: p.y, transform: o.align === "left" ? "translate(0,-50%)" : "translate(-50%,-50%)", opacity: visible ? 1 : 0 }}
     >
       <div data-inner style={{ transformOrigin: "center" }}>{children}</div>
+      {pen && (
+        <span data-pen className="pointer-events-none absolute" style={{ left: 0, top: "50%", width: 30, height: 30, margin: "-26px 0 0 -3px", opacity: 0, color: "#cbd5e1", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.5))" }}>
+          <PenLine width={30} height={30} aria-hidden />
+        </span>
+      )}
     </div>
   );
 }
@@ -176,11 +186,14 @@ type Props = {
 
 export function SlideView({ slide, step, motion }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const [params, setParams] = useState<Params>(() => paramsOf(slide));
+  const [userParams, setParams] = useState<Params>({});
+  // defaults come from the slide, so sliders added by an edit work too
+  const params = useMemo(() => ({ ...paramsOf(slide), ...userParams }), [slide, userParams]);
   const paramsRef = useRef(params);
   const state = useMemo(() => stateAt(slide, step), [slide, step]);
   const playing = useRef(false);
   const shownStep = useRef<number | null>(null);
+  const shownSlide = useRef<Slide | null>(null);
 
   const finalY = (st: SceneState): CurveY => (id, x) => evalExpr(st.expr[id] ?? "", x, paramsRef.current);
 
@@ -193,9 +206,13 @@ export function SlideView({ slide, step, motion }: Props) {
   useLayoutEffect(() => {
     const el = root.current;
     const prev = shownStep.current;
+    const prevSlide = shownSlide.current;
     shownStep.current = step;
+    shownSlide.current = slide;
     if (!el || !motion || typeof el.animate !== "function") return;
-    if (prev !== null && step !== prev + 1) return; // jumps and going back: no replay
+    // an edit added objects to the open slide (same step): the ones no step shows enter now
+    const edited = prev === step && !!prevSlide && prevSlide !== slide && prevSlide.id === slide.id;
+    if (prev !== null && step !== prev + 1 && !edited) return; // jumps and going back: no replay
 
     const anims: Animation[] = [];
     const ghosts: HTMLElement[] = [];
@@ -210,7 +227,16 @@ export function SlideView({ slide, step, motion }: Props) {
       const node = objEl(id);
       if (!o || !node) return;
       const dur = entranceMs(o);
-      if (o.kind === "text" || o.kind === "math" || o.kind === "slider") {
+      if (o.kind === "text" || o.kind === "math") {
+        // written in by pen, left to right
+        play(node.querySelector("[data-inner]"), [{ clipPath: WRITE_CLIP[0] }, { clipPath: WRITE_CLIP[1] }], at, dur, HAND);
+        play(node.querySelector("[data-pen]"), [
+          { left: "-5%", opacity: 0 },
+          { left: "-0.6%", opacity: 1, offset: 0.04 },
+          { left: "100.6%", opacity: 1, offset: 0.96 },
+          { left: "105%", opacity: 0 },
+        ], at, dur, HAND);
+      } else if (o.kind === "slider") {
         const inner = node.querySelector("[data-inner]");
         const m = { maskImage: MASK, WebkitMaskImage: MASK, maskSize: "260% 100%", WebkitMaskSize: "260% 100%" };
         play(inner, [
@@ -225,22 +251,28 @@ export function SlideView({ slide, step, motion }: Props) {
         const origin = { transformBox: "view-box", transformOrigin: `${sx}px ${sy}px` };
         play(node, [{ ...origin, opacity: 0, transform: "scale(0.01)" }, { ...origin, opacity: 1, transform: "scale(1)" }], at, dur);
       } else {
-        play(node, [{ opacity: 0 }, { opacity: 1 }], at, 160, "linear");
+        play(node, [{ opacity: 0 }, { opacity: 1 }], at, slow(160), "linear");
         node.querySelectorAll("[data-draw], [data-part=curve], [data-part=line]").forEach((d) =>
           play(d, [{ strokeDasharray: "1 1", strokeDashoffset: 1 }, { strokeDasharray: "1 1", strokeDashoffset: 0 }], at, dur)
         );
-        node.querySelectorAll("[data-late], [data-part=label]").forEach((d) => play(d, [{ opacity: 0 }, { opacity: 1 }], at + dur * 0.6, 400));
+        node.querySelectorAll("[data-late], [data-part=label]").forEach((d) => play(d, [{ opacity: 0 }, { opacity: 1 }], at + dur * 0.6, slow(400)));
       }
     };
+
+    if (edited) {
+      const had = new Set(prevSlide.objects.map((o) => o.id));
+      slide.objects.filter((o) => !had.has(o.id) && state.visible.has(o.id)).forEach((o, i) => enter(o.id, i * STAGGER));
+      return () => anims.forEach((a) => a.cancel());
+    }
 
     if (prev === null) {
       // Slide opens: title wipes in, then whatever is visible from the start, staggered.
       play(el.querySelector("[data-title] [data-inner]"), [
         { opacity: 0, transform: "translateY(12px)" },
         { opacity: 1, transform: "translateY(0)" },
-      ], 0, 700);
-      play(el.querySelector("[data-title-rule]"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], 150, 900);
-      slide.objects.filter((o) => state.visible.has(o.id)).forEach((o, i) => enter(o.id, 250 + i * STAGGER));
+      ], 0, slow(700));
+      play(el.querySelector("[data-title-rule]"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], slow(150), slow(900));
+      slide.objects.filter((o) => state.visible.has(o.id)).forEach((o, i) => enter(o.id, slow(250) + i * STAGGER));
       return () => anims.forEach((a) => a.cancel());
     }
 
@@ -285,7 +317,7 @@ export function SlideView({ slide, step, motion }: Props) {
         const per = it.dur / a.xs.length;
         const first = before.trails[a.id]?.length ?? 0;
         el.querySelectorAll(`[data-trail="${a.id}"]`).forEach((m, k) => {
-          if (k >= first) play(m, [{ opacity: 0 }, { opacity: 1 }], it.at + (k - first) * per, 200);
+          if (k >= first) play(m, [{ opacity: 0 }, { opacity: 1 }], it.at + (k - first) * per, slow(200));
         });
       }
     }
@@ -428,14 +460,14 @@ export function SlideView({ slide, step, motion }: Props) {
       }
       case "text":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} pen>
             <span style={{ fontFamily: SERIF, fontSize: o.size ?? 32, color: c, whiteSpace: "pre" }}>{o.text}</span>
           </Html>
         );
         break;
       case "math":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} pen>
             <span style={{ fontSize: o.size ?? 40, color: c }} dangerouslySetInnerHTML={{ __html: katexHtml(state.latex[o.id] ?? o.latex) }} />
           </Html>
         );

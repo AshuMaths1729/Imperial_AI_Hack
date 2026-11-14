@@ -1,8 +1,14 @@
-// Circling part of a slide: which objects the loop encloses, and a PNG of that region for the tutor.
+// Marks on a slide: what a student's circle encloses (and a PNG of it for the tutor), and where the laser sits.
 import type { Box } from "@/tutor/contracts/types";
 import { CANVAS } from "./scene";
 
 type Pt = { x: number; y: number };
+
+/** Where the laser parks when a slide opens: just left of the title (which starts at x=80, y=44). */
+export const LASER_PARK = { x: 54, y: 74 };
+
+/** Laser spot for an object's box: just under text and formulas (like an underline), else its centre. */
+export const laserSpot = (b: Box, isText: boolean) => ({ x: b.x + b.w / 2, y: isText ? b.y + b.h + 14 : b.y + b.h / 2 });
 
 export function pointInPolygon(p: Pt, poly: Pt[]): boolean {
   let inside = false;

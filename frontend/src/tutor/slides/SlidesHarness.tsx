@@ -29,19 +29,35 @@ const FOLLOWUP: Slide = {
   ],
 };
 
+// What slide_edit might add to the open slide: a formula written in, then a note, as two inserted steps.
+const editPatch = (n: number) => ({
+  objects: [
+    { kind: "math", id: `e${n}_eq`, latex: "\\frac{dL}{d\\theta} \\approx \\frac{L(\\theta+h)-L(\\theta)}{h}", x: 1260, y: 230 + (n % 3) * 150, color: "yellow" },
+    { kind: "text", id: `e${n}_note`, text: "slope = rise / run", x: 1260, y: 300 + (n % 3) * 150, size: 28, color: "teal" },
+  ],
+  steps: [
+    { narration: "Here is the slope written out.", actions: [{ do: "show", ids: [`e${n}_eq`] }] },
+    { narration: "In words.", actions: [{ do: "show", ids: [`e${n}_note`] }] },
+  ],
+});
+
 /** Dev-only: the fallback deck in the Slides tab, driven through the same RPC handlers the agent uses. */
 export function SlidesHarness() {
   const handle = useRef<SlidesHandle | null>(null);
   const [circle, setCircle] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [crop, setCrop] = useState<string>();
+  const [circles, setCircles] = useState<string[]>([]);
+  const edits = useRef(0);
   const call = async (method: SlidesRpcMethod, payload: object) => {
-    const rpc = makeSlidesRpcHandlers(() => ({ showTab: () => {}, slides: handle.current, clearCircle: () => {} }));
+    const rpc = makeSlidesRpcHandlers(() => ({ showTab: () => {}, slides: handle.current, clearCircle: (id) => handle.current?.clearCircle(id) }));
     const reply = await rpc[method](JSON.stringify(payload));
     setLog((l) => [`${method} ${JSON.stringify(payload).slice(0, 60)} → ${reply.slice(0, 160)}`, ...l].slice(0, 20));
+    return JSON.parse(reply) as { ok: boolean; new_steps?: number[] };
   };
   const onCircle = (e: CircleEvent) => {
     setCircle(false);
+    if (e.circle_id) setCircles((c) => [...c, e.circle_id!]);
     setCrop(e.png_b64 ? `data:image/png;base64,${e.png_b64}` : undefined);
     setLog((l) => [`circle ${JSON.stringify({ ...e, png_b64: `${e.png_b64.length} chars` })}`, ...l]);
   };
@@ -75,7 +91,23 @@ export function SlidesHarness() {
         <div className="flex flex-wrap gap-1">
           <button className={btn} onClick={() => call("slides.push", { slide: FOLLOWUP })}>push follow-up</button>
           <button className={btn} onClick={() => call("slides.describe", {})}>describe</button>
+          <button className={btn} onClick={() => call("slides.step", { step: (handle.current?.describe().step ?? 0) + 1 })}>next step</button>
+          <button className={btn} onClick={() => call("slides.edit", editPatch(++edits.current))}>edit (insert 2 steps)</button>
           <button className={`${btn} ${circle ? "border-red-400" : ""}`} onClick={() => setCircle((c) => !c)}>circle</button>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {circles.map((id) => (
+            <button
+              key={id}
+              className={btn}
+              onClick={() => {
+                void call("ui.clear_circle", { circle_id: id });
+                setCircles((c) => c.filter((x) => x !== id));
+              }}
+            >
+              clear {id.slice(-5)}
+            </button>
+          ))}
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- dev harness, data: URL */}
         {crop && <img src={crop} alt="circled region" className="rounded border border-slate-700" />}

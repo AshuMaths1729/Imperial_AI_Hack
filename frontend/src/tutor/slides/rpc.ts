@@ -7,7 +7,15 @@ export type StageHandle = {
   /** Clears a student's circle mark wherever it is (slides or whiteboard). */
   clearCircle(circleId: string): void;
 };
-export type SlidesRpcMethod = "ui.show_tab" | "slides.go" | "slides.step" | "slides.point" | "slides.describe" | "slides.push";
+export type SlidesRpcMethod =
+  | "ui.show_tab"
+  | "ui.clear_circle"
+  | "slides.go"
+  | "slides.step"
+  | "slides.point"
+  | "slides.describe"
+  | "slides.push"
+  | "slides.edit";
 
 type Handler = (payload: string) => Promise<string>;
 const fail = (msg: string) => JSON.stringify({ ok: false, errors: [msg] });
@@ -42,10 +50,17 @@ export function makeSlidesRpcHandlers(getStage: () => StageHandle | null): Recor
       stage.showTab(p.tab as StageTab);
       return { ok: true, errors: [], tab: p.tab };
     }),
+    // The shell routes it to the slides and the board: whichever holds that circle removes it.
+    "ui.clear_circle": wrap((stage, p) => {
+      if (typeof p.circle_id !== "string" || !p.circle_id) return { ok: false, errors: ["circle_id must be the id from the circle event"] };
+      stage.clearCircle(p.circle_id);
+      return { ok: true, errors: [], circle_id: p.circle_id };
+    }),
     "slides.go": drive((s, p) => s.go(Number(p.index))),
     "slides.step": drive((s, p) => s.step(Number(p.step))),
     "slides.point": drive((s, p) => s.point(String(p.id ?? ""), typeof p.hold_ms === "number" ? p.hold_ms : undefined)),
     "slides.push": drive((s, p) => s.push(p.slide)),
+    "slides.edit": drive((s, p) => s.edit({ objects: p.objects as unknown[] | undefined, steps: p.steps as unknown[] | undefined })),
     "slides.describe": wrap((stage, p) => {
       if (!stage.slides) return { ok: false, errors: ["no slides are loaded for this lesson"] };
       const d = stage.slides.describe();

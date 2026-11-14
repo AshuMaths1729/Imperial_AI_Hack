@@ -65,13 +65,20 @@ export type SlidesHandle = {
   current(): Slide | null;
   /** Inserts an extra (follow-up) slide after the current one and opens it. */
   push(slide: unknown): SlidesReply;
-  /** Adds objects and steps to the OPEN slide and plays the new steps (explain in place, keep the context). */
+  /**
+   * Adds objects and steps to the OPEN slide (explain in place, keep the context). The new steps are inserted right
+   * after the current step (later steps are renumbered) and are NOT played: the tutor plays `new_steps` with step().
+   */
   edit(patch: { objects?: unknown[]; steps?: unknown[] }): SlidesReply;
   /** Removes the student's persistent circle mark (it stays until the tutor has answered). */
   clearCircle(circleId: string): SlidesReply;
 };
 
-export type SlidesReply = { ok: boolean; errors: string[]; index?: number; step?: number };
+/**
+ * `ms`: how long the step's animation runs (slides.step; the agent waits that long).
+ * `steps_added`, `new_steps`: slides.edit, the numbers of the inserted steps in order.
+ */
+export type SlidesReply = { ok: boolean; errors: string[]; index?: number; step?: number; ms?: number; steps_added?: number; new_steps?: number[] };
 
 export type SlideOutline = { index: number; id: string; title: string; kp_ids: string[]; steps: number; followup?: boolean };
 export type SlidesDescription = {
@@ -80,7 +87,7 @@ export type SlidesDescription = {
   step: number;
   slides: SlideOutline[];
   /** The open slide in detail: objects the tutor can point at and the narration hint for each step. */
-  current: { id: string; title: string; objects: { id: string; kind: string; label?: string }[]; narration: string[] } | null;
+  current: { id: string; title: string; idea?: string; check?: string; objects: { id: string; kind: string; label?: string }[]; narration: string[] } | null;
   /** Only with `slides.describe {slide: true}`, and only when it fits the RPC reply. */
   slide?: Slide;
 };
