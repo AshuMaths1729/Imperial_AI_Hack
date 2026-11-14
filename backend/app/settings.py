@@ -14,7 +14,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -62,7 +62,11 @@ class Settings(BaseSettings):
     # --- secrets (server-side only) -------------------------------------------------
     anthropic_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
-    elevenlabs_api_key: SecretStr | None = None
+    # The LiveKit agent's ElevenLabs plugin reads ELEVEN_API_KEY, so accept that name too: one key in .env.
+    elevenlabs_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("elevenlabs_api_key", "ELEVENLABS_API_KEY", "ELEVEN_API_KEY"),
+    )
     fal_key: SecretStr | None = None
     synthesia_api_key: SecretStr | None = None
     s2_api_key: SecretStr | None = None

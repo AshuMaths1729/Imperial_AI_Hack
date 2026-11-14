@@ -5,11 +5,19 @@ import Image from "next/image";
 import { Loader2, Maximize2, Mic, MicOff, Minimize2, PhoneOff, Video } from "lucide-react";
 import { listTutors, type Tutor } from "./api";
 import { AvatarVideo, Portrait, portrait } from "./media";
-import { useAvatarCall } from "./useAvatarCall";
+import type { useAvatarCall } from "./useAvatarCall";
+
+export type AvatarCall = ReturnType<typeof useAvatarCall>;
+
+type Props = {
+  /** The call, owned by the page so its ask box can talk into the same call. */
+  call: AvatarCall;
+  /** The tutor on screen (picked, or live in the call), so out-of-call answers use their voice. */
+  onTutorChange?: (tutor: Tutor | undefined) => void;
+};
 
 /** Live tutor in the workspace's avatar dock: portrait when idle, the Synthesia video in a call, pop-out to 512 px. */
-export function LiveAvatarTile() {
-  const call = useAvatarCall();
+export function LiveAvatarTile({ call, onTutorChange }: Props) {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [picked, setPicked] = useState<string>();
   const [expanded, setExpanded] = useState(false);
@@ -34,6 +42,10 @@ export function LiveAvatarTile() {
   const inCall = call.status === "connecting" || call.status === "live";
   const activeId = inCall ? call.activeTutorId ?? picked : picked;
   const active = tutors.find((t) => t.tutor_id === activeId);
+
+  useEffect(() => {
+    onTutorChange?.(active);
+  }, [active, onTutorChange]);
   const lastTutorLine = [...call.captions].reverse().find((c) => c.who === "tutor");
   const popped = expanded && !!call.avatarVideo;
 

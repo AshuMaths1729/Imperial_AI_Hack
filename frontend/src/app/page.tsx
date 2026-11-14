@@ -16,6 +16,8 @@ import { InspectorPane } from "../components/InspectorPane";
 import { BoundingBox, LassoOverlay } from "../components/LassoOverlay";
 import { UploadModal } from "../components/UploadModal";
 import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
+import { useAvatarCall } from "../tutor/useAvatarCall";
+import type { Tutor } from "../tutor/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -61,6 +63,8 @@ export default function ScholarTwinWorkspace() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const call = useAvatarCall();
+  const [tutor, setTutor] = useState<Tutor | undefined>();
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -141,7 +145,8 @@ export default function ScholarTwinWorkspace() {
       const res = await fetch(`${API_BASE}/api/tts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.slice(0, 1000) }),
+        // The on-screen tutor's own ElevenLabs voice (the backend default if none is picked).
+        body: JSON.stringify({ text: text.slice(0, 1000), voice_id: tutor?.voice_id }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { url } = (await res.json()) as { url: string };
@@ -183,6 +188,14 @@ export default function ScholarTwinWorkspace() {
   const handleAsk = async (transcript: string, bboxOverride?: BoundingBox) => {
     const activeBox = bboxOverride ?? lastBbox;
     const hitNodeIds = selectedNode ? [selectedNode.id] : [];
+
+    // In a live call, ask the live tutor: they answer in their own voice with a lip-synced face.
+    if (call.status === "live") {
+      stopSpeaking();
+      call.sendText(transcript);
+      setLastReply(`Asked ${tutor?.name ?? "your tutor"} in the live call. Their answer appears as a caption.`);
+      return;
+    }
 
     const req: AskSpatialRequest = {
       transcript,
@@ -364,7 +377,7 @@ export default function ScholarTwinWorkspace() {
             setTtsEnabled((v) => !v);
           }}
           onAsk={(text) => handleAsk(text)}
-          avatar={<LiveAvatarTile />}
+          avatar={<LiveAvatarTile call={call} onTutorChange={setTutor} />}
           onUploadClick={() => {
             setUploadError(null);
             setUploadOpen(true);
