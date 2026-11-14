@@ -13,8 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.cache import CacheStore, MemoryCacheStore
+from app.core.cache import CacheStore, FileCacheStore, MemoryCacheStore
 from app.core.jobs import InProcessJobRunner, JobRunner
+from app.llm.anthropic_client import AnthropicLLM
 from app.llm.client import LLMClient
 from app.llm.testing import FakeExtractor, FakeLLM
 from app.settings import Settings
@@ -38,11 +39,20 @@ def register_defaults(registry: Registry) -> None:
 
 
 def build_container(settings: Settings, registry: Registry) -> Container:
+    cache: CacheStore
+    llm: LLMClient
+    if settings.anthropic_api_key is not None:
+        # real Claude client; results are cached on disk so a recorded run replays offline
+        cache = FileCacheStore(settings.cache_dir)
+        llm = AnthropicLLM(settings, cache)
+    else:
+        cache = MemoryCacheStore()
+        llm = FakeLLM(fixture_dir=settings.fixtures_dir / "llm")
     return Container(
         settings=settings,
         registry=registry,
-        cache=MemoryCacheStore(),
+        cache=cache,
         jobs=InProcessJobRunner(),
         broker=PassthroughBroker(registry, settings),
-        llm=FakeLLM(fixture_dir=settings.fixtures_dir / "llm"),
+        llm=llm,
     )
