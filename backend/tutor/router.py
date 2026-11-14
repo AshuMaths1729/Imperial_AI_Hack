@@ -180,7 +180,7 @@ def start_session(body: SessionIn, store: Store = Depends(get_store)):
     room = f"tutor-{lesson.lesson_id}"
     token = mint_token(
         room=room, identity=f"student-{body.user_id}",
-        agent_name=os.environ.get("TUTOR_AGENT_NAME") or "synthesia-avatar-agent",
+        agent_name=os.environ.get("TUTOR_AGENT_NAME") or "scholartwin-tutor",
         metadata={"track_id": body.track_id, "lesson_id": lesson.lesson_id, "tutor_id": body.tutor_id},
     )
     return {"url": url, "token": token, "room": room, "lesson_id": lesson.lesson_id}
