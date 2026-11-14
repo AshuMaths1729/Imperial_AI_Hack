@@ -20,6 +20,7 @@ from schemas import (
     UIAnnotation,
     SimulationSeries,
 )
+from tutor.router import tutor_router
 
 app = FastAPI(title="ScholarTwin API", version="0.1.0")
 
@@ -30,6 +31,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(tutor_router)
 
 DEMO_DIR = Path(__file__).parent / "demo_data"
 
