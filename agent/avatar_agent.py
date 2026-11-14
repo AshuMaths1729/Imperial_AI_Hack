@@ -20,8 +20,7 @@ from livekit import rtc
 from livekit.agents import Agent, AgentSession, JobContext, JobProcess, TurnHandlingOptions, WorkerOptions, cli, room_io
 from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
-load_dotenv(Path(__file__).parent / ".env")
-load_dotenv(Path(__file__).parent.parent / ".env")  # the team's repo-root .env; never overrides the above
+load_dotenv(Path(__file__).parent.parent / ".env")  # the repo-root .env the backend uses too; real env vars win
 logger = logging.getLogger("avatar-tutor")
 
 RULES = (

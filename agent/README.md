@@ -47,7 +47,7 @@ ELEVEN_API_KEY=...
 TUTOR_AGENT_NAME=tutor-yourname
 ```
 
-The backend and the agent both read this file. `TUTOR_AGENT_NAME` must be the same for both:
+The backend and the agent both read this one file; there is no separate `agent/.env`. `TUTOR_AGENT_NAME` must be the same for both:
 the backend asks LiveKit for an agent with that name, and the agent registers under it.
 
 ## 3. Install and run
