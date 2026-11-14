@@ -17,7 +17,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { createTopicGraph } from "../api/endpoints";
+import { createTopicGraph, stt } from "../api/endpoints";
 import { graphToWorkspaceDataset } from "../api/adapters";
 import { GraphEdgeData, GraphNodeData, WorkspaceDataset } from "../types/scholartwin";
 import { GraphCanvas } from "./GraphCanvas";
@@ -143,10 +143,13 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [dataset, setDataset] = useState<WorkspaceDataset | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphEdgeData | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecCtor> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const startNewTopic = () => {
     setActiveRunId(null);
@@ -171,19 +174,61 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     if (activeRunId === id) startNewTopic();
   };
 
-  const toggleMic = () => {
+  const toggleMic = async () => {
+    setErrorMsg(null);
     if (listening) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
       recognitionRef.current?.stop();
       setListening(false);
       return;
     }
+
+    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined") {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+        recorder.ondataavailable = (ev) => {
+          if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+        };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          if (blob.size === 0) return;
+          setTranscribing(true);
+          try {
+            const res = await stt(blob);
+            const text = res.transcript?.trim();
+            if (text) setQuery((prev) => (prev ? `${prev} ${text}` : text));
+          } catch (err) {
+            setErrorMsg(
+              err instanceof Error ? `Voice transcription failed: ${err.message}` : "Voice transcription failed."
+            );
+          } finally {
+            setTranscribing(false);
+          }
+        };
+        mediaRecorderRef.current = recorder;
+        recorder.start();
+        setListening(true);
+        return;
+      } catch (err) {
+        setErrorMsg(
+          err instanceof Error ? `Microphone error: ${err.message}` : "Microphone permission denied."
+        );
+        return;
+      }
+    }
+
     const win = window as unknown as {
       SpeechRecognition?: SpeechRecCtor;
       webkitSpeechRecognition?: SpeechRecCtor;
     };
     const Ctor = win.SpeechRecognition || win.webkitSpeechRecognition;
     if (!Ctor) {
-      setErrorMsg("Browser speech recognition is unavailable here. Type your topic below.");
+      setErrorMsg("Microphone recording is unavailable in this browser. Type your topic below.");
       return;
     }
     const rec = new Ctor();
@@ -193,7 +238,10 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
       const transcript = ev.results?.[0]?.[0]?.transcript;
       if (transcript) setQuery((prev) => (prev ? `${prev} ${transcript}` : transcript));
     };
-    rec.onerror = () => setListening(false);
+    rec.onerror = () => {
+      setListening(false);
+      setErrorMsg("Browser speech recognition failed. Type your topic below.");
+    };
     rec.onend = () => setListening(false);
     recognitionRef.current = rec;
     setListening(true);
@@ -407,14 +455,24 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
               <button
                 type="button"
                 onClick={toggleMic}
+                disabled={transcribing}
                 aria-label={listening ? "Stop microphone" : "Start microphone"}
+                title={listening ? "Click to stop & transcribe" : "Speak research topic"}
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
                   listening
                     ? "animate-pulse bg-rose-500 text-white"
+                    : transcribing
+                    ? "bg-purple-500/20 text-purple-300"
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-purple-300"
                 }`}
               >
-                {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {transcribing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : listening ? (
+                  <MicOff className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
               </button>
               <input
                 type="text"
