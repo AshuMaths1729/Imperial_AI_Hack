@@ -28,7 +28,7 @@ from livekit.agents.utils import images
 from livekit.plugins import anthropic, elevenlabs, silero, synthesia
 
 from circle import handle_circle, handle_lost
-from lesson_end import LessonEnder
+from lesson_end import LessonEnder, finish_lesson
 from prompting import build_instructions, greeting_instruction
 from rolling import RollingSummary, haiku_summarize
 from tutor_tools import TutorTools
@@ -37,6 +37,7 @@ load_dotenv()
 logger = logging.getLogger("tutor")
 
 SUMMARY_ID = "lesson-summary"
+AVATAR_JOIN_TIMEOUT = 12  # plugin default 30 s; a student should not wait that long for voice-only
 
 
 class RoomTutorIO:
@@ -95,6 +96,19 @@ class RoomTutorIO:
             await stream.aclose()
 
 
+async def start_avatar(session: AgentSession, room: rtc.Room, make_avatar) -> bool:
+    """Start the avatar before session.start (or it never appears). On any failure fall back to voice only."""
+    try:
+        await make_avatar().start(session, room=room)
+        return True
+    except Exception as e:
+        # the plugin installs its audio sink before waiting for the join and can't remove it; clearing it
+        # lets session.start publish the tutor's audio through RoomIO instead of a dead avatar sink
+        session.output.audio = None
+        logger.warning("avatar unavailable (%s); continuing voice only", e)
+        return False
+
+
 def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
 
@@ -125,17 +139,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     async def on_shutdown() -> None:
         # runs when the room closes (student left -> session closes -> room deleted), so /end is always posted
-        summary = rolling.summary
-        if rolling.recent:
-            try:
-                summary = await asyncio.wait_for(haiku_summarize(rolling.summary, rolling.recent), 5)
-            except Exception:
-                logger.exception("final summary failed; using rolling summary")
-        try:
-            await ender.end(summary or "(no conversation)", tools.covered)
-            logger.info("lesson %s ended", lesson_id)
-        except Exception:
-            logger.exception("posting /end failed")
+        await finish_lesson(rolling, ender, tools.covered, haiku_summarize)
         await http.aclose()
 
     ctx.add_shutdown_callback(on_shutdown)
@@ -194,12 +198,8 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.room.register_text_stream_handler("tutor.lost", lambda reader, _who: spawn(on_lost(reader)))
 
     if os.environ.get("TUTOR_AVATAR") != "0":
-        # must be started before session.start, or the avatar never appears
-        try:
-            avatar = synthesia.AvatarSession(synthesia.AvatarConfig(avatar_ids=[tctx["tutor"]["avatar_id"]]))
-            await avatar.start(session, room=ctx.room)
-        except synthesia.SynthesiaError as e:
-            logger.warning("avatar unavailable (%s); continuing voice only", e)
+        config = synthesia.AvatarConfig(avatar_ids=[tctx["tutor"]["avatar_id"]])
+        await start_avatar(session, ctx.room, lambda: synthesia.AvatarSession(config, join_timeout=AVATAR_JOIN_TIMEOUT))
 
     await session.start(
         agent=agent,
@@ -215,5 +215,6 @@ if __name__ == "__main__":
             entrypoint_fnc=entrypoint,
             prewarm_fnc=prewarm,
             agent_name=os.environ.get("TUTOR_AGENT_NAME", "synthesia-avatar-agent"),
+            shutdown_process_timeout=15,  # final summary <= 5 s + /end <= 3 s, with headroom
         )
     )

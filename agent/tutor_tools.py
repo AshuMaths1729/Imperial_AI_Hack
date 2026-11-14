@@ -69,8 +69,10 @@ class TutorTools:
         if valid:
             try:
                 reply = await self.io.rpc("board.apply", {"ops": valid})
-                ids = reply.get("ids", [])
-                errors += reply.get("errors", [])
+                ids = [str(i) for i in reply.get("ids") or []]
+                errors += [str(e) for e in reply.get("errors") or []]
+                if not reply.get("ok") and not errors:
+                    errors.append("board rejected the ops")
             except Exception as e:
                 errors.append(f"board unreachable: {e}")
         if not errors:

@@ -166,3 +166,15 @@ async def test_board_write_tool_schema_is_the_contract_and_forwards():
     schema = llm.ToolContext([tool]).parse_function_tools("anthropic", strict=True)[0]
     assert "strict" not in schema and "write_math" in schema["input_schema"]["$defs"]
     assert (await tool(raw_arguments={"ops": VALID_OPS[:1]})).startswith("ok: drew title")
+
+
+async def test_board_write_not_ok_without_errors_is_failure():
+    io = FakeIO({"board.apply": {"ok": False, "ids": [], "errors": []}})
+    out = await TutorTools(io, "L1").board_write(VALID_OPS[:1])
+    assert out == "failed: board rejected the ops"
+
+
+async def test_board_write_non_string_errors():
+    io = FakeIO({"board.apply": {"ok": False, "ids": ["title"], "errors": [{"code": 7}, None]}})
+    out = await TutorTools(io, "L1").board_write(VALID_OPS[:2])
+    assert out.startswith("partial: drew title; failed:") and "{'code': 7}" in out
