@@ -1,11 +1,12 @@
 import asyncio
 import json
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
 import prompting
 import slides
-from slides import SlideTools, outline_text, slide_problems
+from slides import SlideTools, edit_problems, outline_text, slide_problems
 
 DECK = json.loads((Path(__file__).resolve().parents[2] / "frontend/src/tutor/slides/decks/gradient-descent.json").read_text())
 
@@ -89,7 +90,7 @@ async def drain(t: SlideTools):
 
 
 def test_rules_are_in_the_system_prompt_and_name_the_shared_tools():
-    for name in ("show_tab", "slide_step", "slide_point", "slide_go", "slide_animate"):
+    for name in ("show_tab", "slide_step", "slide_point", "slide_go", "slide_animate", "slide_edit", "clear_circle"):
         assert name in slides.RULES
     ctx = json.loads((Path(__file__).parent / "fixtures/context.json").read_text())
     assert slides.RULES in prompting.build_instructions(ctx)
@@ -97,7 +98,15 @@ def test_rules_are_in_the_system_prompt_and_name_the_shared_tools():
 
 def test_tool_names_are_the_shared_contract():
     names = [t.info.name for t in slides.slide_tools(FakeIO(), "L1")]
-    assert names[:4] == ["show_tab", "slide_go", "slide_step", "slide_point"]
+    assert names == ["show_tab", "slide_go", "slide_step", "slide_point", "slide_edit", "slide_animate", "clear_circle"]
+
+
+def test_rules_follow_the_teaching_contract():
+    r = slides.RULES
+    assert "bridge" in r and "We just saw" in r  # bridge into every slide
+    assert "2-3 short sentences" in r and "what they think will happen" in r  # pace + predict before reveal
+    assert "check question and wait" in r  # check before slide_go
+    assert r.index("slide_edit") < r.index("slide_animate") and "Never jump to a new slide" in r
 
 
 def test_outline_text_lists_slides_objects_and_hints():
@@ -107,6 +116,9 @@ def test_outline_text_lists_slides_objects_and_hints():
     assert "(follow-up)" in text
     assert "tan (tangent), p (dot: you)" in text
     assert "step 2: the tangent is the slope" in text
+    assert "Idea:" not in text  # only when the deck has a lesson plan
+    planned = {**DESCRIBE, "current": {**DESCRIBE["current"], "idea": "the slope is the tangent", "check": "which way is downhill?"}}
+    assert "Idea: the slope is the tangent\nCheck: which way is downhill?" in outline_text(planned)
     assert outline_text({"ok": False, "errors": ["no slides are loaded"]}).startswith("couldn't read the slides: no slides")
 
 
@@ -124,8 +136,55 @@ def test_go_then_step_reports_the_next_hint():
     t = SlideTools(io, "L1")
     assert asyncio.run(t.slide_go(3)).startswith("ok\nDeck:")
     assert io.rpcs[0] == ("slides.go", {"index": 3})
-    assert asyncio.run(t.slide_step(1)) == "ok: slide 3, step 1 of 3. Next: the tangent is the slope"
-    assert asyncio.run(t.slide_step(3)).endswith("That was the last step of this slide.")
+    assert asyncio.run(t.slide_step(1)) == ("ok: slide 3, step 1 of 3. Next: the tangent is the slope "
+                                           "(2-3 short sentences, then slide_step(2)).")
+    assert asyncio.run(t.slide_step(3)).endswith(
+        "last step of this slide: ask a short check question on its idea and wait for the answer before slide_go.")
+
+
+class FakeLesson:
+    def __init__(self, fail=False):
+        self.notes, self.fail = [], fail
+
+    def note_slide(self, index, step, idea=""):
+        if self.fail:
+            raise RuntimeError("boom")
+        self.notes.append((index, step, idea))
+
+
+PLANNED = {**DESCRIBE, "current": {**DESCRIBE["current"], "idea": "the slope is the tangent", "check": "which way is downhill?"}}
+
+
+def test_go_and_step_tell_the_lesson_state_and_end_on_the_check_question():
+    io = FakeIO({"slides.describe": PLANNED, "slides.step": lambda p: {"ok": True, "errors": [], "index": 3, "step": p["step"]}})
+    lesson = FakeLesson()
+    t = SlideTools(io, "L1", lesson=lesson)
+    asyncio.run(t.slide_go(3))
+    out = asyncio.run(t.slide_step(3))
+    assert lesson.notes == [(3, 1, "the slope is the tangent"), (3, 3, "the slope is the tangent")]
+    assert 'ask its check question "which way is downhill?" and wait for the answer before slide_go' in out
+    # a broken lesson state never breaks the slides
+    assert asyncio.run(SlideTools(io, "L1", lesson=FakeLesson(fail=True)).slide_step(1)).startswith("ok")
+
+
+def test_step_waits_for_its_animation_capped(monkeypatch):
+    io = FakeIO({"slides.step": lambda p: {"ok": True, "errors": [], "index": 3, "ms": p["step"]}})
+    t = SlideTools(io, "L1")
+    t0 = time.monotonic()
+    asyncio.run(t.slide_step(150))  # ms = 150
+    assert time.monotonic() - t0 >= 0.14
+    monkeypatch.setattr(slides, "STEP_WAIT_MAX_S", 0.05)
+    t0 = time.monotonic()
+    asyncio.run(t.slide_step(60000))
+    assert time.monotonic() - t0 < 0.5
+
+
+def test_clear_circle():
+    io = FakeIO()
+    assert asyncio.run(SlideTools(io, "L1").clear_circle("c7")) == "ok: circle c7 cleared"
+    assert io.rpcs == [("ui.clear_circle", {"circle_id": "c7"})]
+    bad = FakeIO({"ui.clear_circle": {"ok": False, "errors": ["no circle c9"]}})
+    assert asyncio.run(SlideTools(bad, "L1").clear_circle("c9")) == "failed: no circle c9"
 
 
 def test_failures_are_reported_not_raised():
@@ -241,3 +300,111 @@ def test_animate_rejects_slides_too_big_for_an_rpc():
     asyncio.run(run())
     assert "over 14000 bytes" in client.calls[1]["messages"][-1]["content"][0]["content"]
     assert not any(m == "slides.push" for m, _ in io.rpcs)
+
+
+PATCH = {
+    "objects": [
+        {"kind": "math", "id": "slope_num", "latex": "\\text{slope} = 2 \\cdot 1.5 = 3", "x": 1250, "y": 300, "color": "yellow"},
+    ],
+    "steps": [
+        {"narration": "this is the tangent you circled", "actions": [{"do": "indicate", "ids": ["tan"]}]},
+        {"narration": "at x = 1.5 the slope is 3", "actions": [{"do": "show", "ids": ["slope_num"]}]},
+    ],
+}
+
+
+def test_edit_problems_checks_schema_new_ids_and_the_merged_slide():
+    slide = DECK["slides"][2]
+    existing = {o["id"] for o in slide["objects"]}
+    assert edit_problems(PATCH, slide, existing) == []
+    assert edit_problems({"objects": [], "steps": []}, slide, existing)  # at least one step
+    assert edit_problems({**PATCH, "objects": [{"kind": "blob", "id": "b"}]}, slide, existing)
+    clash = {**PATCH, "objects": [{**PATCH["objects"][0], "id": "tan"}]}
+    assert edit_problems(clash, slide, existing) == ["object ids must be new and unique on this slide: tan"]
+    full = {**slide, "steps": slide["steps"] * 2}  # 10 steps + 4 new > 12
+    many = {**PATCH, "steps": PATCH["steps"] * 2}
+    assert any("steps" in e for e in edit_problems(many, full, existing))
+    assert edit_problems(PATCH, None, {"ax"}) == []  # slide JSON too big for the RPC: patch checks only
+
+
+def test_edit_plans_validates_sends_and_names_the_new_steps():
+    edits = []
+
+    def edit(p):
+        edits.append(p)
+        return {"ok": True, "errors": [], "index": 3, "step": 5, "steps_added": 2}
+
+    io = FakeIO({"slides.describe": {**DESCRIBE, "slide": DECK["slides"][2]}, "slides.edit": edit})
+    client = FakeAnthropic(PATCH)
+    t = SlideTools(io, "L1", client=client)
+    ctx = FakeCtx()
+
+    async def run():
+        out = await t.slide_edit("why the slope is 3 here", ["tan"], ctx)
+        assert out.startswith("queued") and "open slide" in out
+        await drain(t)
+
+    asyncio.run(run())
+    call = client.calls[0]
+    assert call["model"] == "claude-sonnet-5-5" and call["tool_choice"] == {"type": "auto"}
+    assert call["thinking"] == {"type": "between_tools"}
+    assert call["tools"][0]["name"] == "add_to_slide" and "add_to_slide" in call["system"]
+    assert "concrete" in call["system"].lower() and "circled" in call["system"] and "colour" in call["system"]
+    prompt = call["messages"][0]["content"]
+    assert '"id": "tan"' in prompt and "why the slope is 3 here" in prompt and "Circled objects: tan" in prompt
+    assert edits == [PATCH]
+    # the slide had 5 steps, so the new ones are 6 and 7
+    assert "new steps 6-7" in ctx.notes[0] and "step 6: this is the tangent you circled" in ctx.notes[0]
+    assert "slide_step(6)" in ctx.notes[0] and "helped" in ctx.notes[0]
+    assert ctx.replies and "slide_step(6)" in ctx.replies[0]
+
+
+def test_edit_retries_with_errors_then_falls_back_to_words():
+    clash = {**PATCH, "objects": [{**PATCH["objects"][0], "id": "tan"}]}
+    io = FakeIO({"slides.describe": {**DESCRIBE, "slide": DECK["slides"][2]},
+                 "slides.edit": {"ok": False, "errors": ["step 2 shows zz, which is not on this slide"]}})
+    client = FakeAnthropic(clash, PATCH)
+    t = SlideTools(io, "L1", client=client)
+    ctx = FakeCtx(agent_state="speaking")
+
+    async def run():
+        await t.slide_edit("more", [], ctx)
+        await drain(t)
+
+    asyncio.run(run())
+    assert len(client.calls) == 2
+    feedback = client.calls[1]["messages"][-1]["content"][0]
+    assert feedback["tool_use_id"] == "tu1" and "add_to_slide" in feedback["content"] and "tan" in feedback["content"]
+    assert [m for m, _ in io.rpcs].count("slides.edit") == 1  # the clash never reached the page
+    assert "failed" in ctx.notes[0] and "in words" in ctx.notes[0] and ctx.replies == []
+
+
+def test_edit_plays_the_step_numbers_the_page_inserted():
+    # the page inserts new steps right after the current one (step 2 of 5 -> new steps 3-4), not at the end
+    io = FakeIO({"slides.describe": {**DESCRIBE, "slide": DECK["slides"][2]},
+                 "slides.edit": {"ok": True, "errors": [], "index": 3, "step": 2, "steps_added": 2, "new_steps": [3, 4]}})
+    t = SlideTools(io, "L1", client=FakeAnthropic(PATCH))
+    ctx = FakeCtx()
+
+    async def run():
+        await t.slide_edit("why", ["tan"], ctx)
+        await drain(t)
+
+    asyncio.run(run())
+    assert "new steps 3-4" in ctx.notes[0] and "slide_step(3)" in ctx.notes[0] and "step 3: this is the tangent" in ctx.notes[0]
+
+
+def test_edit_without_slide_json_uses_the_outline_ids_and_step_count():
+    io = FakeIO({"slides.describe": DESCRIBE, "slides.edit": {"ok": True, "errors": []}})
+    patch = {**PATCH, "objects": [{**PATCH["objects"][0], "id": "p"}]}  # p is on the slide (outline)
+    client = FakeAnthropic(patch, PATCH)
+    t = SlideTools(io, "L1", client=client)
+    ctx = FakeCtx()
+
+    async def run():
+        await t.slide_edit("x", [], ctx)
+        await drain(t)
+
+    asyncio.run(run())
+    assert "unique on this slide: p" in client.calls[1]["messages"][-1]["content"][0]["content"]
+    assert "new steps 4-5" in ctx.notes[0]  # 3 narration hints in the outline

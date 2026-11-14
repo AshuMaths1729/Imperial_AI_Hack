@@ -8,26 +8,33 @@ from livekit.agents import llm
 logger = logging.getLogger("tutor.circle")
 
 
-REEXPLAIN = "Re-explain what I circled in a different way than what's already on the board."
-ASK = {
-    "board": f"{REEXPLAIN} While you explain, point_at the circled item (or annotate it) so I see what you mean.",
-    "screen": REEXPLAIN,
-    # the model judges derivation vs concept; both branches name the exact tools so the routing stays predictable
-    "slide": (
-        "Explain what I circled on the slide more richly. If it is a derivation, calculation or worked step: "
-        'call show_tab("board") and work it by hand on the board, one line per step. Otherwise: call '
-        'slide_animate(brief=..., object_ids=[{items}]) for a richer follow-up slide about exactly what I circled '
-        '(it opens by itself) and talk me through it while it builds. Say one short sentence first.'
-    ),
+# v3: a circle never triggers an instant lecture. The turn only asks what is unclear; the explanation comes after
+# the student answers, in place (same slide / same board), and the mark stays until the tutor clears it.
+EXPLAIN = {
+    "board": "explain it right there on the board with board_write, next to what I circled, and point_at the circled "
+             "items while you talk",
+    # slide_animate opens a new slide, which loses my context: only for ideas that are not on this slide
+    "slide": "explain it on this same slide: call slide_edit(brief=..., object_ids=[{items}]) and walk me through the "
+             "new steps it reports with slide_step. Only if what I ask about is not on this slide at all, use "
+             "slide_animate for a new slide",
+    "screen": "re-explain it in a different way than what's already shown",
 }
 
 
 def circle_message(payload: dict, board_text: str) -> llm.ChatMessage:
-    items = ", ".join(payload.get("item_ids") or []) or "none"
+    ids = payload.get("item_ids") or []
     source = payload.get("source") or "board"
     where = f"slide {payload['slide_id']}" if source == "slide" and payload.get("slide_id") else source
-    ask = ASK.get(source, REEXPLAIN).replace("{items}", ", ".join(repr(i) for i in payload.get("item_ids") or []))
-    text = f'[circled on {where}] items={items} said="{payload.get("user_text") or ""}" board:\n{board_text}\n{ask}'
+    cid = payload.get("circle_id")
+    explain = EXPLAIN.get(source, EXPLAIN["screen"]).replace("{items}", ", ".join(repr(i) for i in ids))
+    done = f'once I say yes, call clear_circle("{cid}")' if cid else "once I say yes, carry on"
+    text = (
+        f'[circled on {where}] circle_id={cid or "none"} items={", ".join(ids) or "none"} '
+        f'said="{payload.get("user_text") or ""}" board:\n{board_text}\n'
+        "Don't explain yet. In one short sentence say what I circled and ask what about it is unclear (skip the "
+        "question if my words above already say it), then stop and wait for my answer. "
+        f"After I answer, {explain}. Then ask if that helped; {done}."
+    )
     image = llm.ImageContent(image=f"data:image/png;base64,{payload['png_b64']}")
     return llm.ChatMessage(role="user", content=[text, image])
 

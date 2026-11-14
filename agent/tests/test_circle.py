@@ -6,36 +6,47 @@ PAYLOAD = {"png_b64": "AAAA", "region": {"x": 1, "y": 2, "w": 3, "h": 4}, "item_
 
 
 def test_circle_message_has_image_and_items():
-    msg = circle_message(PAYLOAD, "eq1 math tutor: x^2")
+    msg = circle_message({**PAYLOAD, "circle_id": "c7"}, "eq1 math tutor: x^2")
     assert msg.role == "user"
     text, image = msg.content
-    assert text.startswith('[circled on board] items=eq1, u1 said="why minus?" board:\neq1 math tutor: x^2\n')
-    assert "Re-explain what I circled in a different way than what's already on the board." in text
-    assert "point_at" in text  # board circles: show what you mean on the circled items
+    assert text.startswith('[circled on board] circle_id=c7 items=eq1, u1 said="why minus?" board:\neq1 math tutor: x^2\n')
     assert isinstance(image, llm.ImageContent) and image.image == "data:image/png;base64,AAAA"
 
 
-def test_circle_message_without_items_says_none():
-    text = circle_message({"png_b64": "A", "region": {}, "item_ids": []}, "")
-    assert 'items=none said=""' in text.content[0]
+def test_circle_turn_asks_first_and_explains_only_after_the_answer():
+    # live v2: a circle triggered an instant lecture; the student wants to be asked what is unclear first
+    text = circle_message({**PAYLOAD, "circle_id": "c7"}, "").content[0]
+    ask, after = text.split("After I answer", 1)
+    assert "Don't explain yet" in ask and "what about it is unclear" in ask and "wait for my answer" in ask
+    assert "board_write" not in ask and "slide_edit" not in ask  # no tool before the student has answered
+    assert "board_write" in after and "point_at" in after  # board circles: explain next to the circled items
+    assert 'clear_circle("c7")' in after and after.index("helped") < after.index("clear_circle")
+
+
+def test_circle_message_without_items_or_id():
+    text = circle_message({"png_b64": "A", "region": {}, "item_ids": []}, "").content[0]
+    assert 'circle_id=none items=none said=""' in text
+    assert "clear_circle" not in text  # an old page without circle ids: nothing to clear
 
 
 def test_circle_message_names_screen_source():
     assert circle_message({**PAYLOAD, "source": "screen"}, "").content[0].startswith("[circled on screen]")
 
 
-def test_slide_circle_routes_to_animation_or_handwritten_working():
-    text = circle_message({**PAYLOAD, "source": "slide", "slide_id": "s3", "item_ids": ["curve"]}, "").content[0]
-    assert text.startswith('[circled on slide s3] items=curve said="why minus?"')
-    # derivations are worked by hand on the board, concepts get a richer animation
-    assert 'show_tab("board")' in text and "derivation" in text
-    assert "slide_animate(" in text and "curve" in text  # follow-up slide built from the circled objects
-    assert "point_at" not in text  # slide objects are not board items
+def test_slide_circle_explains_on_the_same_slide():
+    text = circle_message({**PAYLOAD, "source": "slide", "slide_id": "s3", "item_ids": ["curve"], "circle_id": "k1"},
+                          "").content[0]
+    assert text.startswith('[circled on slide s3] circle_id=k1 items=curve said="why minus?"')
+    after = text.split("After I answer", 1)[1]
+    assert "slide_edit(brief=..., object_ids=['curve'])" in after  # edit in place, from the circled objects
+    assert "slide_animate" in after and "not on this slide" in after  # a new slide only for ideas not on the page
+    assert 'clear_circle("k1")' in after
+    assert "point_at" not in text and 'show_tab("board")' not in text  # stay on the slide
 
 
 def test_screen_circle_keeps_plain_reexplain():
     text = circle_message({**PAYLOAD, "source": "screen"}, "").content[0]
-    assert "start_visual" not in text and "point_at" not in text
+    assert "start_visual" not in text and "point_at" not in text and "different way" in text
 
 
 def test_lost_message_quotes_last_spoken():
