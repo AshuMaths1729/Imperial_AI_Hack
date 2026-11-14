@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from schemas import WorkspaceDataset
 
+from . import deck as decks
 from .models import KP, Lesson, Material, Struggle, Track, Worked
 from .livekit_token import mint_token
 from .store import Store, make_store
@@ -123,6 +124,31 @@ def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_sto
     ]
     store.save_track(track)
     return track
+
+
+def get_deck_llm() -> decks.LLM:
+    """Overridden in tests with a fake Anthropic client."""
+    return decks.anthropic_llm
+
+
+@tutor_router.get("/tracks/{track_id}/deck")
+def get_deck(track_id: str, store: Store = Depends(get_store)):
+    _lookup(store.get_track, track_id)
+    return decks.deck_view(track_id, store.get_deck(track_id))
+
+
+@tutor_router.post("/tracks/{track_id}/deck")
+@_locked
+def generate_deck(track_id: str, background: BackgroundTasks, store: Store = Depends(get_store),
+                  llm: decks.LLM = Depends(get_deck_llm)):
+    """Starts (re)generating the track's deck in the background; never blocks a lesson. Poll GET for status."""
+    _lookup(store.get_track, track_id)
+    doc = store.get_deck(track_id) or {}
+    if doc.get("status") != "generating" or decks.is_stale(doc):
+        doc = {**doc, "status": "generating", "error": "", "updated_at": decks.now()}
+        store.save_deck(track_id, doc)
+        background.add_task(decks.run_generation, store, track_id, llm)
+    return decks.deck_view(track_id, doc)
 
 
 @tutor_router.get("/context/{lesson_id}")

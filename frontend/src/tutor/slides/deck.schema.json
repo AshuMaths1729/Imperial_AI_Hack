@@ -1,0 +1,1345 @@
+{
+  "$defs": {
+    "Axes": {
+      "additionalProperties": false,
+      "description": "A coordinate frame: x,y,w,h is its box on the canvas; ranges are in maths units.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "axes",
+          "title": "Kind",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "w": {
+          "exclusiveMinimum": 0,
+          "title": "W",
+          "type": "number"
+        },
+        "h": {
+          "exclusiveMinimum": 0,
+          "title": "H",
+          "type": "number"
+        },
+        "x_range": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "X Range",
+          "type": "array"
+        },
+        "y_range": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Y Range",
+          "type": "array"
+        },
+        "x_label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "X Label",
+          "type": "string"
+        },
+        "y_label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Y Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "x",
+        "y",
+        "w",
+        "h",
+        "x_range",
+        "y_range"
+      ],
+      "title": "Axes",
+      "type": "object"
+    },
+    "Curve": {
+      "additionalProperties": false,
+      "description": "y = expr(x) on an axes. expr: x (+ slider params), + - * / ^, sin cos tan exp log sqrt abs, PI, E.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "curve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Axes",
+          "type": "string"
+        },
+        "expr": {
+          "maxLength": 200,
+          "title": "Expr",
+          "type": "string"
+        },
+        "x_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "X Range"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "axes",
+        "expr"
+      ],
+      "title": "Curve",
+      "type": "object"
+    },
+    "Dot": {
+      "additionalProperties": false,
+      "description": "A point at x on a curve (y follows the curve) or at (x, y). Animate it with move/path actions.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "dot",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Axes",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "curve": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Curve"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Y"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "axes",
+        "x"
+      ],
+      "title": "Dot",
+      "type": "object"
+    },
+    "Hide": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "hide",
+          "title": "Do",
+          "type": "string"
+        },
+        "ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "do",
+        "ids"
+      ],
+      "title": "Hide",
+      "type": "object"
+    },
+    "Indicate": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "indicate",
+          "title": "Do",
+          "type": "string"
+        },
+        "ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "do",
+        "ids"
+      ],
+      "title": "Indicate",
+      "type": "object"
+    },
+    "Math": {
+      "additionalProperties": false,
+      "description": "A KaTeX formula, positioned like text. Colour parts with \\color{#58C4DD}{...}.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "math",
+          "title": "Kind",
+          "type": "string"
+        },
+        "latex": {
+          "maxLength": 400,
+          "title": "Latex",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "size": {
+          "default": 40,
+          "maximum": 110,
+          "minimum": 12,
+          "title": "Size",
+          "type": "number"
+        },
+        "align": {
+          "default": "center",
+          "enum": [
+            "center",
+            "left"
+          ],
+          "title": "Align",
+          "type": "string"
+        },
+        "axes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axes"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "latex",
+        "x",
+        "y"
+      ],
+      "title": "Math",
+      "type": "object"
+    },
+    "Morph": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "morph",
+          "title": "Do",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "latex": {
+          "anyOf": [
+            {
+              "maxLength": 400,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latex"
+        },
+        "expr": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expr"
+        }
+      },
+      "required": [
+        "do",
+        "id"
+      ],
+      "title": "Morph",
+      "type": "object"
+    },
+    "Move": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "move",
+          "title": "Do",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "to": {
+          "title": "To",
+          "type": "number"
+        }
+      },
+      "required": [
+        "do",
+        "id",
+        "to"
+      ],
+      "title": "Move",
+      "type": "object"
+    },
+    "PathAct": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "path",
+          "title": "Do",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "xs": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 60,
+          "minItems": 1,
+          "title": "Xs",
+          "type": "array"
+        },
+        "trail": {
+          "default": true,
+          "title": "Trail",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "do",
+        "id",
+        "xs"
+      ],
+      "title": "PathAct",
+      "type": "object"
+    },
+    "Polyline": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "polyline",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 200,
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "axes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axes"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "points"
+      ],
+      "title": "Polyline",
+      "type": "object"
+    },
+    "Shape": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "shape",
+          "title": "Kind",
+          "type": "string"
+        },
+        "shape": {
+          "enum": [
+            "rect",
+            "ellipse",
+            "line"
+          ],
+          "title": "Shape",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "w": {
+          "title": "W",
+          "type": "number"
+        },
+        "h": {
+          "title": "H",
+          "type": "number"
+        },
+        "axes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axes"
+        },
+        "fill": {
+          "default": false,
+          "title": "Fill",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "shape",
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "title": "Shape",
+      "type": "object"
+    },
+    "Show": {
+      "additionalProperties": false,
+      "properties": {
+        "with_prev": {
+          "default": false,
+          "title": "With Prev",
+          "type": "boolean"
+        },
+        "do": {
+          "const": "show",
+          "title": "Do",
+          "type": "string"
+        },
+        "ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "do",
+        "ids"
+      ],
+      "title": "Show",
+      "type": "object"
+    },
+    "Slide": {
+      "additionalProperties": false,
+      "description": "Objects not named by any show action are visible when the slide opens; the rest appear at their step.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "title": "Title",
+          "type": "string"
+        },
+        "kp_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Kp Ids",
+          "type": "array"
+        },
+        "objects": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "axes": "#/$defs/Axes",
+                "curve": "#/$defs/Curve",
+                "dot": "#/$defs/Dot",
+                "math": "#/$defs/Math",
+                "polyline": "#/$defs/Polyline",
+                "shape": "#/$defs/Shape",
+                "slider": "#/$defs/Slider",
+                "step_arrow": "#/$defs/StepArrow",
+                "tangent": "#/$defs/Tangent",
+                "text": "#/$defs/Text",
+                "vector": "#/$defs/Vector"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Text"
+              },
+              {
+                "$ref": "#/$defs/Math"
+              },
+              {
+                "$ref": "#/$defs/Axes"
+              },
+              {
+                "$ref": "#/$defs/Curve"
+              },
+              {
+                "$ref": "#/$defs/Polyline"
+              },
+              {
+                "$ref": "#/$defs/Dot"
+              },
+              {
+                "$ref": "#/$defs/Vector"
+              },
+              {
+                "$ref": "#/$defs/Tangent"
+              },
+              {
+                "$ref": "#/$defs/StepArrow"
+              },
+              {
+                "$ref": "#/$defs/Shape"
+              },
+              {
+                "$ref": "#/$defs/Slider"
+              }
+            ]
+          },
+          "maxItems": 40,
+          "minItems": 1,
+          "title": "Objects",
+          "type": "array"
+        },
+        "steps": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Step"
+          },
+          "maxItems": 12,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "objects"
+      ],
+      "title": "Slide",
+      "type": "object"
+    },
+    "Slider": {
+      "additionalProperties": false,
+      "description": "A control the student can drag. Curves may use `param` in expr; dots on those curves follow.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "slider",
+          "title": "Kind",
+          "type": "string"
+        },
+        "param": {
+          "pattern": "^[a-wyz]$",
+          "title": "Param",
+          "type": "string"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        },
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "w": {
+          "default": 360,
+          "exclusiveMinimum": 0,
+          "title": "W",
+          "type": "number"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "param",
+        "min",
+        "max",
+        "value",
+        "x",
+        "y"
+      ],
+      "title": "Slider",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "narration": {
+          "maxLength": 300,
+          "title": "Narration",
+          "type": "string"
+        },
+        "actions": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "hide": "#/$defs/Hide",
+                "indicate": "#/$defs/Indicate",
+                "morph": "#/$defs/Morph",
+                "move": "#/$defs/Move",
+                "path": "#/$defs/PathAct",
+                "show": "#/$defs/Show"
+              },
+              "propertyName": "do"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Show"
+              },
+              {
+                "$ref": "#/$defs/Hide"
+              },
+              {
+                "$ref": "#/$defs/Move"
+              },
+              {
+                "$ref": "#/$defs/PathAct"
+              },
+              {
+                "$ref": "#/$defs/Morph"
+              },
+              {
+                "$ref": "#/$defs/Indicate"
+              }
+            ]
+          },
+          "maxItems": 12,
+          "title": "Actions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "narration",
+        "actions"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "StepArrow": {
+      "additionalProperties": false,
+      "description": "Horizontal arrow from the dot to where one gradient step goes: length = -scale * slope. Follows the dot.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "step_arrow",
+          "title": "Kind",
+          "type": "string"
+        },
+        "dot": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Dot",
+          "type": "string"
+        },
+        "scale": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Scale",
+          "type": "number"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "dot"
+      ],
+      "title": "StepArrow",
+      "type": "object"
+    },
+    "Tangent": {
+      "additionalProperties": false,
+      "description": "The tangent line of `curve` at `dot`; follows the dot as it moves. length in axes x-units.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "tangent",
+          "title": "Kind",
+          "type": "string"
+        },
+        "curve": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Curve",
+          "type": "string"
+        },
+        "dot": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Dot",
+          "type": "string"
+        },
+        "length": {
+          "default": 2,
+          "exclusiveMinimum": 0,
+          "title": "Length",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "curve",
+        "dot"
+      ],
+      "title": "Tangent",
+      "type": "object"
+    },
+    "Text": {
+      "additionalProperties": false,
+      "description": "Plain text. x,y is its centre (left edge when align=left), in canvas units, or axes units if `axes` is set.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "text",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 300,
+          "title": "Text",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "size": {
+          "default": 32,
+          "maximum": 96,
+          "minimum": 12,
+          "title": "Size",
+          "type": "number"
+        },
+        "align": {
+          "default": "center",
+          "enum": [
+            "center",
+            "left"
+          ],
+          "title": "Align",
+          "type": "string"
+        },
+        "axes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axes"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "text",
+        "x",
+        "y"
+      ],
+      "title": "Text",
+      "type": "object"
+    },
+    "Vector": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "enum": [
+                "blue",
+                "teal",
+                "green",
+                "yellow",
+                "gold",
+                "red",
+                "purple",
+                "pink",
+                "white",
+                "grey"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "kind": {
+          "const": "vector",
+          "title": "Kind",
+          "type": "string"
+        },
+        "start": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Start",
+          "type": "array"
+        },
+        "end": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "End",
+          "type": "array"
+        },
+        "axes": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axes"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "start",
+        "end"
+      ],
+      "title": "Vector",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "maxLength": 120,
+      "title": "Title",
+      "type": "string"
+    },
+    "slides": {
+      "items": {
+        "$ref": "#/$defs/Slide"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Slides",
+      "type": "array"
+    }
+  },
+  "required": [
+    "title",
+    "slides"
+  ],
+  "title": "Deck",
+  "type": "object"
+}

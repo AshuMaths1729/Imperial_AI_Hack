@@ -5,7 +5,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Type, TypeVar
+from typing import List, Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
@@ -106,6 +106,13 @@ class Store:
 
     def save_lesson(self, lesson: Lesson) -> None:
         self.b.put("lessons", lesson.lesson_id, lesson.model_dump())
+
+    def get_deck(self, track_id: str) -> Optional[dict]:
+        """Deck generation doc for a track (tutor/deck.py): {status, deck, error, warnings, updated_at}."""
+        return self.b.get("decks", track_id)
+
+    def save_deck(self, track_id: str, doc: dict) -> None:
+        self.b.put("decks", track_id, doc)
 
     def recent_lessons(self, track_id: str, n: int = 3) -> List[Lesson]:
         done = [l for l in (Lesson.model_validate(d) for d in self.b.all("lessons"))
