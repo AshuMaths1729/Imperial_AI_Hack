@@ -1,0 +1,119 @@
+"""Spec storage, seeded demo sim, run cache."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+from collections import OrderedDict
+from pathlib import Path
+
+from app.core.errors import AppError, NotFound
+from app.modules.sim.models import SimSpec
+from app.modules.sim.seed import HEAVY_BALL_CODE, SEED_ID, SEED_META
+from app.schemas.sim import SimOutput
+from app.settings import Settings
+from app.tools.sandbox import validate_code
+
+_ID_RE = re.compile(r"^[A-Za-z0-9_]{1,64}$")
+
+
+class BadRequest(AppError):
+    code = "bad_request"
+    status_code = 422
+
+
+class SimValidationFailed(AppError):
+    """Generated code failed validation even after the repair attempt."""
+
+    code = "sim_validation_failed"
+    status_code = 422
+
+
+class SimRunFailed(AppError):
+    code = "sim_run_failed"
+    status_code = 422
+
+
+def code_hash(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def make_sim_id(code: str) -> str:
+    return "sim_" + code_hash(code)[:10]
+
+
+def sims_dir(settings: Settings) -> Path:
+    return settings.state_dir / "sims"
+
+
+def save_spec(settings: Settings, spec: SimSpec) -> None:
+    d = sims_dir(settings)
+    d.mkdir(parents=True, exist_ok=True)
+    target = d / f"{spec.sim_id}.json"
+    tmp = target.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(spec.model_dump(mode="json")), encoding="utf-8")
+    os.replace(tmp, target)
+
+
+_seed_spec: SimSpec | None = None
+
+
+async def get_seed_spec() -> SimSpec:
+    """The trusted demo sim; validated once per process (first request)."""
+    global _seed_spec
+    if _seed_spec is None:
+        report = await validate_code(HEAVY_BALL_CODE)
+        if report.status != "passed" or report.params is None or report.default_output is None:
+            raise SimRunFailed(
+                "seeded sim failed validation",
+                details={"validation": report.model_dump(mode="json")},
+            )
+        _seed_spec = SimSpec(
+            sim_id=SEED_ID,
+            title=SEED_META["title"],
+            explanation=SEED_META["explanation"],
+            assumptions=SEED_META["assumptions"],
+            equation_latex=SEED_META["equation_latex"],
+            paper_title="Heavy-ball momentum (demo)",
+            params=report.params,
+            default_output=report.default_output,
+            python_code=HEAVY_BALL_CODE,
+            validation=report,
+        )
+    return _seed_spec
+
+
+async def load_spec(settings: Settings, sim_id: str) -> SimSpec:
+    if sim_id == SEED_ID:
+        return await get_seed_spec()
+    if not _ID_RE.match(sim_id):
+        raise NotFound(f"unknown simulation {sim_id!r}")
+    path = sims_dir(settings) / f"{sim_id}.json"
+    if not path.is_file():
+        raise NotFound(f"unknown simulation {sim_id!r}")
+    return SimSpec.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+class RunCache:
+    """Tiny in-memory LRU keyed by (code hash, params)."""
+
+    def __init__(self, size: int = 512) -> None:
+        self.size = size
+        self._d: OrderedDict[tuple, tuple[SimOutput, float]] = OrderedDict()
+
+    def get(self, key: tuple) -> tuple[SimOutput, float] | None:
+        hit = self._d.get(key)
+        if hit is not None:
+            self._d.move_to_end(key)
+        return hit
+
+    def put(self, key: tuple, value: tuple[SimOutput, float]) -> None:
+        self._d[key] = value
+        self._d.move_to_end(key)
+        while len(self._d) > self.size:
+            self._d.popitem(last=False)
+
+
+run_cache = RunCache()
