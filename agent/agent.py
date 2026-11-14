@@ -211,7 +211,7 @@ async def entrypoint(ctx: JobContext) -> None:
             preemptive_generation={"enabled": True},
         ),
     )
-    lesson = LessonState(lesson_id, io.post)
+    lesson = LessonState(lesson_id, io.post, resume=tctx.get("resume"))  # picks up the last lesson's understanding
     agent = Agent(
         instructions=build_instructions(tctx),
         tools=tools.function_tools() + slides.slide_tools(io, lesson_id, lesson) + lesson.function_tools(),
@@ -233,6 +233,7 @@ async def entrypoint(ctx: JobContext) -> None:
         first_is_instructions = chat.items and chat.items[0].type == "message" and chat.items[0].role == "system"
         summary = llm.ChatMessage(id=SUMMARY_ID, role="system", content=[f"Lesson so far: {rolling.summary}"])
         chat.items.insert(1 if first_is_instructions else 0, summary)
+        lesson.apply(chat)  # a fold must not drop the lesson-state note until the next checkpoint
         await agent.update_chat_ctx(chat)
 
     async def on_circle(text: str) -> None:
