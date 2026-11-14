@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from tutor_tools import TutorTools
+from tutor_tools import TutorTools, as_tool_output
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "frontend/src/tutor/contracts/examples"
 VALID_OPS = json.loads((EXAMPLES / "valid_ops.json").read_text())["ops"]
@@ -76,8 +76,8 @@ async def test_look_at_board_formats_items():
     tools = TutorTools(io, "L1")
     assert await tools.look_at_board() == "eq1 math tutor: x^2\nu1 text user: I think 4"
     region = {"x": 0, "y": 0, "w": 500, "h": 500}
-    text, png = await tools.look_at_board(region)
-    assert png == "PNG" and text.startswith("eq1")
+    text, png, mime = await tools.look_at_board(region)
+    assert png == "PNG" and mime == "image/png" and text.startswith("eq1")
     assert ("board.snapshot", {"region": region}) in io.rpcs
 
 
@@ -178,3 +178,25 @@ async def test_board_write_non_string_errors():
     io = FakeIO({"board.apply": {"ok": False, "ids": ["title"], "errors": [{"code": 7}, None]}})
     out = await TutorTools(io, "L1").board_write(VALID_OPS[:2])
     assert out.startswith("partial: drew title; failed:") and "{'code': 7}" in out
+
+
+async def test_look_at_board_jpeg_snapshot_uses_its_mime():
+    io = FakeIO({"board.describe": {"items": []}, "board.snapshot": {"png_b64": "JPG", "mime": "image/jpeg"}})
+    out = await TutorTools(io, "L1").look_at_board({"x": 0, "y": 0, "w": 10, "h": 10})
+    assert out[1:] == ("JPG", "image/jpeg")
+    blocks = json.loads(as_tool_output(out, "image/png"))
+    assert blocks[1]["source"]["media_type"] == "image/jpeg"
+
+
+async def test_look_at_board_missing_mime_is_png():
+    io = FakeIO({"board.describe": {"items": []}, "board.snapshot": {"png_b64": "P"}})
+    out = await TutorTools(io, "L1").look_at_board({"x": 0, "y": 0, "w": 10, "h": 10})
+    assert json.loads(as_tool_output(out, "image/jpeg"))[1]["source"]["media_type"] == "image/png"
+
+
+@pytest.mark.parametrize("reply", [{"ok": False, "errors": ["snapshot too large"]}, {}])
+async def test_look_at_board_snapshot_failure_is_text_only(reply):
+    io = FakeIO({"board.describe": {"items": []}, "board.snapshot": reply})
+    out = await TutorTools(io, "L1").look_at_board({"x": 0, "y": 0, "w": 10, "h": 10})
+    assert isinstance(out, str) and "couldn't capture the board" in out
+    assert as_tool_output(out, "image/png") == out
