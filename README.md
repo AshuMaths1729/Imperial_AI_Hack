@@ -38,6 +38,12 @@ npm run dev
 
 API keys and settings go in a `.env` file (copy `.env.example`, names only; never commit it).
 
+### Live avatar tutor
+
+The live Synthesia/LiveKit tutor (left tutor box and `/tutor`) needs LiveKit keys in `.env` and its
+agent worker running next to `./start.sh`: `cd agent && uv run avatar_agent.py dev`.
+Full setup, per-developer agent names and troubleshooting: [`agent/README.md`](agent/README.md).
+
 ### Shared types
 
 The backend's Pydantic models are the contract. After changing routes or `backend/app/schemas/`:
