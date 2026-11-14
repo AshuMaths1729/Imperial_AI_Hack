@@ -109,6 +109,18 @@ async def start_avatar(session: AgentSession, room: rtc.Room, make_avatar) -> bo
         return False
 
 
+def track_turns(session: AgentSession, rolling: RollingSummary, after_tutor_turn) -> None:
+    """Feed every spoken user/tutor turn into the rolling lesson memory (sent with /end)."""
+
+    @session.on("conversation_item_added")
+    def _on_item(ev) -> None:
+        item = ev.item
+        if item.type == "message" and item.role in ("user", "assistant"):
+            rolling.add_turn(item.role, item.text_content or "")
+            if item.role == "assistant":
+                after_tutor_turn()
+
+
 def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
 
@@ -163,13 +175,7 @@ async def entrypoint(ctx: JobContext) -> None:
     )
     agent = Agent(instructions=build_instructions(tctx), tools=tools.function_tools())
 
-    @session.on("conversation_item_added")
-    def _on_item(ev) -> None:
-        item = ev.item
-        if item.type == "message" and item.role in ("user", "assistant"):
-            rolling.add_turn(item.role, item.text_content or "")
-            if item.role == "assistant":
-                spawn(fold())
+    track_turns(session, rolling, lambda: spawn(fold()))
 
     async def fold() -> None:
         if not await rolling.maybe_fold():
