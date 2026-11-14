@@ -2,8 +2,8 @@
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** ms to write one line of `chars` characters: fast, but slow enough to look written (0.6–1.5 s). */
-export const lineMs = (chars: number) => clamp(Math.round(chars * 45), 600, 1500);
+/** ms to write one line of `chars` characters: slow enough for the student to read along (2–3 s). */
+export const lineMs = (chars: number) => clamp(1200 + Math.round(chars * 60), 2000, 3000);
 
 /** Total writing time for `chars` characters spread over `lines` rendered lines. */
 export const writeMs = (chars: number, lines: number) => lines * lineMs(chars / Math.max(1, lines));

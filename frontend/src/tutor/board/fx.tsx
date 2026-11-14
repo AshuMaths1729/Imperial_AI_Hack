@@ -7,7 +7,7 @@ import { cameraFor, followPaused } from "./camera";
 import { schedule, writeKeyframes } from "./pen";
 
 type Tip = { key: string; box: Box; lines: number; ms: number };
-type Laser = { x: number; y: number; on: boolean };
+type Laser = { x: number; y: number };
 
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const HIDDEN = "clip-path: polygon(0 0, 0 0, 0 0)";
@@ -28,7 +28,6 @@ export class BoardFx {
   private frames = new Set<number>(); // n-line keyframes already in the sheet
   private keyframes = "";
   private timers = new Set<ReturnType<typeof setTimeout>>();
-  private laserTimer: ReturnType<typeof setTimeout> | undefined;
   private style = document.head.appendChild(document.createElement("style"));
   private offEvent: () => void;
 
@@ -45,7 +44,6 @@ export class BoardFx {
   dispose() {
     this.offEvent();
     this.timers.forEach(clearTimeout);
-    clearTimeout(this.laserTimer);
     this.style.remove();
   }
 
@@ -135,7 +133,7 @@ export class BoardFx {
     };
     if (reducedMotion()) return this.queue(0, () => onStart?.());
     const msOf = (pts: { x: number; y: number }[]) =>
-      Math.max(250, Math.min(800, pts.reduce((d, p, i) => d + (i ? Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y) : 0), 0) * 0.9));
+      Math.max(500, Math.min(1500, pts.reduce((d, p, i) => d + (i ? Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y) : 0), 0) * 1.6));
     const mine = shapes.map((s) => this.hide(s.id));
     shapes.forEach((s, i) => {
       const ms = msOf(s.points), local = s.points.map((p) => ({ x: p.x - s.x, y: p.y - s.y }));
@@ -173,11 +171,9 @@ export class BoardFx {
     return !!cam;
   }
 
-  /** Laser dot at a page point for `holdMs`, then it fades. */
-  point(x: number, y: number, holdMs: number) {
-    clearTimeout(this.laserTimer);
-    this.laser.set({ x, y, on: true });
-    this.laserTimer = setTimeout(() => this.laser.update((l) => l && { ...l, on: false }), holdMs);
+  /** Laser dot at a page point; it never fades, it stays parked there until the next point. */
+  point(x: number, y: number) {
+    this.laser.set({ x, y });
   }
 }
 
@@ -196,13 +192,15 @@ const CSS = `
 .tw-tip { position: absolute; width: 30px; height: 30px; margin: -26px 0 0 -3px; opacity: 0; color: #334155;
   filter: drop-shadow(0 2px 2px rgba(15,23,42,.25)); pointer-events: none; }
 .tw-laser { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none;
-  transition: transform 450ms cubic-bezier(.2,.8,.2,1), opacity 400ms ease-out; }
+  transition: transform 700ms cubic-bezier(.2,.8,.2,1); }
 .tw-laser > i { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
   background: radial-gradient(circle, #ff3b30 0 45%, rgba(255,59,48,.35) 60%, rgba(255,59,48,0) 72%);
   animation: tw-pulse 1.1s ease-in-out infinite; }
+.tw-ask { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: #7c3aed;
+  color: #fff; font: 700 15px/24px system-ui, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(15,23,42,.3); }
 @keyframes tw-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes tw-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.45) } }
-@media (prefers-reduced-motion: reduce) { .tw-tip { display: none } .tw-laser { transition: opacity 1ms } .tw-laser > i { animation: none } }
+@media (prefers-reduced-motion: reduce) { .tw-tip { display: none } .tw-laser { transition: none } .tw-laser > i { animation: none } }
 `;
 
 /** Rendered by tldraw inside the camera-transformed layer (`OnTheCanvas`), so positions are page units. */
@@ -211,6 +209,11 @@ export function BoardFxLayer() {
   const fx = fxFor(editor);
   const tips = useValue("pen tips", () => fx.tips.get(), [fx]);
   const laser = useValue("laser", () => fx.laser.get(), [fx]);
+  // The student's open questions: a "?" on each persistent Circle-to-Ask mark.
+  const circles = useValue("circles", () => editor.getCurrentPageShapes().flatMap((s) => {
+    const b = s.meta.circle_id ? editor.getShapePageBounds(s) : undefined;
+    return b ? [{ id: s.id, x: b.maxX, y: b.y }] : [];
+  }), [editor]);
   return (
     <div style={{ position: "absolute", left: 0, top: 0, zIndex: 100000, pointerEvents: "none" }} aria-hidden>
       <style>{CSS}</style>
@@ -219,7 +222,8 @@ export function BoardFxLayer() {
           <PenLine className="tw-tip" style={{ animation: `tw-tip-${t.lines} ${t.ms}ms linear forwards` }} />
         </div>
       ))}
-      {laser && <div className="tw-laser" style={{ transform: `translate(${laser.x}px, ${laser.y}px)`, opacity: laser.on ? 1 : 0 }}><i /></div>}
+      {circles.map((c) => <span key={c.id} className="tw-ask" style={{ left: c.x, top: c.y }}>?</span>)}
+      {laser && <div className="tw-laser" style={{ transform: `translate(${laser.x}px, ${laser.y}px)` }}><i /></div>}
     </div>
   );
 }

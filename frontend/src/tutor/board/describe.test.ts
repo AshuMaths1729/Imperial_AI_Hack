@@ -58,4 +58,11 @@ describe("describeShapes", () => {
     const hidden = { ...shape("ink1", "draw", { author: "user" }), opacity: 0 } as TLShape;
     expect(describeShapes([hidden], toBoard, { includeHidden: true }).items).toHaveLength(1);
   });
+
+  it("labels the student's Circle-to-Ask mark as a circle, not ink", () => {
+    const { items } = describeShapes([shape("ink1", "draw", { author: "user", circle_id: "c1" })], toBoard);
+    expect(items).toEqual([{ id: "ink1", type: "circle", author: "user", bbox: bboxes["shape:ink1"], label: "student's circle (question c1)" }]);
+    // a later circle around it does not count the old mark as circled work
+    expect(itemsInRegion(items, { x: 0, y: 0, w: 1000, h: 1000 })).toEqual([]);
+  });
 });

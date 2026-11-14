@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { latexChars, lineMs, schedule, writeKeyframes, writeMs, PEN_LIFT_MS } from "./pen";
 
 describe("pen timing", () => {
-  it("writes one line in 0.6–1.5 s", () => {
-    expect(lineMs(1)).toBe(600);
-    expect(lineMs(20)).toBe(900);
-    expect(lineMs(200)).toBe(1500);
+  it("writes one line slowly enough to follow: 2–3 s", () => {
+    expect(lineMs(1)).toBe(2000);
+    expect(lineMs(20)).toBe(2400);
+    expect(lineMs(200)).toBe(3000);
   });
 
   it("multi-line writing takes a line's time per line", () => {

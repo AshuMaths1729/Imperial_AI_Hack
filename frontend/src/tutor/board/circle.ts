@@ -3,10 +3,11 @@ import { BOARD_H, BOARD_W } from "./layout";
 
 export type { CircleEvent } from "../contracts/types";
 
-/** Ids of items with at least half their bbox inside `region` (flat items: centre inside). */
+/** Ids of items with at least half their bbox inside `region` (flat items: centre inside). Earlier circle marks never count. */
 export function itemsInRegion(items: BoardItem[], region: Box): string[] {
   return items
-    .filter(({ bbox: b }) => {
+    .filter(({ type, bbox: b }) => {
+      if (type === "circle") return false;
       const area = b.w * b.h;
       if (area === 0) {
         const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
