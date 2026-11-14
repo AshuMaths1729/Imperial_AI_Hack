@@ -1,13 +1,19 @@
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Literal, Optional
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from schemas import WorkspaceDataset
 
 from .models import KP, Lesson, Material, Struggle, Track, Worked
+from .livekit_token import mint_token
 from .store import Store, make_store
+
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 tutor_router = APIRouter(prefix="/api/tutor")
 
@@ -30,6 +36,12 @@ def _lookup(fn, key):
 
 class NewTrack(BaseModel):
     title: str
+    user_id: str = "demo"
+
+
+class SessionIn(BaseModel):
+    track_id: str
+    tutor_id: str
     user_id: str = "demo"
 
 
@@ -139,3 +151,20 @@ def end_lesson(lesson_id: str, body: EndIn, store: Store = Depends(get_store)) -
     lesson.board_snapshot_ref = body.board_snapshot_ref
     store.save_lesson(lesson)
     return lesson
+
+
+@tutor_router.post("/session")
+def start_session(body: SessionIn, store: Store = Depends(get_store)):
+    url = os.environ.get("LIVEKIT_URL")
+    if not (url and os.environ.get("LIVEKIT_API_KEY") and os.environ.get("LIVEKIT_API_SECRET")):
+        raise HTTPException(503, "LiveKit is not configured")
+    _lookup(store.get_track, body.track_id)
+    _lookup(store.get_tutor, body.tutor_id)
+    lesson = store.create_lesson(body.track_id, body.tutor_id)
+    room = f"tutor-{lesson.lesson_id}"
+    token = mint_token(
+        room=room, identity=f"student-{body.user_id}",
+        agent_name=os.environ.get("TUTOR_AGENT_NAME") or "synthesia-avatar-agent",
+        metadata={"track_id": body.track_id, "lesson_id": lesson.lesson_id, "tutor_id": body.tutor_id},
+    )
+    return {"url": url, "token": token, "room": room, "lesson_id": lesson.lesson_id}
