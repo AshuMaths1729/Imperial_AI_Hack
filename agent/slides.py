@@ -73,6 +73,7 @@ symbol). Each step's narration is a one-sentence hint for the tutor.
 - Step 1 indicates what the student circled, so they see which part you are explaining.
 - Reuse the slide's existing objects, axes, curves and colours: name their ids in actions (indicate, move, path, \
 morph, show, hide). A quantity keeps its colour. Put new objects in free space; never cover what is there.
+- Objects already on screen are pointed at with indicate, never show (show would hide them first); show only your new objects.
 - 1 to 4 steps, at most 8 new objects; new ids must not exist on the slide yet.
 """ + _CANVAS
 
