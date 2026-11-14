@@ -1,0 +1,40 @@
+{
+  "spoken_answer": "You circled Vanishing and Exploding Gradients. Backpropagating through L layers multiplies Jacobians repeatedly. If the singular values drop below one, gradients vanish exponentially. Try the quick quiz in the right panel to test this.",
+  "segments": [
+    {
+      "text": "You circled Vanishing and Exploding Gradients.",
+      "ui_annotations": [
+        {
+          "type": "pulse_node",
+          "id": "n3",
+          "label": "Focus concept"
+        }
+      ]
+    },
+    {
+      "text": "Backpropagating through L layers multiplies Jacobians repeatedly. If the singular values drop below one, gradients vanish exponentially.",
+      "ui_annotations": [
+        {
+          "type": "highlight_edge",
+          "id": "e2",
+          "label": "Depth L product"
+        }
+      ]
+    },
+    {
+      "text": "Try the quick quiz in the right panel to test this.",
+      "ui_annotations": [
+        {
+          "type": "show_card",
+          "card": "quiz",
+          "id": "n3"
+        }
+      ]
+    }
+  ],
+  "follow_up": {
+    "type": "quiz",
+    "node_id": "n3"
+  },
+  "avatar_state": "explaining"
+}
