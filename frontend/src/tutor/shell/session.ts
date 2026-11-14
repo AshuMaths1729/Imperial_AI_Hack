@@ -8,6 +8,7 @@ export type RoomLike = {
   remoteParticipants: Map<string, { identity: string }>;
   connect(url: string, token: string): Promise<void>;
   disconnect(): Promise<void>;
+  startAudio(): Promise<void>;
   registerRpcMethod(method: string, handler: (data: RpcInvocationData) => Promise<string>): void;
   registerTextStreamHandler(topic: string, handler: (reader: TextStreamReader, p: { identity: string }) => void): void;
   localParticipant: {
@@ -28,18 +29,54 @@ export const AVATAR_IDENTITY = "synthesia-avatar-agent";
 export const AGENT_TIMEOUT_MESSAGE = "Tutor didn't join — is the agent running?";
 const isStudent = (identity: string) => identity.startsWith("student-");
 
-/** Registers the board RPCs (before connecting, so the agent never calls an unregistered method), connects, enables the mic. */
+/** Registers the board RPCs (before connecting, so the agent never calls an unregistered method), connects, enables the mic (skipped if `signal` aborted meanwhile). */
 export async function connectLesson(
   room: RoomLike,
   s: { url: string; token: string },
-  getBoard: () => BoardHandle | null
+  getBoard: () => BoardHandle | null,
+  signal?: AbortSignal
 ): Promise<void> {
   const handlers = makeBoardRpcHandlers(getBoard);
   for (const method of Object.keys(handlers) as BoardRpcMethod[]) {
     room.registerRpcMethod(method, (d) => handlers[method](d.payload));
   }
   await room.connect(s.url, s.token);
+  if (signal?.aborted) return;
   await room.localParticipant.setMicrophoneEnabled(true);
+}
+
+/**
+ * The whole Join sequence: session → connect → mic → wait for the tutor. `signal` is aborted by Leave/unmount;
+ * then (or on any failure) the room is disconnected so the student never stays in the room with a live mic.
+ * Resolves true when live, false when aborted; rethrows real failures.
+ */
+export async function joinLesson(
+  room: RoomLike,
+  fetchSession: () => Promise<{ url: string; token: string; lesson_id: string }>,
+  getBoard: () => BoardHandle | null,
+  signal: AbortSignal,
+  onLessonId: (id: string) => void = () => {}
+): Promise<boolean> {
+  try {
+    const s = await fetchSession();
+    if (!signal.aborted) {
+      onLessonId(s.lesson_id);
+      await connectLesson(room, s, getBoard, signal);
+    }
+    if (!signal.aborted) {
+      await room.startAudio().catch(() => {}); // Safari: unlock audio close to the Join click
+      await waitForAgent(room, 20000, signal);
+    }
+  } catch (e) {
+    await room.disconnect();
+    if (signal.aborted) return false;
+    throw e;
+  }
+  if (signal.aborted) {
+    await room.disconnect();
+    return false;
+  }
+  return true;
 }
 
 export const sendCircle = async (room: RoomLike, e: CircleEvent) => {
@@ -50,21 +87,30 @@ export const sendLost = async (room: RoomLike) => {
   await room.localParticipant.sendText("{}", { topic: "tutor.lost" });
 };
 
-/** Resolves when any non-student participant (agent or avatar) is in the room; rejects after `timeoutMs`. */
-export function waitForAgent(room: RoomLike, timeoutMs = 20000): Promise<void> {
+/** Resolves when any non-student participant (agent or avatar) is in the room; rejects after `timeoutMs` or on abort. */
+export function waitForAgent(room: RoomLike, timeoutMs = 20000, signal?: AbortSignal): Promise<void> {
   if ([...room.remoteParticipants.values()].some((p) => !isStudent(p.identity))) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const onJoin = (p: { identity: string }) => {
-      if (isStudent(p.identity)) return;
+    const done = () => {
       clearTimeout(timer);
       room.off(RoomEvent.ParticipantConnected, onJoin);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const onJoin = (p: { identity: string }) => {
+      if (isStudent(p.identity)) return;
+      done();
       resolve();
     };
+    const onAbort = () => {
+      done();
+      reject(new Error("aborted"));
+    };
     const timer = setTimeout(() => {
-      room.off(RoomEvent.ParticipantConnected, onJoin);
+      done();
       reject(new Error(AGENT_TIMEOUT_MESSAGE));
     }, timeoutMs);
     room.on(RoomEvent.ParticipantConnected, onJoin);
+    signal?.addEventListener("abort", onAbort);
   });
 }
 

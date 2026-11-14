@@ -2,6 +2,7 @@ import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import { RoomEvent, type Room } from "livekit-client";
 import {
   connectLesson,
+  joinLesson,
   mergeCaption,
   onCaptions,
   sendCircle,
@@ -22,6 +23,7 @@ function fakeRoom() {
     remoteParticipants: new Map<string, { identity: string }>(),
     connect: vi.fn(async () => {}),
     disconnect: vi.fn(async () => {}),
+    startAudio: vi.fn(async () => {}),
     registerRpcMethod: vi.fn((m: string, h: (d: { payload: string }) => Promise<string>) => void rpcs.set(m, h)),
     registerTextStreamHandler: vi.fn((t: string, h: (reader: unknown, p: { identity: string }) => void) => void streams.set(t, h)),
     localParticipant: {
@@ -135,5 +137,74 @@ describe("session", () => {
 
     handler(reader(["hello"], { "lk.segment_id": "u1" }), { identity: "student-demo" });
     await vi.waitFor(() => expect(got.at(-1)).toEqual({ id: "u1", who: "you", text: "hello", final: true }));
+  });
+
+  describe("joinLesson (Leave while connecting)", () => {
+    const info = { url: "wss://lk", token: "tok", room: "r", lesson_id: "L1" };
+    const deferred = <T,>() => {
+      let resolve!: (v: T) => void;
+      const promise = new Promise<T>((r) => (resolve = r));
+      return { promise, resolve };
+    };
+    const micTurnedOn = (room: ReturnType<typeof fakeRoom>) =>
+      room.localParticipant.setMicrophoneEnabled.mock.calls.some((c) => (c as unknown[])[0] === true);
+
+    it("joins: connects, opens the mic and resolves true when the agent is there", async () => {
+      const room = fakeRoom();
+      room.remoteParticipants.set("a", { identity: "agent-1" });
+      const onLesson = vi.fn();
+      await expect(joinLesson(room as unknown as RoomLike, async () => info, () => null, new AbortController().signal, onLesson)).resolves.toBe(true);
+      expect(onLesson).toHaveBeenCalledWith("L1");
+      expect(micTurnedOn(room)).toBe(true);
+      expect(room.disconnect).not.toHaveBeenCalled();
+    });
+
+    it("leave during startSession never connects and leaves no mic on", async () => {
+      const room = fakeRoom();
+      const session = deferred<typeof info>();
+      const ac = new AbortController();
+      const p = joinLesson(room as unknown as RoomLike, () => session.promise, () => null, ac.signal);
+      ac.abort();
+      session.resolve(info);
+      await expect(p).resolves.toBe(false);
+      expect(room.connect).not.toHaveBeenCalled();
+      expect(micTurnedOn(room)).toBe(false);
+      expect(room.disconnect).toHaveBeenCalled();
+    });
+
+    it("leave during connect disconnects once connected, without opening the mic", async () => {
+      const room = fakeRoom();
+      const connected = deferred<void>();
+      room.connect.mockImplementation(() => connected.promise);
+      const ac = new AbortController();
+      const p = joinLesson(room as unknown as RoomLike, async () => info, () => null, ac.signal);
+      await vi.waitFor(() => expect(room.connect).toHaveBeenCalled());
+      ac.abort();
+      connected.resolve();
+      await expect(p).resolves.toBe(false);
+      expect(micTurnedOn(room)).toBe(false);
+      expect(room.disconnect).toHaveBeenCalled();
+    });
+
+    it("leave while waiting for the agent clears the timer and listener and disconnects", async () => {
+      vi.useFakeTimers();
+      const room = fakeRoom();
+      const ac = new AbortController();
+      const p = joinLesson(room as unknown as RoomLike, async () => info, () => null, ac.signal);
+      await vi.waitFor(() => expect(room.on).toHaveBeenCalledWith(RoomEvent.ParticipantConnected, expect.any(Function)));
+      ac.abort();
+      await expect(p).resolves.toBe(false);
+      expect(room.off).toHaveBeenCalledWith(RoomEvent.ParticipantConnected, expect.any(Function));
+      expect(vi.getTimerCount()).toBe(0);
+      expect(room.disconnect).toHaveBeenCalled();
+    });
+
+    it("a real failure disconnects and rethrows", async () => {
+      const room = fakeRoom();
+      await expect(
+        joinLesson(room as unknown as RoomLike, async () => { throw new Error("LiveKit is not configured"); }, () => null, new AbortController().signal)
+      ).rejects.toThrow("LiveKit is not configured");
+      expect(room.disconnect).toHaveBeenCalled();
+    });
   });
 });

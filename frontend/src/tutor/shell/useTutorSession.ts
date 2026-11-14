@@ -16,12 +16,11 @@ import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 import { startSession } from "./api";
 import {
   AVATAR_IDENTITY,
-  connectLesson,
+  joinLesson,
   mergeCaption,
   onCaptions,
   sendCircle as sendCircleOn,
   sendLost as sendLostOn,
-  waitForAgent,
   type Caption,
 } from "./session";
 
@@ -29,6 +28,7 @@ export type SessionStatus = "idle" | "connecting" | "live" | "error";
 
 export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   const roomRef = useRef<Room | null>(null);
+  const joinAbort = useRef<AbortController | null>(null); // aborted by Leave/unmount while still joining
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [error, setError] = useState<string>();
   const [lessonId, setLessonId] = useState<string>();
@@ -50,6 +50,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   };
 
   const end = useCallback(() => {
+    joinAbort.current?.abort();
     const room = roomRef.current;
     roomRef.current = null;
     room?.disconnect();
@@ -61,7 +62,9 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
     async (trackId: string, tutorId: string) => {
       if (roomRef.current) return;
       const room = new Room({ adaptiveStream: false });
+      const ac = new AbortController();
       roomRef.current = room;
+      joinAbort.current = ac;
       setStatus("connecting");
       setError(undefined);
       setCaptions([]);
@@ -81,6 +84,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
           if (track.kind === Track.Kind.Video && p.identity === AVATAR_IDENTITY) setAvatarVideo(undefined);
         })
         .on(RoomEvent.LocalTrackPublished, (pub: LocalTrackPublication) => {
+          if (pub.source === Track.Source.Microphone) setMic(true);
           if (pub.source === Track.Source.Camera) setSelfVideo(pub.videoTrack);
           if (pub.source === Track.Source.ScreenShare) setScreenTrack(pub.videoTrack);
         })
@@ -102,18 +106,12 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
       onCaptions(room, (c) => setCaptions((l) => mergeCaption(l, c)));
 
       try {
-        const s = await startSession(trackId, tutorId);
-        setLessonId(s.lesson_id);
-        await connectLesson(room, s, () => boardRef.current);
-        if (roomRef.current !== room) return;
-        setMic(true);
-        await room.startAudio().catch(() => {}); // Safari: unlock audio inside the Join click
-        await waitForAgent(room);
-        if (roomRef.current === room) setStatus("live");
+        // joinLesson disconnects the room itself when aborted or failing
+        const live = await joinLesson(room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId);
+        if (live) setStatus("live");
       } catch (e) {
-        if (roomRef.current !== room) return;
+        if (ac.signal.aborted) return;
         roomRef.current = null;
-        room.disconnect();
         reset();
         setError(e instanceof Error ? e.message : String(e));
         setStatus("error");
@@ -128,6 +126,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
     window.addEventListener("beforeunload", onUnload);
     return () => {
       window.removeEventListener("beforeunload", onUnload);
+      joinAbort.current?.abort();
       const room = roomRef.current;
       roomRef.current = null;
       room?.disconnect();
