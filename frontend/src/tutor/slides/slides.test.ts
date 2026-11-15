@@ -89,12 +89,17 @@ describe("pacing", () => {
     expect(entranceMs(tiny.objects[0])).toBe(1440); // axes: 900 -> 1440
   });
 
-  it("equations and text are written at a handwriting pace: 1.5-2.5 s, longer for longer ones", () => {
+  it("equations and text are written at speaking pace: ~20 characters in 4 s, at least 1.5 s each", () => {
     const m = (latex: string) => ({ kind: "math" as const, id: "m", latex, x: 0, y: 0 });
+    const t = (text: string) => ({ kind: "text" as const, id: "t", text, x: 0, y: 0 });
     expect(writeMs(m("x"))).toBe(1500);
+    expect(writeMs(t("x".repeat(20)))).toBe(4000);
+    expect(writeMs(t("twenty chars of text"))).toBe(3400); // spaces are not written: 17 glyphs
     expect(writeMs(m("f'(x)=\\lim_{h\\to 0}\\frac{f(x+h)-f(x)}{h}"))).toBeGreaterThan(writeMs(m("y=2x")));
-    expect(writeMs(m("x".repeat(500)))).toBe(2500);
-    expect(writeMs({ kind: "text", id: "t", text: "a fairly long sentence that is written in", x: 0, y: 0 })).toBe(2500);
+    // colour arguments and layout commands are not rendered glyphs
+    expect(writeMs(m("\\textcolor{#F0AC5F}{\\theta} = \\theta - 2x + 10"))).toBe(writeMs(m("\\theta = \\theta - 2x + 10")));
+    expect(writeMs(m("\\frac{abcdefgh}{ijkl}\\,\\;c"))).toBe(writeMs(m("abcdefghijklc")));
+    expect(writeMs(m("x".repeat(500)))).toBe(10000); // capped so one long line can't stall the lesson
     expect(entranceMs(m("y=2x"))).toBe(writeMs(m("y=2x")));
   });
 

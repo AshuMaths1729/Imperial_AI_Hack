@@ -57,7 +57,7 @@ describe("SlidesStage", () => {
     expect(h().describe().slides[0].steps).toBe(5);
     expect(screen.getByLabelText("Step 2 of 5")).toBeTruthy();
     act(() => void (r = h().step(3)));
-    expect(r.ms).toBe(1500); // the inserted step: "L" written in by pen
+    expect(r.ms).toBe(1500); // the inserted step: "L" written in (1.5 s minimum)
     expect(h().edit({ objects: [{ kind: "text", id: "eq", text: "x", x: 0, y: 0 }] }).ok).toBe(false);
   });
 
@@ -85,5 +85,29 @@ describe("SlidesStage", () => {
     expect(h().clearCircle("nope").ok).toBe(false);
     act(() => void h().clearCircle(b));
     expect(screen.queryAllByTestId("slide-circle")).toHaveLength(0);
+  });
+
+  it("an edit (the tutor starts explaining) clears the student's circles on that slide; ui.clear_circle after it is harmless", async () => {
+    const events: CircleEvent[] = [];
+    const { h } = mount({ circleMode: true, onCircle: (e) => events.push(e) });
+    const lasso = screen.getByTestId("slide-lasso");
+    lasso.setPointerCapture = () => {};
+    fireEvent.pointerDown(lasso, { clientX: 100, clientY: 100, pointerId: 1 });
+    for (const [x, y] of [[160, 100], [160, 160], [100, 160], [100, 100]]) fireEvent.pointerMove(lasso, { clientX: x, clientY: y, pointerId: 1 });
+    await act(async () => void fireEvent.pointerUp(lasso, { pointerId: 1 }));
+    expect(screen.getAllByTestId("slide-circle")).toHaveLength(1);
+    act(() => void h().edit({ objects: [{ kind: "text", id: "why", text: "because", x: 1200, y: 300 }] }));
+    expect(screen.queryAllByTestId("slide-circle")).toHaveLength(0);
+    let r!: ReturnType<SlidesHandle["clearCircle"]>;
+    act(() => void (r = h().clearCircle(events[0].circle_id!)));
+    expect(r.ok).toBe(true);
+  });
+
+  it("writes without a pen icon; the laser is one dot with no ring", () => {
+    const { h, view } = mount();
+    act(() => void h().step(1));
+    act(() => void h().point("ax"));
+    expect(view.container.querySelector("[data-pen]")).toBeNull();
+    expect(screen.getByTestId("slide-laser").children).toHaveLength(1);
   });
 });
