@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Activity, ArrowRight, GitCompare, Layers, Sparkles, type LucideIcon } from "lucide-react";
+import { Activity, ArrowRight, GitCompare, GraduationCap, Sparkles, type LucideIcon } from "lucide-react";
 import { WorkspaceMode } from "../types/scholartwin";
 import { AppHeader } from "./AppHeader";
 
@@ -22,10 +22,10 @@ const OPTIONS: {
   {
     mode: "lecture",
     title: "LectureUnderstanding",
-    tagline: "Interactive Concept Graph & Avatar Tutor",
+    tagline: "Live Lesson with an Avatar Tutor",
     description:
-      "Browse your saved lecture conversations or upload a lecture PDF/URL to explore prerequisite concepts in a 2-pane avatar & canvas workspace.",
-    icon: Layers,
+      "Pick a tutor and a learning track, or upload a lecture PDF, for a face-to-face lesson with animated slides and a shared whiteboard you can circle to ask about.",
+    icon: GraduationCap,
     accentVar: "var(--accent)",
     softVar: "var(--accent-soft)",
     borderVar: "var(--accent-border)",

@@ -25,7 +25,7 @@ class JsonBackend:
 
     def _read(self, coll: str) -> dict:
         p = self.root / f"{coll}.json"
-        return json.loads(p.read_text()) if p.exists() else {}
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
     def all(self, coll: str) -> List[dict]:
         with self.lock:
@@ -40,7 +40,7 @@ class JsonBackend:
             data = self._read(coll)
             data[key] = doc
             tmp = self.root / f"{coll}.json.tmp"
-            tmp.write_text(json.dumps(data, indent=2))
+            tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
             os.replace(tmp, self.root / f"{coll}.json")
 
 
@@ -76,7 +76,9 @@ class Store:
         return self._get("profiles", user_id, LearnerProfile)
 
     def list_tutors(self) -> List[Tutor]:
-        return [Tutor.model_validate(d) for d in self.b.all("tutors")]
+        # Only the current line-up, in seed order. Retired tutors stay stored so older lessons still resolve.
+        docs = {d["tutor_id"]: d for d in self.b.all("tutors")}
+        return [Tutor.model_validate(docs[i]) for i in seed.TUTOR_IDS if i in docs]
 
     def get_tutor(self, tutor_id: str) -> Tutor:
         return self._get("tutors", tutor_id, Tutor)

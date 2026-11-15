@@ -169,9 +169,13 @@ export function onCaptions(room: RoomLike, cb: (c: Caption) => void) {
     const id = attrs()["lk.segment_id"] ?? reader.info.id;
     const who = isStudent(p.identity) ? "you" : "tutor";
     let text = "";
-    for await (const chunk of reader) {
-      text += chunk;
-      cb({ id, who, text, final: false });
+    try {
+      for await (const chunk of reader) {
+        text += chunk;
+        cb({ id, who, text, final: false });
+      }
+    } catch {
+      return; // the room closed mid-caption (leaving during speech): keep the partial text, nothing to finish
     }
     cb({ id, who, text, final: attrs()["lk.transcription_final"] !== "false" });
   });

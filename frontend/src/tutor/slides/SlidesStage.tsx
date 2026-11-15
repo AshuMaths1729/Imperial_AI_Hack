@@ -87,12 +87,13 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref, 
     setMarksState(next);
   };
   const [leaving, setLeaving] = useState<{ slide: Slide; step: number; key: number } | null>(null);
+  const leaveSeq = useRef(0); // a fresh key per slide change restarts the exit cross-fade
   const [lasso, setLasso] = useState<{ x: number; y: number }[] | null>(null);
 
   const commit = (next: DeckState) => {
     const cur = stRef.current;
     const was = cur.slides[cur.index];
-    if (was && next.slides[next.index]?.id !== was.id && !reduced) setLeaving({ slide: was, step: cur.step, key: Date.now() });
+    if (was && next.slides[next.index]?.id !== was.id && !reduced) setLeaving({ slide: was, step: cur.step, key: ++leaveSeq.current });
     if (next.slides[next.index]?.id !== was?.id) {
       setAim(park);
       clearTimeout(autoTimer.current);

@@ -86,9 +86,15 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+/** The track picker is a listbox: open it, then click the option. */
+async function pickTrack(title = "Gradient Descent") {
+  fireEvent.click(await screen.findByRole("button", { name: "Learning track" }));
+  fireEvent.click(await screen.findByRole("option", { name: title }));
+}
+
 async function pickTutorAndTrack() {
   fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
-  fireEvent.change(await screen.findByLabelText("Learning track"), { target: { value: "t1" } });
+  await pickTrack();
 }
 
 describe("/tutor page", () => {
@@ -100,7 +106,7 @@ describe("/tutor page", () => {
     fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
     expect(join.disabled).toBe(true);
 
-    fireEvent.change(screen.getByLabelText("Learning track"), { target: { value: "t1" } });
+    await pickTrack();
     expect(join.disabled).toBe(false);
 
     fireEvent.click(join);

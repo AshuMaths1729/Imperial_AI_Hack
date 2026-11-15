@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     # --- secrets (server-side only) -------------------------------------------------
     anthropic_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
-    # The LiveKit agent's ElevenLabs plugin reads ELEVENLABS_API_KEY, so accept that name too: one key in .env.
+    # One key name in .env: ELEVENLABS_API_KEY (the agent passes it to its LiveKit ElevenLabs plugin explicitly).
     elevenlabs_api_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices("elevenlabs_api_key", "ELEVENLABS_API_KEY", "ELEVENLABS_API_KEY"),

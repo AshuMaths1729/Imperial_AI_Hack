@@ -2,24 +2,36 @@ from datetime import datetime, timezone
 
 from .models import KP, LearnerProfile, Material, Track, Tutor
 
+# Synthesia interactive-avatar ids (only these live avatars join a call; see agent/README.md).
 KENJI = "7572faa9-15da-400d-8227-ef1ab8932523"
-# One line per tutor: swap in Studio av_ ids here once converted.
-TUTOR_AVATARS = {"kenji-visual": KENJI, "kenji-socratic": KENJI, "kenji-examples": KENJI}
+JENNY = "8788bef1-8020-46e0-a8f4-510ea9989b25"
+# Mei's Studio avatar, converted for live use (POST /api/interactive-avatars/avatars reported "completed").
+# An empty id would mean voice only.
+MEI = "519674df-1ea5-47bc-99d4-8912a6975a66"
+TUTOR_AVATARS = {"kenji-visual": KENJI, "jenny-socratic": JENNY, "mei-examples": MEI}
 
 PROFILE = LearnerProfile(user_id="demo", name="Demo Student", style="visual", level="undergrad")
 
-# Voices: Eric (smooth, trustworthy), Chris (charming, down-to-earth), Bill (wise, mature): calm, friendly tutors.
+# Three different people who all teach the same way with every tool (agent/prompting.py `persona`);
+# style_prompt is personality only, as "<label>: <description>" (the lobby shows both parts).
+# Kenji is Brian (premade: deep, resonant and comforting; the most soothing of the voices tried),
+# Jenny keeps the voice designed for her face, Mei is Matilda (premade, warm educational alto).
+# The lobby's "Hear …" samples (frontend/public/tutors/voices) are recorded in these voices.
 TUTORS = [
-    Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=TUTOR_AVATARS["kenji-visual"],
-          voice_id="cjVigY5qzO86Huf0OWal",
-          style_prompt="visual explainer: draws first, then explains"),
-    Tutor(tutor_id="kenji-socratic", name="Kenji — Socratic coach", avatar_id=TUTOR_AVATARS["kenji-socratic"],
-          voice_id="iP95p4xoKVk53GoZ742B",
-          style_prompt="Socratic coach: asks guiding questions before explaining"),
-    Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=TUTOR_AVATARS["kenji-examples"],
-          voice_id="pqHfZKP75CvOlQylNhV4",
-          style_prompt="worked examples: solves a similar problem step by step, then lets you try"),
+    Tutor(tutor_id="kenji-visual", name="Kenji", avatar_id=TUTOR_AVATARS["kenji-visual"],
+          voice_id="nPczCjzI2devNBz1zQrb",
+          style_prompt="Calm and thoughtful: unhurried and warm, with a quiet, dry sense of humour "
+                       "and a love of a good analogy."),
+    Tutor(tutor_id="jenny-socratic", name="Jenny", avatar_id=TUTOR_AVATARS["jenny-socratic"],
+          voice_id="1dJLMOIuKrasdg4BFQb9",
+          style_prompt="Bright and encouraging: upbeat and quick to celebrate progress, with a playful "
+                       "curiosity about how you are thinking."),
+    Tutor(tutor_id="mei-examples", name="Mei", avatar_id=TUTOR_AVATARS["mei-examples"],
+          voice_id="XrExE9yKIg1WjnnlVkGX",
+          style_prompt="Patient and precise: gentle and reassuring, careful with every detail, and never "
+                       "makes you feel rushed."),
 ]
+TUTOR_IDS = [t.tutor_id for t in TUTORS]
 
 
 def differentiation_track() -> Track:
@@ -61,9 +73,12 @@ def demo_tracks() -> list:
 
 
 def apply(backend) -> None:
-    """Idempotent seeding: adds seed docs that are missing, never overwrites one (live progress, edited tracks)."""
-    docs = [("tutors", t.tutor_id, t) for t in TUTORS] + [("profiles", PROFILE.user_id, PROFILE)]
-    docs += [("tracks", t.track_id, t) for t in demo_tracks()]
+    """Idempotent seeding: adds seed docs that are missing, never overwrites one (live progress, edited tracks).
+    Tutors are configuration, not user data, so they are always rewritten to match TUTORS."""
+    for t in TUTORS:
+        if backend.get("tutors", t.tutor_id) != t.model_dump():
+            backend.put("tutors", t.tutor_id, t.model_dump())
+    docs = [("profiles", PROFILE.user_id, PROFILE)] + [("tracks", t.track_id, t) for t in demo_tracks()]
     for coll, key, model in docs:
         if backend.get(coll, key) is None:
             backend.put(coll, key, model.model_dump())

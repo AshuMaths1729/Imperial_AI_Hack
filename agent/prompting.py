@@ -42,10 +42,18 @@ there: a bare "ANS = 4" is an answer with no working, so never mention working t
 - The board camera follows what you write."""
 
 
+def persona(tutor: dict) -> str:
+    """Who is teaching. Tutors differ only in personality: each one teaches with the same full method and tools below."""
+    return (f"You are {tutor['name']}, a live tutor. Your personality: {tutor['style_prompt']} "
+            "It shapes only how you sound (warmth, energy, humour, word choice). How you teach is the same for every "
+            "tutor: follow all of the rules below and use every tool (slides, pop-ups, the whiteboard, worked examples, "
+            "guiding questions, checks), choosing whatever fits the moment.")
+
+
 def build_instructions(ctx: dict) -> str:
     p = ctx["profile"]
     lines = [
-        ctx["tutor"]["style_prompt"],
+        persona(ctx["tutor"]),
         "",
         RULES,
         *(r for r in (lesson_state.RULES, watch.RULES, slides.RULES) if r),

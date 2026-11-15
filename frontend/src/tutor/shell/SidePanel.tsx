@@ -8,15 +8,22 @@ import { getLessonState, getTrack, type KP, type Lesson, type LessonState, type 
 import { AddMaterial } from "./AddMaterial";
 import type { KeyPoint } from "./lesson";
 
-/** `load()` once, then every 4 s while `poll` is on; a failed poll keeps the last good data and the next one retries. */
-function usePoll<T>(load: (() => Promise<T>) | null, key: string, poll: boolean) {
+/** `load()` once, then every 4 s while `poll` is on, until `done(data)` says the wait is over; a failed poll keeps
+    the last good data and the next one retries. */
+function usePoll<T>(load: (() => Promise<T>) | null, key: string, poll: boolean, done?: (d: T) => boolean) {
   const [data, setData] = useState<T>();
   useEffect(() => {
     if (!load) return;
     let alive = true;
-    const run = () => load().then((d) => alive && setData(d), () => {});
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const run = () =>
+      load().then((d) => {
+        if (!alive) return;
+        setData(d);
+        if (done?.(d)) clearInterval(timer);
+      }, () => {});
     void run();
-    const timer = poll ? setInterval(run, 4000) : undefined;
+    if (poll) timer = setInterval(run, 4000);
     return () => {
       alive = false;
       clearInterval(timer);
@@ -28,7 +35,8 @@ function usePoll<T>(load: (() => Promise<T>) | null, key: string, poll: boolean)
 
 export type TrackData = { track: Track; lessons: Lesson[] };
 /** Track + lessons (the agent updates KPs during the lesson). */
-export const useTrackData = (trackId: string, poll: boolean) => usePoll<TrackData>(() => getTrack(trackId), trackId, poll);
+export const useTrackData = (trackId: string, poll: boolean, done?: (d: TrackData) => boolean) =>
+  usePoll<TrackData>(() => getTrack(trackId), trackId, poll, done);
 /** The agent's lesson-state checkpoint: position, detours, and how each checked concept went. */
 export const useLessonState = (lessonId: string | undefined, poll: boolean) =>
   usePoll<LessonState | null>(lessonId ? () => getLessonState(lessonId) : null, lessonId ?? "", poll)[0];

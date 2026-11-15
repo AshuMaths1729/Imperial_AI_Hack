@@ -40,6 +40,10 @@ from lesson_state import LessonState
 from tutor_tools import TutorTools
 
 load_dotenv()
+# The repo's one name for the key. The LiveKit ElevenLabs plugin would otherwise look for a differently named env
+# var, find nothing, and crash the job at STT setup (the lesson page then shows "Voice only" with no tutor), so the
+# key is passed to the plugin explicitly.
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 logger = logging.getLogger("tutor")
 
 SUMMARY_ID = "lesson-summary"
@@ -234,11 +238,11 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.add_shutdown_callback(on_shutdown)
 
     session = AgentSession(
-        stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
+        stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en", api_key=ELEVENLABS_API_KEY),  # ignore nearby non-English chatter
         llm=VoiceLLM(model=VOICE_MODEL, caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
         conn_options=SessionConnectOptions(llm_conn_options=APIConnectOptions(timeout=LLM_TIMEOUT_S)),
         tts=elevenlabs.TTS(
-            voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5",
+            voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5", api_key=ELEVENLABS_API_KEY,
             voice_settings=elevenlabs.VoiceSettings(stability=0.5, similarity_boost=0.75, speed=SPEECH_SPEED),
         ),
         vad=ctx.proc.userdata["vad"],
@@ -315,7 +319,8 @@ async def entrypoint(ctx: JobContext) -> None:
 
     ctx.room.register_text_stream_handler("tutor.idle", lambda reader, _who: spawn(on_idle(reader)))
 
-    if os.environ.get("TUTOR_AVATAR") != "0":
+    # A tutor without a live Synthesia face (empty avatar_id) teaches voice only.
+    if os.environ.get("TUTOR_AVATAR") != "0" and tctx["tutor"].get("avatar_id"):
         config = synthesia.AvatarConfig(avatar_ids=[tctx["tutor"]["avatar_id"]])
         await start_avatar(session, ctx.room, lambda: synthesia.AvatarSession(config, join_timeout=AVATAR_JOIN_TIMEOUT))
 

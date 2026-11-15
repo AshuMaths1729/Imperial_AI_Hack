@@ -26,7 +26,7 @@ tutor box / /tutor ── POST /api/tutor/session ──▶ mints a LiveKit toke
 | LiveKit Cloud project `ai-hackerthon` | ask Fuchun for `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, or copy them from the LiveKit Cloud dashboard → Settings → API keys |
 | `SYNTHESIA_API_KEY` | a key from the team's Synthesia workspace (it must have Interactive Avatar access) |
 | `ANTHROPIC_API_KEY` | the team key |
-| `ELEVENLABS_API_KEY` | the team ElevenLabs key (the LiveKit plugin reads this name; it's the same key as `ELEVENLABS_API_KEY`) |
+| `ELEVENLABS_API_KEY` | the team ElevenLabs key (the agent passes it to the LiveKit ElevenLabs plugin explicitly) |
 | LiveKit CLI `lk` (optional) | `brew install livekit-cli`, only needed to deploy to LiveKit Cloud (step 5) |
 
 You don't install a LiveKit server: the rooms run on LiveKit Cloud. The Python and JS LiveKit
@@ -102,7 +102,7 @@ the deployed agent's calls (or each other's).
 | Tutor box shows "Couldn't reach the tutor service" | Backend not running, or `NEXT_PUBLIC_API_BASE` points at the wrong port. Click **Retry** once it's up. |
 | Tutor hears you but never finishes a reply | Something is interrupting it (speakers feeding the mic, people talking). Use headphones. |
 | Chrome won't use the mic | Use Safari, or allow the mic for localhost in Chrome's site settings. |
-| `UNKNOWN_AVATAR` in the agent log | The avatar id isn't available to the Synthesia workspace. Only Synthesia's interactive (Express) avatars work, e.g. Kenji `7572faa9-…` and Jenny `8788bef1-…`. |
+| `UNKNOWN_AVATAR` in the agent log | The avatar id isn't available to the Synthesia workspace. Only Synthesia's interactive (Express) avatars work, e.g. Kenji `7572faa9-…`, Jenny `8788bef1-…` and Mei `519674df-…` (a Studio avatar converted with `POST /api/interactive-avatars/avatars`). |
 | Avatar video looks blurry | Don't render it bigger than 512 px; that's the stream's resolution. |
 
 ## Code map

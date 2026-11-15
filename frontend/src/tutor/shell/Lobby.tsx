@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, Mic, Plus, Video } from "lucide-react";
+import Image from "next/image";
+import { AlertTriangle, Check, Mic, Pause, Play, Plus, Video } from "lucide-react";
 import { createTrack, type Track, type Tutor } from "./api";
 import { AddMaterial } from "./AddMaterial";
-import { initials } from "./VideoTiles";
+import { GlassSelect } from "@/components/GlassSelect";
+import { tutorPortrait, voiceSampleFor } from "../media";
 
 /** Pre-join mic/camera check. Started by a click (no surprise permission prompt) and released on unmount so LiveKit can take the devices. */
 function DeviceCheck() {
@@ -96,10 +98,111 @@ type Props = {
   loadError?: string;
 };
 
+/** One tutor as a portrait card (mockup: face on top, "Hear …" pill over it, name + style below). The card is
+    the radio; the voice button sits beside it in the DOM (never nested inside another button). */
+function TutorCard({
+  tutor,
+  selected,
+  playing,
+  onSelect,
+  onPlay,
+}: {
+  tutor: Tutor;
+  selected: boolean;
+  playing: boolean;
+  onSelect: () => void;
+  onPlay: () => void;
+}) {
+  const [style, ...rest] = tutor.style_prompt.split(":");
+  const src = tutorPortrait(tutor);
+  const hasSample = !!voiceSampleFor(tutor.tutor_id);
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow] duration-200 ${
+        selected
+          ? "border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]"
+          : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+      }`}
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        aria-label={`${tutor.name}, ${style.trim()}`}
+        onClick={onSelect}
+        className="apple-press apple-focus flex h-full w-full flex-col text-left"
+      >
+        <span className="relative block aspect-[4/3] w-full overflow-hidden bg-[var(--bg-surface-muted)]">
+          {src ? (
+            <Image
+              src={src}
+              alt=""
+              fill
+              loading="eager" // above the fold: the lobby's largest paint
+              sizes="(min-width: 640px) 240px, 100vw"
+              // Square webcam-style frames in a 4:3 card: keep the upper part, so hair never touches the edge.
+              className="object-cover object-[50%_30%] transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <span aria-hidden className="apple-display grid h-full w-full place-items-center text-4xl font-semibold text-[var(--text-secondary)]">
+              {tutor.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          {selected && (
+            <span aria-hidden className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] shadow-md">
+              <Check className="h-4 w-4" strokeWidth={3} />
+            </span>
+          )}
+        </span>
+        <span className={`block flex-1 px-3.5 pb-3.5 pt-3 transition-colors ${selected ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-surface-muted)]"}`}>
+          <span className="block text-sm font-semibold text-[var(--text-primary)]">{tutor.name}</span>
+          <span className="block text-xs font-medium text-[var(--accent)] first-letter:uppercase">{style.trim()}</span>
+          {rest.length > 0 && (
+            <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)] first-letter:uppercase">{rest.join(":").trim()}</span>
+          )}
+        </span>
+      </button>
+      {hasSample && (
+        // A portrait-sized overlay holds the pill at the portrait's lower-left corner; the pill is
+        // outside the radio, so playing a sample never selects the tutor.
+        <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]">
+          <button
+            type="button"
+            onClick={onPlay}
+            aria-pressed={playing}
+            aria-label={`Hear ${tutor.name}'s voice`}
+            className="apple-glass apple-press apple-focus pointer-events-auto absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[11px] font-semibold text-[var(--text-primary)]"
+          >
+            <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]">
+              {playing ? <Pause className="h-2.5 w-2.5" fill="currentColor" aria-hidden /> : <Play className="ml-px h-2.5 w-2.5" fill="currentColor" aria-hidden />}
+            </span>
+            Hear {tutor.name}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTracksChange, onJoin, error, loadError }: Props) {
   const [newTitle, setNewTitle] = useState<string | null>(null);
   const [createErr, setCreateErr] = useState<string>();
   const track = tracks.find((t) => t.track_id === trackId);
+  // "Hear …" voice samples: one plays at a time, and leaving the lobby (joining) stops it.
+  const [playing, setPlaying] = useState<string>();
+  const sample = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => () => sample.current?.pause(), []);
+  const playSample = (id: string) => {
+    sample.current?.pause();
+    if (playing === id) return setPlaying(undefined);
+    const src = voiceSampleFor(id);
+    if (!src) return;
+    const a = new Audio(src);
+    a.onended = () => setPlaying(undefined);
+    sample.current = a;
+    setPlaying(id);
+    void a.play().catch(() => setPlaying(undefined));
+  };
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
@@ -129,55 +232,30 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
             </p>
           )}
           <div role="radiogroup" aria-labelledby="tutor-heading" className="grid gap-3 sm:grid-cols-3">
-            {tutors.map((t) => {
-              const [style, ...rest] = t.style_prompt.split(":");
-              const selected = t.tutor_id === tutorId;
-              return (
-                <button
-                  key={t.tutor_id}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => onTutor(t.tutor_id)}
-                  className={`apple-press apple-focus group flex flex-col items-start gap-3 rounded-2xl border p-4 text-left ${
-                    selected ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] hover:border-[var(--border-strong)]"
-                  }`}
-                >
-                  <span
-                    aria-hidden
-                    className={`grid h-11 w-11 place-items-center rounded-full text-sm font-semibold transition-colors ${
-                      selected ? "bg-[var(--accent)] text-[var(--accent-fg)]" : "bg-[var(--bg-surface-muted)] text-[var(--text-secondary)]"
-                    }`}
-                  >
-                    {initials(t.name)}
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-[var(--text-primary)]">{t.name}</span>
-                    <span className="block text-xs font-medium text-[var(--accent)] first-letter:uppercase">{style.trim()}</span>
-                    {rest.length > 0 && <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">{rest.join(":").trim()}</span>}
-                  </span>
-                </button>
-              );
-            })}
+            {tutors.map((t) => (
+              <TutorCard
+                key={t.tutor_id}
+                tutor={t}
+                selected={t.tutor_id === tutorId}
+                playing={playing === t.tutor_id}
+                onSelect={() => onTutor(t.tutor_id)}
+                onPlay={() => playSample(t.tutor_id)}
+              />
+            ))}
           </div>
         </section>
 
         <section className="space-y-3">
           <h2 className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">Learning track</h2>
           <div className="flex gap-2">
-            <select
-              aria-label="Learning track"
+            <GlassSelect
+              label="Learning track"
               value={trackId}
-              onChange={(e) => onTrack(e.target.value)}
-              className="apple-focus min-w-0 flex-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3.5 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-border)] focus:outline-none"
-            >
-              <option value="">Choose a track…</option>
-              {tracks.map((t) => (
-                <option key={t.track_id} value={t.track_id}>
-                  {t.title}
-                </option>
-              ))}
-            </select>
+              placeholder="Choose a track…"
+              options={tracks.map((t) => ({ value: t.track_id, label: t.title }))}
+              onChange={onTrack}
+              className="flex-1"
+            />
             <button
               type="button"
               onClick={() => setNewTitle(newTitle === null ? "" : null)}

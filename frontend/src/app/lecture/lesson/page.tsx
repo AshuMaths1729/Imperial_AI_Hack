@@ -4,20 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import { Download, GraduationCap, Loader2 } from "lucide-react";
 import { AppHeader, HeaderAction } from "@/components/AppHeader";
 import type { BoardHandle } from "@/tutor/contracts/types";
+import { tutorPortrait } from "@/tutor/media";
 import { listTracks, listTutors, type Track, type Tutor } from "@/tutor/shell/api";
 import { CallView } from "@/tutor/shell/CallView";
 import { Lobby } from "@/tutor/shell/Lobby";
 import { downloadTranscript } from "@/tutor/shell/lesson";
 import type { Caption } from "@/tutor/shell/session";
-import { LessonPanel, useTrackData } from "@/tutor/shell/SidePanel";
+import { LessonPanel, useTrackData, type TrackData } from "@/tutor/shell/SidePanel";
 import { useTutorSession } from "@/tutor/shell/useTutorSession";
 
 type RecapProps = { trackId: string; lessonId?: string; onBack: () => void };
 
 function Recap({ trackId, lessonId, onBack }: RecapProps) {
-  // the agent posts the lesson summary a few seconds after the room closes; keep polling for it
-  const [data] = useTrackData(trackId, true);
-  const ended = !!data?.lessons.some((l) => l.lesson_id === lessonId && l.ended_at);
+  // the agent posts the lesson summary a few seconds after the room closes; poll for it, and stop once it's in
+  const isEnded = (d: TrackData) => d.lessons.some((l) => l.lesson_id === lessonId && !!l.ended_at);
+  const [data] = useTrackData(trackId, true, isEnded);
+  const ended = !!data && isEnded(data);
   return (
     <div className="apple-sheet st-fade-up mx-auto my-auto w-full max-w-xl space-y-5 rounded-[22px] p-6">
       <h2 className="apple-heading text-lg font-semibold">Lesson ended</h2>
@@ -64,6 +66,7 @@ export default function TutorPage() {
         session={session}
         boardRef={boardRef}
         tutorName={tutor?.name ?? "Tutor"}
+        tutorPortrait={tutorPortrait(tutor)}
         trackId={trackId}
         trackTitle={track?.title ?? ""}
         onLeave={() => {
@@ -80,10 +83,10 @@ export default function TutorPage() {
     <div className="flex min-h-dvh flex-col pb-4">
       <AppHeader
         tone="accent"
-        back={{ label: "Lecture workspace", href: "/" }}
+        back={{ label: "Home", href: "/" }}
         icon={GraduationCap}
-        title="Live lesson"
-        subtitle={ended && track ? `${track.title}${tutor ? ` · with ${tutor.name}` : ""}` : "Face-to-face lessons · slides · whiteboard"}
+        title="LectureUnderstanding"
+        subtitle={ended && track ? `${track.title}${tutor ? ` · with ${tutor.name}` : ""}` : "Live lesson · slides · whiteboard"}
         actions={download && <HeaderAction icon={Download} label="Download transcript" onClick={download} />}
       />
       {ended ? (

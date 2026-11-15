@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { LocalVideoTrack, RemoteVideoTrack } from "livekit-client";
+import Image from "next/image";
 import { MicOff } from "lucide-react";
 
 /** Renders a LiveKit video track; the ref exposes the <video> element (ScreenCircle reads frames from it). */
@@ -38,8 +39,19 @@ export const initials = (name: string) =>
     .map((w) => w[0]!.toUpperCase())
     .join("");
 
+/** Round tutor face: the tutor's portrait, or initials when there is none. The caller sizes it (h-/w- classes). */
+export function TutorFace({ name, src, className = "" }: { name: string; src?: string; className?: string }) {
+  return (
+    <span aria-hidden className={`relative grid shrink-0 place-items-center overflow-hidden rounded-full font-semibold ${className}`}>
+      {src ? <Image src={src} alt="" fill sizes="96px" className="object-cover" /> : initials(name)}
+    </span>
+  );
+}
+
 type Props = {
   tutorName: string;
+  /** The tutor's portrait (media.tutorPortrait), shown until the avatar's video arrives or for a voice-only tutor. */
+  tutorPortrait?: string;
   connecting: boolean;
   avatarVideo?: RemoteVideoTrack;
   tutorSpeaking: boolean;
@@ -50,7 +62,7 @@ type Props = {
   where?: string;
 };
 
-export function VideoTiles({ tutorName, connecting, avatarVideo, tutorSpeaking, selfVideo, cam, mic, where }: Props) {
+export function VideoTiles({ tutorName, tutorPortrait, connecting, avatarVideo, tutorSpeaking, selfVideo, cam, mic, where }: Props) {
   return (
     <section aria-label="Tutor" className="apple-sheet st-fade-up shrink-0 rounded-[22px] p-3">
       <div className="mb-2 flex items-baseline justify-between px-1">
@@ -75,9 +87,7 @@ export function VideoTiles({ tutorName, connecting, avatarVideo, tutorSpeaking, 
                     tutorSpeaking || connecting ? "animate-ping motion-reduce:animate-none" : ""
                   }`}
                 />
-                <span className="grid h-16 w-16 place-items-center rounded-full bg-[var(--accent)] text-lg font-semibold text-[var(--accent-fg)]">
-                  {initials(tutorName)}
-                </span>
+                <TutorFace name={tutorName} src={tutorPortrait} className="h-16 w-16 bg-[var(--accent)] text-lg text-[var(--accent-fg)]" />
               </div>
               <span className="text-xs text-[var(--text-secondary)]">{connecting ? `Waiting for ${tutorName} to join…` : "Voice only"}</span>
             </div>

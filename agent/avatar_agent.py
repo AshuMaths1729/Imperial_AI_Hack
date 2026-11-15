@@ -21,6 +21,9 @@ from livekit.agents import Agent, AgentSession, JobContext, JobProcess, TurnHand
 from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
 load_dotenv(Path(__file__).parent.parent / ".env")  # the repo-root .env the backend uses too; real env vars win
+# The repo's one name for the key, passed to the LiveKit ElevenLabs plugin explicitly (it would otherwise look for
+# a differently named env var and fail).
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 logger = logging.getLogger("avatar-tutor")
 
 RULES = (
@@ -55,9 +58,9 @@ async def entrypoint(ctx: JobContext) -> None:
     active, tutors = parse_meta(ctx.job.metadata)
     await ctx.connect()
 
-    tts = elevenlabs.TTS(voice_id=tutors[active]["voice_id"], model="eleven_flash_v2_5")
+    tts = elevenlabs.TTS(voice_id=tutors[active]["voice_id"], model="eleven_flash_v2_5", api_key=ELEVENLABS_API_KEY)
     session = AgentSession(
-        stt=elevenlabs.STT(model="scribe_v2_realtime"),
+        stt=elevenlabs.STT(model="scribe_v2_realtime", api_key=ELEVENLABS_API_KEY),
         llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=300),
         tts=tts,
         vad=ctx.proc.userdata["vad"],

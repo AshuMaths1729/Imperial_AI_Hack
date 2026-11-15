@@ -340,7 +340,7 @@ def fallback_deck(track_id: str) -> Optional[dict]:
     if not re.fullmatch(r"[A-Za-z0-9_-]+", track_id):
         return None
     p = FALLBACK_DIR / f"{track_id}.json"
-    return json.loads(p.read_text()) if p.exists() else None
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
 PDF_CHARS = 30000  # budget for an uploaded PDF's text in the deck prompt
@@ -369,7 +369,7 @@ def materials_text(track: Track, limit: int = 40000, store=None) -> str:
     for i, m in enumerate(track.materials):
         parts.append(f"Material ({m.kind}): {m.dataset_title}")
         if m.kind == "demo" and re.fullmatch(r"[a-z0-9_]+", m.ref) and (DEMO_DIR / f"{m.ref}.json").exists():
-            d = json.loads((DEMO_DIR / f"{m.ref}.json").read_text())
+            d = json.loads((DEMO_DIR / f"{m.ref}.json").read_text(encoding="utf-8"))
             parts.append(f"{d.get('title', '')} — {d.get('subtitle', '')}")
             for n in d.get("nodes", []):
                 parts.append(f"- {n.get('label')}: {n.get('summary', '')}")

@@ -206,7 +206,7 @@ The student publishes a screen-share video track; the agent subscribes and keeps
 Lesson info travels as **agent dispatch metadata** (`RoomAgentDispatch.metadata`, read by the agent as `ctx.job.metadata`): `{track_id, lesson_id, tutor_id}`. The tutor's persona, avatar id and voice id come from `GET /api/tutor/context/{lesson_id}`.
 
 ### Env vars
-`agent/.env`: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `SYNTHESIA_API_KEY`, `ANTHROPIC_API_KEY`, `ELEVEN_API_KEY`, `FAL_KEY`, `TUTOR_API_BASE`, `TUTOR_AGENT_NAME` (per developer, e.g. `tutor-fuchun`), `TUTOR_AVATAR` (`0` = voice only, saves Synthesia quota).
+`agent/.env`: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `SYNTHESIA_API_KEY`, `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY`, `FAL_KEY`, `TUTOR_API_BASE`, `TUTOR_AGENT_NAME` (per developer, e.g. `tutor-fuchun`), `TUTOR_AVATAR` (`0` = voice only, saves Synthesia quota).
 `backend/.env`: `LIVEKIT_*`, `TUTOR_AGENT_NAME`, `MONGODB_URI` (or empty → JSON files in `backend/tutor/data/`).
 All `.env` files are git-ignored already.
 

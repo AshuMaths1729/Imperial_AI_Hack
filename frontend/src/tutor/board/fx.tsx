@@ -267,16 +267,16 @@ export function BoardFxLayer() {
 /** The marker over a pointed item: each stroke sweeps in as the laser passes along it (same timing), then all fade. */
 function GlowMark({ glow }: { glow: Glow }) {
   const total = pathLength(glow.path) || 1;
-  let at = 0;
+  // Each stroke's share of the sweep, and when it starts (the sum of the strokes before it).
+  const durations = glow.path.map((s) => (pathLength([s]) / total) * glow.ms);
+  const delays = durations.map((_, i) => durations.slice(0, i).reduce((sum, ms) => sum + ms, 0));
   return (
     <svg className="tw-glow" width={1} height={1} strokeWidth={glow.width}
       style={{ animation: `tw-glow-out 400ms ease-in ${glowMs(glow.ms) - 400}ms forwards` }}>
-      {glow.path.map((s, i) => {
-        const ms = (pathLength([s]) / total) * glow.ms, delay = at;
-        at += ms;
-        return <polyline key={i} pathLength={1} points={s.map((p) => `${p.x},${p.y}`).join(" ")}
-          style={{ animation: `tw-sweep ${Math.max(1, Math.round(ms))}ms linear ${Math.round(delay)}ms both` }} />;
-      })}
+      {glow.path.map((s, i) => (
+        <polyline key={i} pathLength={1} points={s.map((p) => `${p.x},${p.y}`).join(" ")}
+          style={{ animation: `tw-sweep ${Math.max(1, Math.round(durations[i]))}ms linear ${Math.round(delays[i])}ms both` }} />
+      ))}
     </svg>
   );
 }

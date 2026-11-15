@@ -18,6 +18,8 @@ type Props = {
   session: TutorSession;
   boardRef: React.RefObject<BoardHandle | null>;
   tutorName: string;
+  /** The tutor's portrait, shown until the avatar's video arrives (and throughout for a voice-only tutor). */
+  tutorPortrait?: string;
   trackId: string;
   trackTitle: string;
   onLeave: () => void;
@@ -74,7 +76,7 @@ function Meter({ label, value, text }: { label: string; value: number; text: str
   );
 }
 
-export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle, onLeave }: Props) {
+export function CallView({ session: s, boardRef, tutorName, tutorPortrait, trackId, trackTitle, onLeave }: Props) {
   const [tab, setTab] = useState<StageTab>("board");
   const tabRef = useRef<StageTab>("board"); // read by the laser cues between renders
   const show = useCallback((t: StageTab) => {
@@ -213,6 +215,7 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
           <aside className="flex min-h-0 w-full shrink-0 flex-col gap-2.5 lg:w-80 xl:w-96">
             <VideoTiles
               tutorName={tutorName}
+              tutorPortrait={tutorPortrait}
               connecting={!live}
               avatarVideo={s.avatarVideo}
               tutorSpeaking={s.tutorSpeaking}

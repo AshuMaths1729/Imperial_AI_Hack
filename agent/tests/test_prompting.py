@@ -8,7 +8,10 @@ CTX = json.loads((Path(__file__).parent / "fixtures/context.json").read_text())
 
 def test_instructions_include_style_and_kps():
     text = build_instructions(CTX)
-    assert text.splitlines()[0] == CTX["tutor"]["style_prompt"]
+    first = text.splitlines()[0]
+    # the tutor knows its name; its style prompt is personality only, the method is the same for every tutor
+    assert first.startswith(f"You are {CTX['tutor']['name']}") and CTX["tutor"]["style_prompt"] in first
+    assert "same for every tutor" in first and "every tool" in first
     assert "- m0:n1 [understood] Loss function" in text
     assert "- m0:n3 [not_started] Learning rate" in text
     assert "Alex" in text and "visual" in text

@@ -31,7 +31,8 @@ export interface LibraryTopic {
 }
 
 interface LibraryViewProps {
-  mode: "lecture" | "paper2sim";
+  /** Only PaperSim has a library: LectureUnderstanding is the live lesson at /lecture/lesson. */
+  mode: "paper2sim";
   topics: LibraryTopic[];
   uploadLoading: boolean;
   uploadError: string | null;
@@ -76,13 +77,6 @@ const MODE_META: Record<
 };
 
 const COPY = {
-  lecture: {
-    title: "LectureUnderstanding",
-    tagline: "Turn any lecture into a living concept map.",
-    desc: "Upload a lecture PDF or paste a URL to open the avatar & canvas workspace.",
-    dropHint: "Drop a lecture PDF here, or click to browse",
-    dropSubHint: "Extracts slides into a clickable concept graph",
-  },
   paper2sim: {
     title: "PaperSim",
     tagline: "Bring a paper's equations to life.",

@@ -91,13 +91,17 @@ export function useAvatarCall() {
       const id = reader.info.attributes?.["lk.segment_id"] ?? reader.info.id;
       const who = p.identity === room.localParticipant.identity ? "you" : "tutor";
       let text = "";
-      for await (const chunk of reader) {
-        text += chunk;
-        const c: Caption = { id, who, text, tutorId: activeRef.current };
-        setCaptions((l) => {
-          const i = l.findIndex((x) => x.id === id);
-          return i === -1 ? [...l, c].slice(-30) : l.map((x, j) => (j === i ? c : x));
-        });
+      try {
+        for await (const chunk of reader) {
+          text += chunk;
+          const c: Caption = { id, who, text, tutorId: activeRef.current };
+          setCaptions((l) => {
+            const i = l.findIndex((x) => x.id === id);
+            return i === -1 ? [...l, c].slice(-30) : l.map((x, j) => (j === i ? c : x));
+          });
+        }
+      } catch {
+        // the room closed mid-caption (leaving during speech): keep what arrived
       }
     });
 

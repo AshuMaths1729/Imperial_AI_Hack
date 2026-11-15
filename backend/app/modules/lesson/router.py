@@ -36,10 +36,18 @@ def _locked(fn):
     return wrapper
 
 
+_store_init_lock = threading.Lock()
+
+
 def get_store() -> Store:
+    # Built once under a lock: the lesson page asks for tutors and tracks at the same time, and two
+    # concurrent first requests would each build a store and seed the same JSON files (on Windows
+    # the second os.replace fails with "Access is denied").
     global _store
     if _store is None:
-        _store = make_store()
+        with _store_init_lock:
+            if _store is None:
+                _store = make_store()
     return _store
 
 
