@@ -33,18 +33,18 @@ export function SeriesTab({ simulation, paramValues }: PaperSimTabProps) {
   const title = simulation.sim_title || simulation.paper_title || "simulation";
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-6">
+    <div className="mx-auto min-w-0 max-w-6xl space-y-8 px-2 pb-6 pt-4 sm:px-4 sm:pt-6 lg:px-6">
       <SeriesHeader simulation={simulation} paramValues={paramValues} />
 
       {views.length === 0 ? (
-        <div className="st-fade-up flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--border-strong)] p-10 text-center">
+        <div className="apple-card st-fade-up flex flex-col items-center gap-2 rounded-2xl border border-dashed p-10 text-center">
           <LineChartIcon className="h-6 w-6 text-[var(--text-muted)]" />
           <p className="text-sm font-medium text-[var(--text-primary)]">No output series yet</p>
           <p className="text-xs text-[var(--text-muted)]">Run the simulation to see its curves analysed here.</p>
         </div>
       ) : (
         <>
-          <section className="space-y-4" aria-label="Per-series analysis">
+          <section className="space-y-3 sm:space-y-4" aria-label="Per-series analysis">
             {views.map((v, i) => (
               <SeriesCard
                 key={v.name}

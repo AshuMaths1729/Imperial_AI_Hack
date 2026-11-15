@@ -50,7 +50,13 @@ The visual system lives in [globals.css](frontend/src/app/globals.css). Motion a
 ### 2.1 Principles
 
 - **One hue per module.** Every screen of a module uses its colour for the header icon, back-button hover, primary buttons and glows, so you always know where you are (§2.3).
-- **Calm surfaces, expressive entrances.** Content sits on quiet, solid or glass surfaces. The expression comes from motion: things fade up in a stagger, graphs draw themselves, cards lift on hover. The backgrounds behind them stay still.
+- **Liquid Glass.** Every screen sits on a static colour field (`--backdrop-field`, painted once on `body`). Content and controls float above it as translucent glass layers. Each layer has a bright rim, an inner top highlight and a diagonal sheen. The header is a floating capsule, panes are floating sheets inset with ~10 px gaps, and single-line controls are capsules. Screen roots stay transparent so the field shows through.
+- **Calm surfaces, expressive entrances.** The expression comes from motion: things fade up in a stagger, graphs draw themselves, cards lift on hover. The colour field behind stays still.
+- **Live Tutor on call.** The tutor is not in the header.
+  - **Where the button appears:** only the inner workspaces, the PaperSim tabbed workspace and the HypothesisGraph results view, carry the **Live tutor** button (`LiveTutorFab`) in their innermost content layer. It sits bottom-right in a slim lane below the scrolling content (the PaperSim tab area, the HypothesisGraph graph sheet's footer, next to the click hint), so it never covers content at any scroll position.
+  - **Where it does not:** the landing page, the libraries and the HypothesisGraph start screen have none. Neither does anything in LectureUnderstanding, whose workspace has the tutor built into its left dock (`LiveAvatarTile`).
+  - **Panel:** the button opens the tutor in a glass panel, which is portalled to `body` so no pane can clip it.
+  - **Calls:** closing the panel keeps a live call running; a green dot on the button marks the call.
 - **Show the paper's meaning, not the plumbing.**
   - Math always renders, as KaTeX or Unicode.
   - Graph links say how things relate, never a generic "governs".
@@ -69,13 +75,16 @@ The app has three themes, set as `data-theme` on `<html>`: **light** (default), 
 
 | Family | Tokens | Use |
 | :--- | :--- | :--- |
-| Backgrounds | `--bg-canvas`, `--bg-surface`, `--bg-surface-muted`, `--bg-glass`, `--bg-glass-elevated` | Page, cards and panels, wells and inputs, translucent bars and popovers |
+| Backgrounds | `--bg-canvas`, `--bg-surface`, `--bg-surface-solid`, `--bg-surface-muted`, `--bg-glass`, `--bg-glass-elevated`, `--backdrop-field` | Opaque base colour; cards and panels (translucent thick glass, ~0.66); the opaque fallback; wells and inputs (a faint ink wash); thin glass bars; popovers; the colour field behind every screen |
+| Glass | `--glass-rim`, `--glass-highlight`, `--glass-lowlight`, `--glass-specular`, `--glass-specular-2`, `--glass-blur` | Rim border, inner top and bottom light, diagonal sheen, blur radius (0 in contrast) |
 | Borders | `--border-subtle`, `--border-strong` | Default hairlines; emphasis, dashed empty states, hover |
 | Text | `--text-primary`, `--text-secondary`, `--text-muted` | Each is ≥ 4.5:1 on canvas, surface and surface-muted in every theme |
 | Accent | `--accent`, `--accent-hover`, `--accent-soft`, `--accent-border`, `--accent-fg` | Primary actions and the lecture module. `-fg` is the text colour on a solid fill of *any* module hue |
 | Status | `--status-{support,contradict,gap,warning}` plus `-soft` and `-border` (and `--status-contradict-fg`) | Evidence semantics and module hues (Okabe-Ito based, CVD-safe; light-theme shades darkened to stay ≥ 4.5:1 on their own tint) |
 | Elevation | `--shadow-card`, `--shadow-card-hover`, `--shadow-elevated`, `--hero-glow` | Cards, floating panels, hero glow |
 | Graph | `--xy-*` (mapped from the tokens above) | React Flow controls, edges and minimap follow the theme |
+
+**Glass rules.** Text sits only on thick glass (`--bg-surface`, `apple-card`, `apple-sheet`, `apple-glass-elevated`), and never more than two glass layers are stacked over text. Don't put `backdrop-filter` or a transform on an element that contains `position: fixed` children, because it becomes their containing block and clips them. Cards and sheets therefore have no blur; only bars and popovers do. Never animate or leave a `filter` on a glass element (even `blur(0)`), because Chromium then stops rendering its backdrop blur. Write only `backdrop-filter` in CSS; the build adds the `-webkit-` prefix, and writing both by hand made it drop the standard one. **Reduced transparency** and **more contrast** swap every glass fill for `--bg-surface-solid` and drop the colour field.
 
 **High contrast** turns glass into solid surfaces, removes blur, aurora, grid and sheen, and makes borders opaque. It also swaps the rotating glow border for a static ring and thickens focus outlines.
 
@@ -94,7 +103,7 @@ Evidence counts always appear as coloured dot plus number, using the same three 
 
 ### 2.4 Typography
 
-- **Font:** the system SF stack (`-apple-system, …`), with `html { font-size: 17.5px }`. Every `rem` is therefore 17.5 px, so use `px` where an exact pixel size matters (sidebar widths, for example).
+- **Font:** Geist and Geist Mono, self-hosted with `next/font` in [layout.tsx](frontend/src/app/layout.tsx) (`--font-geist`, `--font-geist-mono`), with the system SF stack as fallback. `html { font-size: 17.5px }`. Every `rem` is therefore 17.5 px, so use `px` where an exact pixel size matters (sidebar widths, for example).
 - **Classes:**
   - `apple-display`: large tight titles.
   - `apple-heading`: section and card titles.
@@ -114,29 +123,32 @@ Evidence counts always appear as coloured dot plus number, using the same three 
 
 | Class | Where |
 | :--- | :--- |
-| `apple-glass` | Top bars, floating legends, overlay captions |
-| `apple-glass-elevated` | Popovers, edge-explanation panels, the New Conversation panel, sidebar peeks |
-| `apple-card` | Clickable cards (home modules, library tiles, legend cards); hover raises the shadow |
+| `apple-glass` | Thin glass with blur: the header capsule, floating legends, overlay captions, chips over content |
+| `apple-glass-elevated` | Thick glass with blur: popovers, bubbles, the New Conversation panel, sidebar peeks, the Live Tutor panel |
+| `apple-sheet` | Floating panes that hold lists of text (sidebars, side panels, docks); thick glass, no blur |
+| `apple-card` | Glass cards (home modules, library tiles, legend cards); hover raises the shadow |
+| `apple-seg` / `apple-seg-on` | Segmented controls: a recessed track with one raised glass segment (tabs, the theme toggle) |
+| `apple-tint` | Tinted glass for the one primary action in a view. Set the hue with `--tint` (default `--accent`); text uses `--accent-fg` |
 | `apple-press` | Every pressable control; it scales down on pointer-down for instant feedback |
 | `apple-focus` | Every focusable control; visible focus ring (thicker in contrast) |
 
-- **Radii:**
-  - `rounded-lg` for buttons and chips in bars.
-  - `rounded-xl` for inputs, small cards and list rows.
-  - `rounded-2xl` for panels, hero cards and the main graph frame.
-  - `rounded-full` for pills and counters.
-- **Borders:** surfaces carry a 1 px `--border-subtle` border. Hover moves it to the module's `-border` token or to `--border-strong`.
+- **Radii:** Tailwind's scale is remapped in `globals.css`: `rounded-lg` 12 px, `xl` 16 px, `2xl` 22 px, `3xl` 28 px.
+  - `rounded-full` (capsules) for single-line buttons, chips, inputs and tab tracks.
+  - `rounded-[22px]` / `2xl` for floating sheets and cards.
+  - The header capsule is `rounded-[28px]`.
+- **Borders:** glass surfaces carry a 1 px `--glass-rim`, and wells and inputs `--border-subtle`. Hover moves a border to the module's `-border` token or to `--border-strong`.
 
 ### 2.6 Layout
 
-**Header.** Every screen uses [AppHeader](frontend/src/components/AppHeader.tsx), `min-h-14`. Hand-built bars are not allowed.
+**Header.** Every screen uses [AppHeader](frontend/src/components/AppHeader.tsx), a floating glass capsule (`min-h-14`, inset `mx-2 mt-2`, `rounded-[28px]`). It stays in normal flow, so it never covers content. Hand-built bars are not allowed.
 
 ```
-[← Back] [module icon] Title / subtitle  ……  [Theme] [screen actions] [Live Tutor]
+( [← Back] [module icon] Title / subtitle  ……  [Theme] [screen actions] )
 ```
 
 - **Back button:** always first. Its label hides below `sm` (icon plus tooltip remain). It hovers in the module hue.
-- **Actions:** screen actions use `HeaderAction`, whose labels collapse to icons below `lg`. The Live Tutor label also hides below `lg`; theme labels hide below `xl`.
+- **Actions:** screen actions use `HeaderAction`, whose labels collapse to icons below `lg`; an active action is `apple-tint` in the module hue. Theme labels hide below `xl`.
+- **Live Tutor is not in the header.** It is the floating `LiveTutorFab` inside each screen's content (§2.1).
 - **Overflow:** the bar must never overflow, down to 390 px.
 - **Landing page:** the header carries only the global controls. The **ScholarTwin** wordmark sits centre stage in the hero instead.
 
@@ -145,7 +157,7 @@ Evidence counts always appear as coloured dot plus number, using the same three 
 - An ambient backdrop behind it: `apple-hero-glow`, two or three `st-aurora` blobs in the module hues, and `st-grid` masked to the top.
 
 **Workspaces** (lecture, PaperSim, HypothesisGraph results):
-- `h-screen` with a fixed header. Panes scroll internally.
+- `h-screen` with a fixed header. Panes are floating glass sheets inset with ~10 px gaps, and they scroll internally.
 - **At `lg`+:** side-by-side panes with `grid-rows-[minmax(0,1fr)]`.
 - **Below `lg`:** panes stack, the area scrolls, and the canvas keeps a minimum height (`min-h-[72vh]` or `min-h-[360px]`), so a graph can never collapse to 0 px.
 
@@ -204,6 +216,7 @@ All custom animations use the `st-` prefix, so one global rule switches them off
     - A 300px right panel (stacked under the graph below `lg`) holds flat lists in three tabs, **Papers**, **Claims** and **Questions** (no "All" view, no grouping). A paper row shows authors/year, title, claim count and agree/contradict/question counts (greyed and "Stands alone" if none), plus an open-paper link. A claim row shows the claim, "From <paper>" and its links. A question row shows who raised it. Clicking a row selects it on the graph and opens the bubble; a claim opens its paper's bubble with that claim marked.
     - **Click a paper** for a floating `NodeBubble`: its citation and "Open paper", what it claims, the papers it agrees or disagrees with, and the questions it leaves open. Each entry links to that node, and "Why" opens the evidence.
     - **Click a line, or "Why",** for an `EdgeBubble`: each claim pair behind the line ("Hoffmann et al.: … contradicts Roberts et al.: …"), the explanation, and the quotes. "Back" returns to the paper.
+    - Bubbles have a fixed header (kind pill, title, citation and "Open paper", the list label, close) and only their list scrolls, with the glass scrollbar beside the list. They sit at `bottom-3 left-3 right-3`, centred, `max-h-[max(48%,15rem)]`. The HypothesisGraph zoom controls are top-left (`GraphCanvas` `controlsPosition`), so a bubble never covers them.
     - Esc or clicking empty canvas closes either bubble. Focus zooms leave the bottom half clear for the bubble.
 - **PaperSim tabs** ([papersim/](frontend/src/components/papersim)):
   - **Interactive Simulation:** parameter cards with sliders, presets with "what to look for", a sweep panel and readouts.

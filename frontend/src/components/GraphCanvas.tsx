@@ -43,6 +43,8 @@ interface GraphCanvasProps {
   focusPadding?: FitViewOptions["padding"];
   /** An extra small line under a node's citation (e.g. "3 claims"). */
   nodeMeta?: (id: string) => string | undefined;
+  /** Where the zoom controls sit. Top-left keeps them clear of a bubble docked at the bottom. */
+  controlsPosition?: "bottom-left" | "top-left";
 }
 
 /** Edge styling from theme tokens, so light / dark / high-contrast all match the legend. */
@@ -55,6 +57,9 @@ const EDGE_PALETTE: Record<GraphEdgeData["type"], { color: string; dash?: string
 
 /** maxZoom stops a lone node from filling the whole canvas. */
 const FIT = { padding: 0.3, maxZoom: 1.1 } as const;
+
+/** Diagonal specular sheen layered over a glass node's fill. */
+const NODE_SHEEN = "linear-gradient(150deg, var(--glass-specular), transparent 42%, transparent 78%, var(--glass-specular-2))";
 
 const KIND_TAG: Partial<Record<GraphNodeData["category"], { text: string; color: string }>> = {
   gap: { text: "Open question", color: "var(--status-gap)" },
@@ -73,6 +78,7 @@ function GraphCanvasInner({
   focusIds,
   focusPadding,
   nodeMeta,
+  controlsPosition = "bottom-left",
 }: GraphCanvasProps) {
   const { fitView } = useReactFlow();
   const palette = EDGE_PALETTE;
@@ -168,6 +174,7 @@ function GraphCanvasInner({
       const citation = n.authors_year || n.slide_ref;
       const tag = KIND_TAG[n.category];
       const meta = nodeMeta?.(n.id);
+      const borderWidth = isPulsed || isSelected ? 2 : isGap ? 1.5 : 1;
 
       return {
         id: n.id,
@@ -186,6 +193,7 @@ function GraphCanvasInner({
               <div className="leading-snug">{n.label}</div>
               {citation && (
                 <div
+                  title={citation}
                   className={`truncate text-[10px] font-normal ${
                     isDetached ? "text-[var(--text-muted)]" : "text-[var(--accent)]"
                   }`}
@@ -199,31 +207,39 @@ function GraphCanvasInner({
         },
         style: {
           width: 220,
-          padding: "10px 12px",
-          borderRadius: "12px",
+          // Padding shrinks as the border grows, so selecting a node never shifts its text.
+          padding: `${11 - borderWidth}px ${13 - borderWidth}px`,
+          borderRadius: 16,
           fontSize: "12px",
           fontWeight: 600,
           cursor: "pointer",
           transition: "opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
           color: isDetached ? "var(--text-muted)" : "var(--text-primary)",
-          opacity: dimmed ? 0.35 : isDetached && !isSelected ? 0.6 : 1,
+          // Dimmed (outside the focus) but still legible: 0.35 dropped labels to ~2:1.
+          opacity: dimmed ? 0.5 : isDetached && !isSelected ? 0.6 : 1,
+          // Glass node: thick translucent fill with a diagonal specular sheen. Detached nodes
+          // drop the sheen and sit on the muted wash, so "stands alone" reads as greyed out.
           background: isDetached
             ? "var(--bg-surface-muted)"
             : isGap
-              ? "linear-gradient(var(--status-gap-soft), var(--status-gap-soft)), var(--bg-surface)"
-              : "var(--bg-surface)",
+              ? `${NODE_SHEEN}, linear-gradient(var(--status-gap-soft), var(--status-gap-soft)), var(--bg-surface)`
+              : `${NODE_SHEEN}, var(--bg-surface)`,
           border: isPulsed
-            ? "2px solid var(--status-warning)"
+            ? `${borderWidth}px solid var(--status-warning)`
             : isSelected
-              ? "2px solid var(--accent)"
+              ? `${borderWidth}px solid var(--accent)`
               : isGap
-                ? "1.5px dashed var(--status-gap)"
-                : "1px solid var(--border-strong)",
+                ? `${borderWidth}px dashed var(--status-gap)`
+                : isDetached
+                  ? `${borderWidth}px solid var(--border-strong)`
+                  : `${borderWidth}px solid var(--glass-rim)`,
           boxShadow: isPulsed
-            ? "0 0 18px var(--status-warning-soft)"
+            ? "inset 0 1px 0 var(--glass-highlight), 0 0 18px var(--status-warning-soft)"
             : isSelected
-              ? "0 0 0 4px var(--accent-soft), var(--shadow-card)"
-              : "var(--shadow-card)",
+              ? "inset 0 1px 0 var(--glass-highlight), 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent), var(--shadow-card)"
+              : isDetached
+                ? "none"
+                : "inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--border-subtle), var(--shadow-card)",
         },
       };
     });
@@ -283,20 +299,27 @@ function GraphCanvasInner({
         onPaneClick={onClearSelection}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="var(--border-strong)" gap={20} />
+        {/* Transparent pane: the glass panel (or colour field) behind shows through the dots. */}
+        <Background color="var(--border-strong)" gap={20} size={1.2} />
         <Controls
-          className="!rounded-xl !border !border-[var(--border-subtle)] !bg-[var(--bg-surface)] !text-[var(--text-primary)] !shadow-sm"
+          position={controlsPosition}
+          className="apple-glass !rounded-[16px] !border text-[var(--text-primary)] [&>button]:!h-8 [&>button]:!w-8 [&>button]:!bg-transparent [&>button]:!border-[var(--border-subtle)] [&>button:hover]:!bg-[var(--bg-surface-muted)] [&>button:first-child]:rounded-t-[15px] [&>button:last-child]:rounded-b-[15px] [&>button:focus-visible]:outline-2 [&>button:focus-visible]:-outline-offset-2 [&>button:focus-visible]:outline-[var(--accent)]"
         />
       </ReactFlow>
 
       {/* CVD-safe edge legend (colour + dash pattern), top-right so bottom popovers never cover it */}
       {presentEdgeTypes.length > 0 && (
-        <div className="apple-glass pointer-events-none absolute right-3 top-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)]">
+        <div
+          className={`apple-glass pointer-events-none absolute right-3 top-3 z-10 flex ${
+            // Stay clear of zoom controls docked top-left.
+            controlsPosition === "top-left" ? "max-w-[calc(100%-5rem)]" : "max-w-[calc(100%-1.5rem)]"
+          } flex-wrap items-center justify-end gap-x-3 gap-y-1 rounded-[20px] border px-3.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)]`}
+        >
           {presentEdgeTypes.map((type) => {
             const spec = palette[type];
             return (
-              <div key={type} className="flex items-center gap-1.5">
-                <svg width="20" height="8" aria-hidden>
+              <div key={type} className="flex items-center gap-1.5 whitespace-nowrap">
+                <svg width="20" height="8" aria-hidden className="shrink-0">
                   <line
                     x1="0"
                     y1="4"

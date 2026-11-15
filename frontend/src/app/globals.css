@@ -1,120 +1,165 @@
 @import "tailwindcss";
 
 /*
- * ScholarTwin Design System
- * - Apple-inspired materials, optical typography, & instant pointer-down feedback (SKILL.md)
+ * ScholarTwin Design System: "Liquid Glass"
+ * - Controls float over the content as translucent layers with a bright rim, an inner
+ *   highlight and a soft specular sheen; a static colour field sits behind every screen.
  * - Okabe-Ito / CVD-safe semantic palette (distinguishable across protanopia, deuteranopia, tritanopia)
- * - Light (default), Dark, and High-Contrast themes
+ * - Light (default), Dark, and High-Contrast themes (contrast = solid surfaces, no glass)
+ *
+ * Glass rules: text only sits on --bg-surface / --glass-thick (>= 0.62 opacity), never on
+ * --glass-regular alone; stack at most two glass layers over text.
  */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --bg-canvas: #f4f5f8;
-  --bg-surface: #ffffff;
-  --bg-surface-muted: #eceef3;
-  --bg-glass: rgba(255, 255, 255, 0.78);
-  --bg-glass-elevated: rgba(255, 255, 255, 0.92);
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-strong: rgba(15, 23, 42, 0.16);
-  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --bg-canvas: #e9eef7;
+  /* Cards, panels and nodes: translucent "thick" glass so the colour field tints through. */
+  --bg-surface: rgba(255, 255, 255, 0.66);
+  --bg-surface-solid: #f7f9fd;
+  /* Wells, inputs, chips: a faint ink wash that works on top of any surface. */
+  --bg-surface-muted: rgba(96, 110, 150, 0.1);
+  --bg-glass: rgba(255, 255, 255, 0.48);
+  --bg-glass-elevated: rgba(255, 255, 255, 0.84);
+  --border-subtle: rgba(14, 19, 34, 0.09);
+  --border-strong: rgba(14, 19, 34, 0.18);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-lowlight: rgba(255, 255, 255, 0.35);
+  --glass-rim: rgba(255, 255, 255, 0.72);
+  --glass-specular: rgba(255, 255, 255, 0.55);
+  --glass-specular-2: rgba(255, 255, 255, 0.18);
+  --glass-blur: 22px;
+  /* Glass scrollbar thumb (rest / hover / drag) */
+  --scroll-thumb: rgba(70, 84, 120, 0.26);
+  --scroll-thumb-hover: rgba(70, 84, 120, 0.42);
+  --scroll-thumb-active: color-mix(in srgb, var(--accent) 55%, transparent);
 
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  /* >=4.5:1 on canvas, surface and surface-muted (#6b7280 was 4.1:1 on surface-muted) */
-  --text-muted: #5b6271;
+  --text-primary: #0e1322;
+  --text-secondary: #333a4c;
+  /* >=4.5:1 on canvas (incl. the brightest colour-field spot), surface and surface-muted */
+  --text-muted: #4b5264;
 
-  /* Primary Accent: Apple Cobalt Blue (CVD-safe, >4.5:1 on white) */
-  --accent: #0066cc;
-  --accent-hover: #0052a3;
-  --accent-soft: rgba(0, 102, 204, 0.1);
-  --accent-border: rgba(0, 102, 204, 0.28);
+  --accent: #0550b8;
+  --accent-hover: #04429a;
+  --accent-soft: rgba(5, 80, 184, 0.12);
+  --accent-border: rgba(5, 80, 184, 0.3);
   --accent-fg: #ffffff;
 
-  /* CVD-Safe Semantic Statuses (Okabe-Ito inspired).
-     Light values are darkened shades of the Okabe-Ito hues so status text stays >=4.5:1
-     on its own -soft tint (the pure hues measured 3.4-4.4:1). */
-  --status-support: #006e5a;
-  --status-support-soft: rgba(0, 110, 90, 0.1);
-  --status-support-border: rgba(0, 110, 90, 0.3);
+  /* CVD-Safe Semantic Statuses (Okabe-Ito inspired), darkened so status text stays
+     >=4.5:1 on its own -soft tint over glass. */
+  --status-support: #006b5e;
+  --status-support-soft: rgba(0, 107, 94, 0.12);
+  --status-support-border: rgba(0, 107, 94, 0.32);
 
-  --status-contradict: #b34a00;
-  --status-contradict-soft: rgba(179, 74, 0, 0.1);
-  --status-contradict-border: rgba(179, 74, 0, 0.32);
+  --status-contradict: #a84300;
+  --status-contradict-soft: rgba(168, 67, 0, 0.12);
+  --status-contradict-border: rgba(168, 67, 0, 0.34);
   /* Text/icons on a solid --status-contradict fill (recording / leave buttons) */
   --status-contradict-fg: #ffffff;
 
-  --status-gap: #9d2b7d;
-  --status-gap-soft: rgba(157, 43, 125, 0.1);
-  --status-gap-border: rgba(157, 43, 125, 0.3);
+  --status-gap: #962a77;
+  --status-gap-soft: rgba(150, 42, 119, 0.11);
+  --status-gap-border: rgba(150, 42, 119, 0.32);
 
-  --status-warning: #a04a08;
-  --status-warning-soft: rgba(160, 74, 8, 0.1);
-  --status-warning-border: rgba(160, 74, 8, 0.3);
+  --status-warning: #974506;
+  --status-warning-soft: rgba(151, 69, 6, 0.12);
+  --status-warning-border: rgba(151, 69, 6, 0.32);
 
   /* Elevation & Graph tokens */
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.08);
-  --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(0, 102, 204, 0.14);
-  --shadow-elevated: 0 20px 50px rgba(15, 23, 42, 0.14);
-  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0, 102, 204, 0.1), transparent 70%);
+  --shadow-card: 0 1px 2px rgba(20, 30, 60, 0.05), 0 10px 30px -10px rgba(20, 30, 60, 0.18);
+  --shadow-card-hover: 0 4px 12px rgba(20, 30, 60, 0.08), 0 18px 40px -12px rgba(5, 80, 184, 0.22);
+  --shadow-elevated: 0 24px 60px -8px rgba(20, 30, 60, 0.26);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(5, 80, 184, 0.08), transparent 70%);
+
+  /* The colour field behind every screen (static, so it never distracts). */
+  --backdrop-field:
+    radial-gradient(circle at 10% 14%, rgba(80, 150, 255, 0.3), transparent 42%),
+    radial-gradient(circle at 68% 6%, rgba(60, 215, 185, 0.24), transparent 38%),
+    radial-gradient(circle at 94% 74%, rgba(245, 135, 205, 0.24), transparent 42%),
+    radial-gradient(circle at 26% 96%, rgba(255, 196, 110, 0.28), transparent 40%);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-canvas: #0d0f14;
-  --bg-surface: #161922;
-  --bg-surface-muted: #1f2430;
-  --bg-glass: rgba(22, 25, 34, 0.76);
-  --bg-glass-elevated: rgba(31, 36, 48, 0.9);
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --bg-canvas: #070910;
+  --bg-surface: rgba(30, 35, 54, 0.62);
+  --bg-surface-solid: #161a28;
+  --bg-surface-muted: rgba(255, 255, 255, 0.06);
+  --bg-glass: rgba(34, 40, 60, 0.46);
+  --bg-glass-elevated: rgba(24, 28, 44, 0.88);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-lowlight: rgba(0, 0, 0, 0.35);
+  --glass-rim: rgba(255, 255, 255, 0.16);
+  --glass-specular: rgba(255, 255, 255, 0.12);
+  --glass-specular-2: rgba(255, 255, 255, 0.04);
+  --glass-blur: 22px;
+  --scroll-thumb: rgba(255, 255, 255, 0.2);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.34);
+  --scroll-thumb-active: color-mix(in srgb, var(--accent) 60%, transparent);
 
-  --text-primary: #f3f4f6;
-  --text-secondary: #d1d5db;
-  --text-muted: #9ca3af;
+  --text-primary: #f3f5fb;
+  --text-secondary: #ccd2e0;
+  --text-muted: #a0a8ba;
 
-  /* Primary Accent: Luminous Apple Blue */
-  --accent: #4d9eff;
-  --accent-hover: #7ab8ff;
-  --accent-soft: rgba(77, 158, 255, 0.15);
-  --accent-border: rgba(77, 158, 255, 0.36);
-  --accent-fg: #081226;
+  --accent: #78b4ff;
+  --accent-hover: #a3cbff;
+  --accent-soft: rgba(120, 180, 255, 0.16);
+  --accent-border: rgba(120, 180, 255, 0.38);
+  --accent-fg: #06142e;
 
   /* CVD-Safe Semantic Statuses */
-  --status-support: #2dd4bf;
-  --status-support-soft: rgba(45, 212, 191, 0.14);
-  --status-support-border: rgba(45, 212, 191, 0.36);
+  --status-support: #3ed6b8;
+  --status-support-soft: rgba(62, 214, 184, 0.14);
+  --status-support-border: rgba(62, 214, 184, 0.36);
 
-  --status-contradict: #ff8a3d;
-  --status-contradict-soft: rgba(255, 138, 61, 0.14);
-  --status-contradict-border: rgba(255, 138, 61, 0.38);
+  --status-contradict: #ff9a52;
+  --status-contradict-soft: rgba(255, 154, 82, 0.14);
+  --status-contradict-border: rgba(255, 154, 82, 0.38);
   --status-contradict-fg: #1a0800;
 
-  --status-gap: #e879f9;
-  --status-gap-soft: rgba(232, 121, 249, 0.14);
-  --status-gap-border: rgba(232, 121, 249, 0.36);
+  --status-gap: #f08ad6;
+  --status-gap-soft: rgba(240, 138, 214, 0.14);
+  --status-gap-border: rgba(240, 138, 214, 0.36);
 
   --status-warning: #fbbf24;
   --status-warning-soft: rgba(251, 191, 36, 0.14);
   --status-warning-border: rgba(251, 191, 36, 0.36);
 
-  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.65);
-  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(77, 158, 255, 0.14), transparent 70%);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.32), 0 12px 32px -12px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 180, 255, 0.12);
+  --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(120, 180, 255, 0.12), transparent 70%);
+
+  --backdrop-field:
+    radial-gradient(circle at 10% 14%, rgba(40, 100, 255, 0.3), transparent 42%),
+    radial-gradient(circle at 68% 6%, rgba(0, 170, 150, 0.22), transparent 38%),
+    radial-gradient(circle at 94% 74%, rgba(200, 60, 170, 0.24), transparent 42%),
+    radial-gradient(circle at 26% 96%, rgba(255, 140, 60, 0.16), transparent 40%);
 }
 
 [data-theme="contrast"] {
   color-scheme: dark;
   --bg-canvas: #000000;
   --bg-surface: #0a0a0a;
+  --bg-surface-solid: #0a0a0a;
   --bg-surface-muted: #171717;
   --bg-glass: #0a0a0a;
   --bg-glass-elevated: #121212;
   --border-subtle: rgba(255, 255, 255, 0.35);
   --border-strong: rgba(255, 255, 255, 0.65);
   --glass-highlight: rgba(255, 255, 255, 0.25);
+  --glass-lowlight: transparent;
+  --glass-rim: rgba(255, 255, 255, 0.65);
+  --glass-specular: transparent;
+  --glass-specular-2: transparent;
+  --glass-blur: 0px;
+  --backdrop-field: none;
+  --scroll-thumb: #a3a3a3;
+  --scroll-thumb-hover: #e5e5e5;
+  --scroll-thumb-active: #56b4e9;
 
   --text-primary: #ffffff;
   --text-secondary: #f3f4f6;
@@ -150,11 +195,35 @@
   --hero-glow: none;
 }
 
+/* Superscript digits and signs (¹ ² ³ ⁰-⁹ ⁺ ⁻ …) used in numbers like 9.36×10⁻¹⁴. Geist / Geist
+   Mono only cover some of them, so a mixed exponent rendered in two fonts at different sizes.
+   This face covers just that Unicode range from one system font and sits first in both stacks,
+   so every superscript glyph comes from the same font (the rest of the text is untouched). */
+@font-face {
+  font-family: "ST Superscripts";
+  src: local("Segoe UI"), local("SF Pro Text"), local(".SF NS Text"), local("Helvetica Neue"), local("Noto Sans"),
+    local("DejaVu Sans"), local("Arial");
+  unicode-range: U+00B2-00B3, U+00B9, U+2070-207F;
+}
+
 @theme inline {
   --color-background: var(--bg-canvas);
   --color-foreground: var(--text-primary);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
-  --font-mono: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* --font-geist / --font-geist-mono come from next/font in layout.tsx. */
+  --font-sans: "ST Superscripts", var(--font-geist), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: "ST Superscripts", var(--font-geist-mono), "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Liquid Glass shape scale: Tailwind's rounded-* utilities resolve to these, so every
+   existing rounded-lg / xl / 2xl / 3xl picks up the softer corners without a rewrite.
+   px on purpose (html is 17.5px, so rem would drift). */
+@theme {
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
 }
 
 html {
@@ -345,9 +414,16 @@ html {
 }
 
 body {
-  background: var(--bg-canvas);
+  /* The colour field is fixed, so it stays put while panes scroll over it. Screen roots
+     stay transparent (no opaque bg-[var(--bg-canvas)]) so the field shows through. */
+  background-color: var(--bg-canvas);
+  background-image: var(--backdrop-field);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  /* Via the theme variable: the CSS pipeline drops a leading quoted family from a literal list
+     that also holds var(), which silently removed "ST Superscripts" here. */
+  font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -359,36 +435,122 @@ body {
   background-image: var(--hero-glow);
 }
 
-/* Elevated Apple-style card */
+/* ---------- Liquid Glass materials ----------
+ * Recipe: translucent fill + backdrop blur/saturation + bright rim + inner top highlight
+ * and bottom lowlight + a diagonal specular sheen (a background layer, so no pseudo-element
+ * and no position change is needed on the element). Text-bearing layers use the thick
+ * fills (--bg-surface, --bg-glass-elevated). */
 .apple-card {
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-card);
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease;
+  background: linear-gradient(140deg, var(--glass-specular), transparent 34%, transparent 70%, var(--glass-specular-2)),
+    var(--bg-surface);
+  /* No backdrop-filter on cards/sheets: it would make them the containing block of any
+     position:fixed child (peeks, popovers) and clip them. The field behind is already soft. */
+  border-color: var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card);
+  /* translate/scale too: Tailwind 4's -translate-y-* / scale-* use those properties, not transform. */
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), translate 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    scale 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease;
 }
 .apple-card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card-hover);
 }
 
-/* Apple-style translucent material (SKILL.md §12) */
+/* Chrome: bars, floating legends, chips over content (thin glass). */
 .apple-glass {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-color: var(--border-subtle);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+    var(--bg-glass);
+  backdrop-filter: blur(22px) saturate(190%);
+  border-color: var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card);
 }
 
+/* Popovers, bubbles, dialogs (thick glass, highest elevation). */
 .apple-glass-elevated {
-  background: var(--bg-glass-elevated);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-elevated), inset 0 1px 0 var(--glass-highlight);
+  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+    var(--bg-glass-elevated);
+  backdrop-filter: blur(28px) saturate(190%);
+  border-color: var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-elevated);
+}
+
+/* Floating side sheets / panels that hold lists of text (thick glass, card elevation). */
+.apple-sheet {
+  background: linear-gradient(160deg, var(--glass-specular), transparent 28%, transparent 76%, var(--glass-specular-2)),
+    var(--bg-surface);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card);
+}
+
+/* ---------- Glass scrollbars (every scroll container, app-wide) ----------
+ * A floating glass capsule thumb on an invisible track: inset from the edge by a transparent
+ * border, with a rim and a highlight, brightening on hover and taking the accent while dragged.
+ * Chromium/Safari use ::-webkit-scrollbar. The standard scrollbar-color/width properties are
+ * only applied where ::-webkit-scrollbar isn't supported (Firefox), because in Chromium they
+ * would override the custom thumb with a plain one. */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  min-width: 40px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: var(--scroll-thumb);
+  background-image: linear-gradient(90deg, var(--glass-specular), transparent 75%);
+  box-shadow: inset 0 0 0 1px var(--glass-rim), inset 0 1px 0 var(--glass-highlight);
+}
+::-webkit-scrollbar-thumb:horizontal {
+  background-image: linear-gradient(180deg, var(--glass-specular), transparent 75%);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--scroll-thumb-active);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb-hover) transparent;
+  }
+}
+
+/* Segmented control: a recessed track with one raised glass segment. */
+.apple-seg {
+  background: var(--bg-surface-muted);
+  border: 1px solid var(--border-subtle);
+}
+.apple-seg-on {
+  background: linear-gradient(160deg, var(--glass-specular), transparent 60%), var(--bg-glass-elevated);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 2px 8px -2px rgba(0, 0, 0, 0.18);
+}
+
+/* Tinted glass for the one primary action in a view (pair with a module hue via --tint). */
+.apple-tint {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.32), transparent 55%),
+    color-mix(in srgb, var(--tint, var(--accent)) 90%, transparent);
+  color: var(--accent-fg);
+  border: 1px solid color-mix(in srgb, var(--tint, var(--accent)) 60%, white 20%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.14),
+    0 6px 16px -4px color-mix(in srgb, var(--tint, var(--accent)) 45%, transparent);
 }
 
 /* Instant pointer-down feedback (SKILL.md §1) */
 .apple-press {
-  transition: transform 100ms ease-out, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  transition: transform 100ms ease-out, translate 150ms ease-out, scale 100ms ease-out, background-color 150ms ease,
+    border-color 150ms ease, box-shadow 150ms ease;
 }
 .apple-press:active:not(:disabled) {
   transform: scale(0.97);
@@ -434,7 +596,7 @@ input[type="range"]::-webkit-slider-thumb {
   height: 16px;
   border-radius: 9999px;
   background: var(--accent);
-  border: 2px solid var(--bg-surface);
+  border: 2px solid var(--bg-surface-solid);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   transition: transform 100ms ease-out;
 }
@@ -446,7 +608,7 @@ input[type="range"]::-moz-range-thumb {
   height: 16px;
   border-radius: 9999px;
   background: var(--accent);
-  border: 2px solid var(--bg-surface);
+  border: 2px solid var(--bg-surface-solid);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 input[type="range"]:focus-visible {
@@ -486,22 +648,24 @@ input[type="range"]:focus-visible {
   color: var(--text-muted);
 }
 
-/* Materialize animation for floating sheets */
+/* Materialize animation for floating sheets.
+ * No `filter` here: these are glass layers, and a filter left on the element (even blur(0),
+ * which is where an animated filter settles) stops Chromium rendering the element's own
+ * backdrop-filter, so the glass went see-through. Opacity + transform only, and no fill
+ * after the end, so nothing lingers on the element once it has arrived. */
 @keyframes materialize-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.96);
-    filter: blur(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
+    transform: none;
   }
 }
 
 .apple-materialize {
-  animation: materialize-in 240ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: materialize-in 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* Accessibility: Reduced Motion, Reduced Transparency, High Contrast (SKILL.md §14) */
@@ -521,21 +685,49 @@ input[type="range"]:focus-visible {
   }
 }
 
+/* Reduced transparency (and "more contrast"): every glass layer becomes a solid surface. */
 @media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-theme="light"],
+  [data-theme="dark"] {
+    --bg-surface: var(--bg-surface-solid);
+    --bg-glass: var(--bg-surface-solid);
+    --bg-glass-elevated: var(--bg-surface-solid);
+    --glass-specular: transparent;
+    --glass-specular-2: transparent;
+    --backdrop-field: none;
+  }
   .apple-glass,
-  .apple-glass-elevated {
-    background: var(--bg-surface) !important;
+  .apple-glass-elevated,
+  .apple-card,
+  .apple-sheet,
+  .apple-seg-on {
+    background: var(--bg-surface-solid) !important;
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
   }
 }
 
 /* High-contrast theme: no translucency, blur or ambient glows; solid surfaces with strong borders. */
+[data-theme="contrast"] .apple-card,
+[data-theme="contrast"] .apple-sheet,
+[data-theme="contrast"] .apple-seg-on {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+[data-theme="contrast"] .apple-seg-on {
+  background: var(--bg-surface-muted);
+  outline: 1.5px solid var(--text-primary);
+}
+[data-theme="contrast"] .apple-tint {
+  background: var(--tint, var(--accent));
+  border-color: var(--tint, var(--accent));
+  box-shadow: none;
+}
 [data-theme="contrast"] .apple-glass,
 [data-theme="contrast"] .apple-glass-elevated {
   background: var(--bg-surface);
   backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   border-color: var(--border-strong);
   box-shadow: none;
 }
@@ -563,12 +755,13 @@ input[type="range"]:focus-visible {
   [data-theme="dark"],
   [data-theme="light"] {
     --border-subtle: var(--border-strong);
+    --bg-surface: var(--bg-surface-solid);
+    --backdrop-field: none;
   }
   .apple-glass,
   .apple-glass-elevated {
-    background: var(--bg-surface) !important;
+    background: var(--bg-surface-solid) !important;
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     border-width: 1.5px;
   }
 }

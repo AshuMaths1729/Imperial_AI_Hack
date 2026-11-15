@@ -19,7 +19,9 @@ export function CodeBlock({ code, filename = "simulate.py" }: { code: string; fi
   const gutter = String(lines.length).length;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
+    // Solid surface (not glass) for legibility; overflow-hidden only rounds the corners, the code
+    // itself scrolls in both directions inside the inner scroller, so no line is ever cut off.
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-solid)] shadow-[var(--shadow-card)]">
       <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2">
         <span className="flex gap-1" aria-hidden>
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--border-strong)]" />
@@ -43,7 +45,7 @@ export function CodeBlock({ code, filename = "simulate.py" }: { code: string; fi
               <div key={i} className="flex hover:bg-[var(--accent-soft)]">
                 <span
                   aria-hidden
-                  className="sticky left-0 select-none border-r border-[var(--border-subtle)] bg-[var(--bg-canvas)] pl-3 pr-3 text-right text-[var(--text-muted)] opacity-70"
+                  className="sticky left-0 select-none border-r border-[var(--border-subtle)] bg-[var(--bg-surface-solid)] pl-3 pr-3 text-right text-[var(--text-muted)]"
                   style={{ minWidth: `${gutter + 2.5}ch` }}
                 >
                   {i + 1}

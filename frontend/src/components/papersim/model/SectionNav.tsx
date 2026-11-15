@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { stagger } from "../series/kit";
 
 export interface NavItem {
@@ -55,9 +55,13 @@ export function SectionNav({
   onPick: (id: string) => void;
 }) {
   return (
-    <nav aria-label="Model sections" className="sticky top-6 hidden self-start lg:block">
-      <p className="apple-label mb-2 px-3 text-[10px] font-semibold uppercase text-[var(--text-muted)]">On this page</p>
-      <ol className="relative space-y-0.5 border-l border-[var(--border-subtle)]">
+    // Floating glass sheet; the active section is a raised segment (scroll-spy keeps it in sync).
+    <nav
+      aria-label="Model sections"
+      className="apple-sheet sticky top-4 hidden max-h-[calc(100dvh-10rem)] self-start overflow-y-auto rounded-[22px] p-2 lg:block"
+    >
+      <p className="apple-label mb-1.5 px-3 pt-1 text-[10px] font-semibold uppercase text-[var(--text-muted)]">On this page</p>
+      <ol className="space-y-0.5">
         {items.map((it, i) => {
           const Icon = it.icon;
           const on = it.id === active;
@@ -66,20 +70,21 @@ export function SectionNav({
               <a
                 href={`#${it.id}`}
                 aria-current={on ? "location" : undefined}
+                title={it.label}
                 onClick={(e) => {
                   e.preventDefault();
                   onPick(it.id);
                 }}
-                className={`apple-focus relative -ml-px flex items-center gap-2 border-l-2 py-1.5 pl-3 pr-2 text-xs transition-colors ${
+                className={`apple-focus flex items-center gap-2 rounded-full py-1.5 pl-3 pr-2 text-xs transition-colors ${
                   on
-                    ? "border-[var(--accent)] font-semibold text-[var(--accent)]"
-                    : "border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                    ? "apple-seg-on font-semibold text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
-                <span className="truncate">{it.label}</span>
+                <span className="min-w-0 truncate">{it.label}</span>
                 {it.count !== undefined && (
-                  <span className="ml-auto rounded-full bg-[var(--bg-surface-muted)] px-1.5 font-mono text-[10px] text-[var(--text-muted)]">
+                  <span className="ml-auto shrink-0 rounded-full bg-[var(--bg-surface-muted)] px-1.5 font-mono text-[10px] text-[var(--text-muted)]">
                     {it.count}
                   </span>
                 )}
@@ -102,10 +107,26 @@ export function SectionChips({
   active: string | null;
   onPick: (id: string) => void;
 }) {
+  const navRef = useRef<HTMLElement>(null);
+  // Keep the active chip fully in view as the scroll-spy moves (horizontal only, so the page
+  // itself never jumps).
+  useEffect(() => {
+    const nav = navRef.current;
+    const chip = active ? nav?.querySelector<HTMLElement>(`[data-chip="${CSS.escape(active)}"]`) : null;
+    if (!nav || !chip) return;
+    const pad = 8;
+    const left = chip.offsetLeft - pad;
+    const right = chip.offsetLeft + chip.offsetWidth + pad;
+    if (left < nav.scrollLeft) nav.scrollTo({ left });
+    else if (right > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: right - nav.clientWidth });
+  }, [active]);
   return (
+    // Floating sticky capsule (thick glass: content scrolls beneath it). Scrolls sideways inside
+    // itself; p-1.5 leaves room for the chips' focus rings.
     <nav
+      ref={navRef}
       aria-label="Model sections"
-      className="apple-glass sticky top-0 z-20 -mx-4 flex gap-1.5 overflow-x-auto border-b px-4 py-2 lg:hidden"
+      className="apple-glass-elevated sticky top-2 z-20 mt-2.5 flex gap-1 overflow-x-auto rounded-full border p-1.5 [scrollbar-width:none] lg:hidden"
     >
       {items.map((it) => {
         const Icon = it.icon;
@@ -114,12 +135,13 @@ export function SectionChips({
           <button
             key={it.id}
             type="button"
+            data-chip={it.id}
             onClick={() => onPick(it.id)}
             aria-current={on ? "location" : undefined}
-            className={`apple-press apple-focus flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium ${
+            className={`apple-press apple-focus flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[11px] ${
               on
-                ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)]"
+                ? "apple-seg-on font-semibold text-[var(--accent)]"
+                : "font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -150,13 +172,13 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="st-fade-up scroll-mt-28 lg:scroll-mt-6" style={stagger(index, 70, 60)}>
+    <section id={id} aria-labelledby={`${id}-h`} className="st-fade-up min-w-0 scroll-mt-20 lg:scroll-mt-6" style={stagger(index, 70, 60)}>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]">
             <Icon className="h-4 w-4" />
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">
               <span className="font-mono">{String(index + 1).padStart(2, "0")}</span> · {kicker}
             </p>

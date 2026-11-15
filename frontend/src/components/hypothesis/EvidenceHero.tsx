@@ -28,20 +28,6 @@ function Paper({ x, y, color, delay }: { x: number; y: number; color: string; de
   );
 }
 
-function EdgeLabel({ x, y, color, delay, children }: { x: number; y: number; color: string; delay: number; children: string }) {
-  return (
-    <text
-      x={x}
-      y={y}
-      textAnchor="middle"
-      className="st-node-in"
-      style={{ fill: color, fontSize: 10, fontWeight: 650, letterSpacing: "0.02em", animationDelay: `${delay}ms` }}
-    >
-      {children}
-    </text>
-  );
-}
-
 /**
  * A small hypothesis graph that draws itself: one claim, two supporting papers, one
  * contradicting paper and an open research gap. `busy` speeds it up while a search runs.
@@ -77,12 +63,6 @@ export function EvidenceGlyph({ busy = false, className = "" }: { busy?: boolean
         className="st-march"
         style={{ stroke: GAP, strokeWidth: 2, strokeDasharray: "5 3", strokeLinecap: "round" }}
       />
-
-      {/* edge labels */}
-      <EdgeLabel x={140} y={38} color={SUPPORT} delay={900}>supports</EdgeLabel>
-      <EdgeLabel x={140} y={123} color={SUPPORT} delay={1000}>supports</EdgeLabel>
-      <EdgeLabel x={300} y={38} color={CONTRADICT} delay={1100}>contradicts</EdgeLabel>
-      <EdgeLabel x={296} y={124} color={GAP} delay={1200}>open gap</EdgeLabel>
 
       {/* papers + gap */}
       <Paper x={70} y={35} color={SUPPORT} delay={500} />
@@ -165,12 +145,12 @@ export function EvidenceLegend({ baseDelay = 0 }: { baseDelay?: number }) {
         <div
           key={title}
           style={{ animationDelay: `${baseDelay + i * 90}ms`, ["--card-c" as string]: color, ["--card-b" as string]: border }}
-          className="apple-card st-fade-up group rounded-2xl border border-[var(--border-subtle)] p-3.5 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--card-b)]"
+          className="apple-card st-fade-up group rounded-2xl border p-3.5 transition-all duration-300 hover:-translate-y-1 hover:!border-[var(--card-b)]"
         >
           <div className="flex items-center gap-2">
             <span
               style={{ color, backgroundColor: soft }}
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
             >
               <Icon className="h-4 w-4" />
             </span>
@@ -207,10 +187,10 @@ export function StarterTopics({
           disabled={disabled}
           onClick={() => onPick(q)}
           style={{ animationDelay: `${baseDelay + i * 70}ms` }}
-          className="apple-press apple-focus st-fade-up group flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-1.5 pl-2.5 pr-3 text-[11px] text-[var(--text-secondary)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)] hover:shadow-md disabled:pointer-events-none disabled:opacity-50"
+          className="apple-card apple-press apple-focus st-fade-up group flex max-w-full items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-3.5 text-[11px] text-[var(--text-secondary)] transition-all duration-200 hover:-translate-y-0.5 hover:!border-[var(--status-gap-border)] hover:text-[var(--status-gap)] disabled:pointer-events-none disabled:opacity-50"
         >
           <Lightbulb className="h-3 w-3 shrink-0 text-[var(--status-gap)] transition-transform group-hover:-rotate-12 group-hover:scale-110" />
-          <span>{q}</span>
+          <span className="min-w-0 text-left">{q}</span>
           <ArrowUpRight className="h-3 w-3 shrink-0 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
         </button>
       ))}

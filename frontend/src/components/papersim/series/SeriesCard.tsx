@@ -22,12 +22,12 @@ export interface SeriesView {
 function Stat({ label, value, sub, i }: { label: string; value: string; sub?: string; i: number }) {
   return (
     <div
-      className="st-rise rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
+      className="st-rise min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
       style={stagger(i, 35, 120)}
     >
       <div className="text-[10px] font-medium text-[var(--text-muted)]">{label}</div>
-      <div className="font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</div>
-      {sub && <div className="truncate text-[10px] text-[var(--text-muted)]" title={sub}><RichText text={sub} /></div>}
+      <div className="break-all font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</div>
+      {sub && <div className="break-words text-[10px] leading-snug text-[var(--text-muted)]"><RichText text={sub} /></div>}
     </div>
   );
 }
@@ -61,7 +61,8 @@ export function SeriesCard({
 
   return (
     <article
-      className="st-fade-up apple-card st-sheen relative overflow-hidden rounded-2xl border border-[var(--border-subtle)] p-5"
+      // overflow-hidden only rounds the identity rail + hover sheen; nothing inside extends past the padding.
+      className="st-fade-up apple-card st-sheen relative min-w-0 overflow-hidden rounded-2xl border p-4 sm:p-5"
       style={stagger(index, 90, 180)}
       aria-label={`${view.name} analysis`}
     >
@@ -70,9 +71,9 @@ export function SeriesCard({
 
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <SeriesSwatch color={view.color} dash={view.dash} width={26} />
-            <h3 className="apple-heading text-base font-semibold text-[var(--text-primary)]"><RichText text={view.name} /></h3>
+            <h3 className="apple-heading min-w-0 break-words text-base font-semibold text-[var(--text-primary)]"><RichText text={view.name} /></h3>
           </div>
           {view.doc?.meaning && (
             <div className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">
@@ -97,7 +98,7 @@ export function SeriesCard({
       </header>
 
       {view.doc?.how_to_read && (
-        <div className="mt-3 flex gap-2 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-2">
+        <div className="mt-3 flex gap-2 rounded-2xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-2">
           <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
           <div className="text-xs leading-relaxed text-[var(--text-primary)]">
             <span className="font-semibold">How to read it: </span>
@@ -111,7 +112,7 @@ export function SeriesCard({
       ) : (
         <>
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-            <div className="min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-2">
+            <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-2">
               <LineChart
                 x={x}
                 series={[{ name: view.name, color: view.color, dash: view.dash, y: view.y }]}
@@ -177,7 +178,7 @@ export function SeriesCard({
                                 }}
                               />
                               <span
-                                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-surface)]"
+                                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-surface-solid)]"
                                 style={{ left: `${Math.max(0, Math.min(1, pos)) * 100}%`, background: view.color }}
                               />
                             </>
@@ -194,7 +195,7 @@ export function SeriesCard({
               <div className="apple-label mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
                 <Sigma className="h-3.5 w-3.5" /> Shape
               </div>
-              <div className="divide-y divide-[var(--border-subtle)] rounded-xl border border-[var(--border-subtle)]">
+              <div className="divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1">
                 <Fact icon={TrendingUp} label="Local peaks" value={String(s.peaks.length)} />
                 <Fact icon={TrendingDown} label="Local troughs" value={String(s.troughs.length)} />
                 {s.zeroCrossings > 0 && <Fact icon={Activity} label="Zero crossings" value={String(s.zeroCrossings)} />}

@@ -83,15 +83,10 @@ export function LineChart({
   const [hover, setHover] = useState<number | null>(null);
   const uid = useId().replace(/:/g, "");
 
-  const pad = compact
-    ? { t: 8, r: 10, b: 20, l: 40 }
-    : { t: 14, r: 18, b: xLabel ? 40 : 26, l: 54 };
   const W = Math.max(0, width);
   const H = height;
-  const plotW = Math.max(10, W - pad.l - pad.r);
-  const plotH = Math.max(10, H - pad.t - pad.b);
 
-  const geom = useMemo(() => {
+  const yGeom = useMemo(() => {
     let lo = Infinity;
     let hi = -Infinity;
     for (const s of series)
@@ -127,9 +122,22 @@ export function LineChart({
     }
     const xMin = x.length ? Math.min(x[0], x[x.length - 1]) : 0;
     const xMax = x.length ? Math.max(x[0], x[x.length - 1]) : 1;
-    const xTicks = niceTicks(xMin, xMax, compact ? 4 : Math.max(3, Math.min(8, Math.floor(plotW / 90))));
-    return { yMin, yMax, ticks, xMin, xMax, xTicks };
-  }, [series, hRules, includeZero, diverging, x, compact, plotW]);
+    return { yMin, yMax, ticks, xMin, xMax };
+  }, [series, hRules, includeZero, diverging, x, compact]);
+
+  // Left margin grows with the widest y-tick label, so long numbers are never cut off.
+  const tickFont = compact ? 9 : 10;
+  const yTickW = Math.max(0, ...yGeom.ticks.map((t) => formatY(t).length)) * tickFont * 0.62 + 12;
+  const pad = compact
+    ? { t: 8, r: 12, b: 20, l: Math.max(40, Math.ceil(yTickW)) }
+    : { t: 14, r: 20, b: xLabel ? 40 : 26, l: Math.max(54, Math.ceil(yTickW)) };
+  const plotW = Math.max(10, W - pad.l - pad.r);
+  const plotH = Math.max(10, H - pad.t - pad.b);
+  const xTicks = niceTicks(yGeom.xMin, yGeom.xMax, compact ? 4 : Math.max(3, Math.min(8, Math.floor(plotW / 90))));
+  const geom = { ...yGeom, xTicks };
+  // Axis title: shortened (full text in a <title>) when it can't fit under the plot.
+  const xLabelMax = Math.max(4, Math.floor(plotW / 6.4));
+  const xLabelShown = xLabel && xLabel.length > xLabelMax ? `${xLabel.slice(0, xLabelMax - 1)}…` : xLabel;
 
   const sx = (v: number) => pad.l + ((v - geom.xMin) / (geom.xMax - geom.xMin || 1)) * plotW;
   const sy = (v: number) => pad.t + plotH - ((v - geom.yMin) / (geom.yMax - geom.yMin || 1)) * plotH;
@@ -162,7 +170,11 @@ export function LineChart({
           .map((s, i) => ({ s, i, v: s.y[hoverIdx] }))
           .filter((r) => !r.s.quiet && r.v !== null && r.v !== undefined && Number.isFinite(r.v));
   const tipLeft = hoverIdx === null ? 0 : sx(x[hoverIdx]);
-  const flip = tipLeft > W * 0.62;
+  // Open towards the side with more room and never wider than it, so a tooltip can't overflow
+  // a narrow card (SeriesCard rounds its corners with overflow-hidden).
+  const roomRight = W - tipLeft;
+  const flip = roomRight < 200 && tipLeft > roomRight;
+  const tipRoom = Math.max(110, (flip ? tipLeft : roomRight) - 18);
 
   return (
     <div className="w-full">
@@ -228,18 +240,23 @@ export function LineChart({
               </g>
             ))}
             {/* x ticks */}
-            {geom.xTicks.map((t) => (
-              <text
-                key={`x${t}`}
-                x={sx(t)}
-                y={pad.t + plotH + (compact ? 13 : 16)}
-                textAnchor="middle"
-                fontSize={compact ? 9 : 10}
-                fill="var(--text-muted)"
-              >
-                {formatX(t)}
-              </text>
-            ))}
+            {geom.xTicks.map((t) => {
+              const tx = sx(t);
+              // Edge ticks anchor inwards so their labels stay inside the SVG.
+              const anchor = tx > pad.l + plotW - 14 ? "end" : tx < pad.l + 8 ? "start" : "middle";
+              return (
+                <text
+                  key={`x${t}`}
+                  x={tx}
+                  y={pad.t + plotH + (compact ? 13 : 16)}
+                  textAnchor={anchor}
+                  fontSize={tickFont}
+                  fill="var(--text-muted)"
+                >
+                  {formatX(t)}
+                </text>
+              );
+            })}
             <line
               x1={pad.l}
               x2={pad.l + plotW}
@@ -256,7 +273,8 @@ export function LineChart({
                 fontSize={11}
                 fill="var(--text-secondary)"
               >
-                {xLabel}
+                {xLabelShown !== xLabel && <title>{xLabel}</title>}
+                {xLabelShown}
               </text>
             )}
 
@@ -292,7 +310,14 @@ export function LineChart({
                   opacity={0.8}
                 />
                 {r.label && (
-                  <text x={sx(r.x) + 4} y={pad.t + 10} fontSize={9.5} fill="var(--text-muted)">
+                  // Near the right edge the label flips to the rule's left so it isn't cut off.
+                  <text
+                    x={sx(r.x) > pad.l + plotW - 48 ? sx(r.x) - 4 : sx(r.x) + 4}
+                    y={pad.t + 10}
+                    textAnchor={sx(r.x) > pad.l + plotW - 48 ? "end" : "start"}
+                    fontSize={9.5}
+                    fill="var(--text-muted)"
+                  >
                     {r.label}
                   </text>
                 )}
@@ -340,7 +365,7 @@ export function LineChart({
             {/* Markers (surface ring keeps them legible over lines) */}
             {markers.map((m, i) => (
               <g key={`m${i}`}>
-                <circle cx={sx(m.x)} cy={sy(m.y)} r={4.5} fill={m.color} stroke="var(--bg-surface)" strokeWidth={2} />
+                <circle cx={sx(m.x)} cy={sy(m.y)} r={4.5} fill={m.color} stroke="var(--bg-surface-solid)" strokeWidth={2} />
                 {m.label && (
                   <text
                     x={sx(m.x)}
@@ -377,7 +402,7 @@ export function LineChart({
                       cy={sy(v)}
                       r={4}
                       fill={s.color}
-                      stroke="var(--bg-surface)"
+                      stroke="var(--bg-surface-solid)"
                       strokeWidth={2}
                     />
                   );
@@ -401,22 +426,24 @@ export function LineChart({
 
         {hoverIdx !== null && W > 0 && (
           <div
-            className="apple-glass-elevated pointer-events-none absolute z-10 min-w-[8.5rem] rounded-xl border px-3 py-2 text-[11px]"
+            className="apple-glass-elevated pointer-events-none absolute z-10 rounded-2xl border px-3 py-2 text-[11px]"
             style={{
               top: pad.t,
-              left: flip ? undefined : Math.min(tipLeft + 12, W - 140),
+              left: flip ? undefined : tipLeft + 12,
               right: flip ? Math.max(0, W - tipLeft + 12) : undefined,
+              minWidth: Math.min(136, tipRoom),
+              maxWidth: tipRoom,
             }}
           >
-            <p className="mb-1 font-medium text-[var(--text-muted)]">
+            <p className="mb-1 break-words font-medium text-[var(--text-muted)]">
               {xLabel ? `${xLabel}: ` : "x = "}
               <span className="font-mono text-[var(--text-primary)]">{fmtNum(x[hoverIdx], 4)}</span>
             </p>
             {tipRows.map(({ s, v }) => (
               <p key={s.name} className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
+                <span className="flex min-w-0 items-center gap-1.5 text-[var(--text-secondary)]">
                   <SeriesSwatch color={s.color} dash={s.dash} width={16} />
-                  <RichText className="max-w-[10rem] truncate" text={s.name} />
+                  <RichText className="min-w-0 max-w-[10rem] truncate" text={s.name} />
                 </span>
                 <span className="font-mono font-semibold text-[var(--text-primary)]">{fmtNum(v as number, 4)}</span>
               </p>

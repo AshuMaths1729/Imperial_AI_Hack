@@ -108,11 +108,14 @@ export function RelationEdge({ id, sourceX, sourceY, targetX, targetY, data }: E
             padding: "4px 10px",
             borderRadius: labelLines > 1 ? 10 : 999,
             textAlign: "center",
-            background: active ? `linear-gradient(${mix(color, 14)}, ${mix(color, 14)}), var(--bg-surface)` : "var(--bg-surface)",
+            // Solid surface: the edge runs straight through its label, so glass would let the line show.
+            background: active
+              ? `linear-gradient(${mix(color, 14)}, ${mix(color, 14)}), var(--bg-surface-solid)`
+              : "var(--bg-surface-solid)",
             border: `1px solid ${active ? color : mix(color, 38)}`,
             color: active ? "var(--text-primary)" : "var(--text-secondary)",
-            boxShadow: active ? "var(--shadow-card-hover)" : "var(--shadow-card)",
-            opacity: dim ? 0.45 : 1,
+            boxShadow: `inset 0 1px 0 var(--glass-highlight), ${active ? "var(--shadow-card-hover)" : "var(--shadow-card)"}`,
+            opacity: dim ? 0.6 : 1,
             transition: "opacity 220ms ease, transform 160ms ease, border-color 160ms ease",
             display: "-webkit-box",
             WebkitLineClamp: 2,

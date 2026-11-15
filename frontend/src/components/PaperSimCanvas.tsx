@@ -50,10 +50,10 @@ function ToolButton({
       disabled={disabled}
       title={title}
       aria-pressed={active}
-      className={`apple-press apple-focus flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
         active
           ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]"
-          : "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-muted)]"
+          : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
       }`}
     >
       {children}
@@ -206,20 +206,25 @@ export function PaperSimCanvas({
   const empty = simulation.x.length === 0 || simulation.series.length === 0;
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-4 p-4 md:p-5">
+    // Transparent page; cards float as glass with ~10px gutters. (The Live Tutor button sits in
+    // its own lane below the tab content, so no extra bottom clearance is needed.)
+    <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-2.5 px-2 pb-2 pt-2.5 sm:px-3 md:gap-3">
       {params.length > 0 && (
         <PresetBar params={params} presets={docs?.presets ?? []} values={values} onApply={setMany} />
       )}
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+      <div className="grid min-w-0 gap-2.5 md:gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
         {/* ---------------- chart column ---------------- */}
-        <section className="flex min-w-0 flex-col gap-4">
+        <section className="flex min-w-0 flex-col gap-2.5 md:gap-3">
           <div
-            className="st-fade-up relative rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-card)] md:p-5"
+            className="apple-sheet st-fade-up relative min-w-0 rounded-[22px] p-4 md:p-5"
             style={{ animationDelay: "60ms" }}
           >
-            <header className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
+            {/* relative: the "How to read" popover anchors to the header's right edge, so it can
+                never run off the left of a narrow screen. */}
+            <header className="relative flex flex-wrap items-start justify-between gap-3">
+              {/* Basis 14rem: below that the action buttons wrap under the title instead of squeezing it. */}
+              <div className="min-w-0 flex-[1_1_14rem]">
                 <h2 className="apple-heading text-base font-semibold text-[var(--text-primary)] md:text-lg">
                   <RichText text={title} />
                 </h2>
@@ -231,13 +236,13 @@ export function PaperSimCanvas({
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 {hasHowTo && (
-                  <div ref={howToRef} className="relative">
+                  <div ref={howToRef}>
                     <ToolButton active={howToOpen} title="How to read this chart" onClick={() => setHowToOpen((o) => !o)}>
                       <BookOpen className="h-3.5 w-3.5" />
                       How to read
                     </ToolButton>
                     {howToOpen && (
-                      <div className="apple-glass-elevated apple-materialize absolute right-0 top-full z-30 mt-2 w-[min(22rem,85vw)] space-y-2 rounded-2xl border p-3.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+                      <div className="apple-glass-elevated apple-materialize absolute right-0 top-full z-30 mt-2 w-[min(22rem,100%)] space-y-2 rounded-2xl border p-3.5 text-xs leading-relaxed text-[var(--text-secondary)]">
                         {docs?.x_meaning && (
                           <p>
                             <span className="font-semibold text-[var(--text-primary)]">Horizontal · </span>
@@ -290,7 +295,8 @@ export function PaperSimCanvas({
             </header>
 
             {simulation.equation_latex?.trim() && (
-              <div className="mt-3 rounded-xl bg-[var(--bg-surface-muted)] px-3 py-1 text-[var(--text-primary)]">
+              // Tex display blocks scroll horizontally inside this well instead of clipping.
+              <div className="mt-3 min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-[var(--text-primary)]">
                 <Tex latex={simulation.equation_latex} display />
               </div>
             )}
@@ -307,7 +313,7 @@ export function PaperSimCanvas({
 
             <div className="mt-3">
               {empty ? (
-                <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] text-xs text-[var(--text-muted)]">
+                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] px-4 text-center text-xs text-[var(--text-muted)]">
                   The simulation returned no data for these parameters.
                 </div>
               ) : (
@@ -355,7 +361,7 @@ export function PaperSimCanvas({
                       onClick={() => setMany({ ...defaults, ...p.params })}
                       title="Restore these parameters"
                       aria-label={`Restore parameters of pin ${p.n}`}
-                      className="apple-press apple-focus ml-1 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--accent)]"
+                      className="apple-press apple-focus ml-1 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--accent)]"
                     >
                       <RotateCcw className="h-3 w-3" />
                     </button>
@@ -366,7 +372,7 @@ export function PaperSimCanvas({
                         setHotPin(null);
                       }}
                       aria-label={`Remove pin ${p.n}`}
-                      className="apple-press apple-focus rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--status-contradict)]"
+                      className="apple-press apple-focus rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--status-contradict)]"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -398,8 +404,8 @@ export function PaperSimCanvas({
         </section>
 
         {/* ---------------- controls column ---------------- */}
-        <aside className="flex min-w-0 flex-col gap-3" aria-label="Simulation parameters">
-          <div className="flex items-center justify-between px-1">
+        <aside className="flex min-w-0 flex-col gap-2.5" aria-label="Simulation parameters">
+          <div className="flex items-center justify-between px-2 pt-0.5">
             <h3 className="apple-label flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Parameters
@@ -407,11 +413,11 @@ export function PaperSimCanvas({
             <span className="text-[11px] text-[var(--text-muted)]">{params.length} adjustable</span>
           </div>
           {params.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[var(--border-strong)] p-4 text-xs text-[var(--text-muted)]">
+            <p className="apple-card rounded-2xl border border-dashed p-4 text-xs text-[var(--text-muted)]">
               This model has no adjustable parameters.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-1">
               {params.map((p, i) => (
                 <ParamCard
                   key={p.key}

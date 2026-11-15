@@ -14,10 +14,12 @@ type Props = {
   call: AvatarCall;
   /** The tutor on screen (picked, or live in the call), so out-of-call answers use their voice. */
   onTutorChange?: (tutor: Tutor | undefined) => void;
+  /** Offer the 512 px pop-out window (only where the tile sits in the left dock). */
+  allowPopOut?: boolean;
 };
 
 /** Live tutor in the workspace's avatar dock: portrait when idle, the Synthesia video in a call, pop-out to 512 px. */
-export function LiveAvatarTile({ call, onTutorChange }: Props) {
+export function LiveAvatarTile({ call, onTutorChange, allowPopOut = true }: Props) {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [picked, setPicked] = useState<string>();
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +49,7 @@ export function LiveAvatarTile({ call, onTutorChange }: Props) {
     onTutorChange?.(active);
   }, [active, onTutorChange]);
   const lastTutorLine = [...call.captions].reverse().find((c) => c.who === "tutor");
-  const popped = expanded && !!call.avatarVideo;
+  const popped = allowPopOut && expanded && !!call.avatarVideo;
 
   const face = (
     <>
@@ -68,7 +70,7 @@ export function LiveAvatarTile({ call, onTutorChange }: Props) {
         {active ? `${active.name} · ${active.tagline}` : "Live tutor"}
         {call.tutorSpeaking && <span className="ml-1 text-[var(--accent)]">· speaking</span>}
       </span>
-      {call.avatarVideo && (
+      {call.avatarVideo && allowPopOut && (
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}

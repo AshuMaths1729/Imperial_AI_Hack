@@ -42,17 +42,20 @@ export function ConceptNodeCard({ data }: NodeProps<ConceptFlowNode>) {
   const selected = emphasis === "selected";
   const dim = emphasis === "dim";
 
+  // Glass node: thick surface + rim + inner top highlight. Emphasis reads from the outer ring:
+  // selected = solid kind ring + soft 5px halo, focus = thin kind ring, dim = faded + desaturated.
+  const highlight = "inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight)";
   const ring = selected
-    ? `0 0 0 2px ${color}, 0 0 0 6px ${mix(color, 18)}, var(--shadow-elevated)`
+    ? `${highlight}, 0 0 0 1px ${color}, 0 0 0 5px ${mix(color, 18)}, var(--shadow-elevated)`
     : pulsed
-      ? `0 0 0 2px var(--status-warning), 0 0 22px var(--status-warning-soft)`
+      ? `${highlight}, 0 0 0 2px var(--status-warning), 0 0 22px var(--status-warning-soft)`
       : emphasis === "focus"
-        ? `0 0 0 1px ${mix(color, 55)}, var(--shadow-card-hover)`
-        : "var(--shadow-card)";
+        ? `${highlight}, 0 0 0 1px ${mix(color, 50)}, var(--shadow-card-hover)`
+        : `${highlight}, var(--shadow-card)`;
 
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-[transform,opacity,box-shadow,filter] duration-200 ease-out hover:-translate-y-0.5 ${
+      className={`group relative flex flex-col overflow-hidden rounded-xl border text-left transition-[transform,opacity,box-shadow,filter,border-color] duration-200 ease-out hover:-translate-y-0.5 ${
         pulsed ? "st-float" : ""
       }`}
       style={{
@@ -60,11 +63,13 @@ export function ConceptNodeCard({ data }: NodeProps<ConceptFlowNode>) {
         height: h,
         boxSizing: "border-box",
         cursor: "pointer",
-        borderColor: selected ? color : mix(color, node.isRoot ? 60 : 42),
-        background: `linear-gradient(165deg, ${mix(color, node.isRoot ? 26 : 17)} 0%, ${mix(color, 5)} 70%), var(--bg-surface)`,
+        borderColor: selected ? color : emphasis === "focus" ? mix(color, 45) : node.isRoot ? mix(color, 40) : "var(--glass-rim)",
+        // Dimmed nodes sit on the solid surface so lit edges behind them don't run through their
+        // text, and stay at a legible 0.55 (0.42 on see-through glass read at ~2:1).
+        background: `linear-gradient(160deg, var(--glass-specular), transparent 34%), linear-gradient(165deg, ${mix(color, node.isRoot ? 20 : selected ? 14 : 9)} 0%, transparent 72%), ${dim ? "var(--bg-surface-solid)" : "var(--bg-surface)"}`,
         boxShadow: ring,
-        opacity: dim ? 0.5 : 1,
-        filter: dim ? "saturate(0.7)" : undefined,
+        opacity: dim ? 0.55 : 1,
+        filter: dim ? "saturate(0.55)" : undefined,
       }}
     >
       <Handle type="target" position={Position.Top} isConnectable={false} style={hiddenHandle} />
@@ -121,7 +126,8 @@ export function ConceptNodeCard({ data }: NodeProps<ConceptFlowNode>) {
             )}
             {value != null && (
               <span
-                className="ml-auto rounded-md px-1.5 py-[1px] font-mono text-[10.5px] font-bold tabular-nums"
+                title={`= ${formatParamValue(value, p?.unit)}`}
+                className="ml-auto min-w-0 truncate rounded-full px-2 py-[1px] font-mono text-[10.5px] font-bold tabular-nums"
                 style={{ background: mix(color, 16), color }}
               >
                 = {formatParamValue(value, p?.unit)}

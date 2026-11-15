@@ -52,7 +52,7 @@ function NodeChip({ node, onClick, current }: { node: CNode; onClick?: () => voi
     </>
   );
   const cls =
-    "inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 align-middle text-[11.5px] font-semibold text-[var(--text-primary)]";
+    "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 align-middle text-[11.5px] font-semibold text-[var(--text-primary)]";
   const style = { borderColor: mix(m.color, current ? 20 : 40), background: mix(m.color, current ? 6 : 12) };
   if (!onClick || current) {
     return (
@@ -91,9 +91,8 @@ function LinkSentence({
   const meta = LINK_META[link.kind];
   const other = s.id === currentId ? t : s;
   return (
-    <li
-      className="group relative overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2 pl-3.5 pr-2.5 transition-shadow hover:shadow-[var(--shadow-card-hover)]"
-    >
+    <li className="apple-card group relative overflow-hidden rounded-2xl border py-2.5 pl-4 pr-3">
+
       <span aria-hidden className="absolute inset-y-0 left-0 w-[3px]" style={{ background: meta.color }} />
       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] leading-snug text-[var(--text-secondary)]">
         <NodeChip node={s} current={s.id === currentId} onClick={() => onSelect(s.id)} />
@@ -110,7 +109,7 @@ function LinkSentence({
       <button
         type="button"
         onClick={() => onSelect(other.id)}
-        className="apple-focus mt-1 text-[10.5px] font-semibold opacity-80 hover:opacity-100"
+        className="apple-focus mt-1 rounded-full text-[10.5px] font-semibold opacity-80 hover:opacity-100"
         style={{ color: meta.color }}
       >
         Explore {other.id === graph.rootId ? "the paper" : "it"} →
@@ -149,7 +148,7 @@ export function ConceptDetails({
   const summary = node.summary || (node.isRoot ? docs?.overview || simulation.summary : "");
 
   return (
-    <div key={node.id} className="space-y-5 p-5">
+    <div key={node.id} className="min-w-0 space-y-5 p-4 sm:p-5">
       {/* Header */}
       <header className="st-fade-up space-y-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -173,7 +172,7 @@ export function ConceptDetails({
             </span>
           )}
         </div>
-        <h3 className="apple-heading text-[19px] font-bold text-[var(--text-primary)]">
+        <h3 className="apple-heading break-words text-[19px] font-bold text-[var(--text-primary)]">
           <RichText text={node.label} />
         </h3>
         {/* where am I: breadcrumb from the paper */}
@@ -187,14 +186,15 @@ export function ConceptDetails({
                 <React.Fragment key={id}>
                   {i > 0 && <span aria-hidden>›</span>}
                   {last ? (
-                    <span className="max-w-[140px] truncate font-semibold text-[var(--text-secondary)]">
+                    <span className="max-w-[140px] truncate font-semibold text-[var(--text-secondary)]" title={n.label}>
                       <RichText text={n.label} />
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => onSelect(id)}
-                      className="apple-focus max-w-[140px] truncate rounded hover:text-[var(--text-primary)] hover:underline"
+                      title={n.label}
+                      className="apple-focus max-w-[140px] truncate rounded-full hover:text-[var(--text-primary)] hover:underline"
                     >
                       {n.isRoot ? "Paper" : <RichText text={n.label} />}
                     </button>
@@ -223,6 +223,7 @@ export function ConceptDetails({
             animationDelay: "100ms",
             borderColor: mix(color, 35),
             background: `linear-gradient(160deg, ${mix(color, 12)}, transparent 70%), var(--bg-surface)`,
+            boxShadow: "inset 0 1px 0 var(--glass-highlight), var(--shadow-card)",
           }}
         >
           <div className="flex items-center gap-3 px-4 pt-3.5">
@@ -248,9 +249,9 @@ export function ConceptDetails({
                 ["default", p.default_val],
                 ["max", p.max_val],
               ].map(([label, v]) => (
-                <div key={label as string} className="rounded-lg bg-[var(--bg-surface-muted)] px-2 py-1.5">
+                <div key={label as string} className="min-w-0 rounded-xl bg-[var(--bg-surface-muted)] px-2 py-1.5">
                   <dt className="text-[9.5px] uppercase text-[var(--text-muted)]">{label}</dt>
-                  <dd className="font-semibold text-[var(--text-primary)]">{formatParamValue(v as number, p.unit)}</dd>
+                  <dd className="break-words font-semibold text-[var(--text-primary)]">{formatParamValue(v as number, p.unit)}</dd>
                 </div>
               ))}
             </dl>
@@ -317,7 +318,8 @@ export function ConceptDetails({
       {/* Formula */}
       {formula && (
         <Section title="The maths" icon={Sparkles} delay={250}>
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-[var(--text-primary)]">
+          {/* Display maths scrolls horizontally inside this well rather than being clipped. */}
+          <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2 text-[var(--text-primary)]">
             <Tex latex={formula} display />
           </div>
         </Section>
@@ -326,13 +328,13 @@ export function ConceptDetails({
       {/* Found in the paper */}
       <Section title="Found in the paper" icon={MapPin} delay={300}>
         {src ? (
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
+          <div className="apple-card rounded-2xl border p-3">
             <p className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-semibold text-[var(--text-primary)]">
               {src.section && (
-                <span className="rounded-md bg-[var(--bg-surface-muted)] px-1.5 py-0.5">§ {src.section}</span>
+                <span className="rounded-full bg-[var(--bg-surface-muted)] px-2 py-0.5">§ {src.section}</span>
               )}
               {src.page != null && (
-                <span className="rounded-md bg-[var(--bg-surface-muted)] px-1.5 py-0.5 font-mono">page {src.page}</span>
+                <span className="rounded-full bg-[var(--bg-surface-muted)] px-2 py-0.5 font-mono">page {src.page}</span>
               )}
             </p>
             {src.quote && (
@@ -346,7 +348,7 @@ export function ConceptDetails({
             )}
           </div>
         ) : (
-          <p className="rounded-xl border border-dashed border-[var(--border-strong)] px-3 py-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
+          <p className="rounded-2xl border border-dashed border-[var(--border-strong)] px-3 py-2.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">
             {node.isRoot
               ? "This is the source paper itself; every other node points back to a part of it."
               : node.kind === "parameter"
@@ -388,18 +390,19 @@ export function ConceptDetails({
               );
             })}
           </ol>
+          {/* The view's one tinted primary action; pressed = raised segment look. */}
           <button
             type="button"
             onClick={onToggleTrace}
             aria-pressed={tracing}
-            className="apple-press apple-focus mt-2.5 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
-            style={{
-              color: tracing ? "var(--accent-fg)" : "var(--accent)",
-              background: tracing ? "var(--accent)" : "var(--accent-soft)",
-              borderColor: "var(--accent-border)",
-            }}
+            className={`apple-press apple-focus mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full px-3.5 py-1.5 text-left text-[11.5px] font-semibold ${
+              tracing
+                ? "apple-seg-on border border-[var(--status-support-border)] text-[var(--status-support)]"
+                : "apple-tint"
+            }`}
+            style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
           >
-            <Route className="h-3 w-3" />
+            <Route className="h-3.5 w-3.5 shrink-0" />
             {tracing ? "Showing path on the map" : "Trace this path on the map"}
           </button>
         </Section>

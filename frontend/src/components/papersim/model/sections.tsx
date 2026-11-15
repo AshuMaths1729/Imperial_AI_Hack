@@ -9,7 +9,9 @@ import { CopyButton, stagger } from "../series/kit";
 import { eqAnchor, locLabel, paramAnchor, type ParamRow, type SourceGroup } from "./derive";
 import { scrollToSection } from "./SectionNav";
 
-const card = "apple-card rounded-2xl border border-[var(--border-subtle)]";
+const card = "apple-card min-w-0 rounded-2xl border";
+/** Recessed well for display maths: Tex display blocks scroll sideways inside it, never clip. */
+const mathWell = "min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]";
 
 function SourceBadge({ label }: { label: string }) {
   if (!label) return null;
@@ -23,9 +25,9 @@ function SourceBadge({ label }: { label: string }) {
 
 function QuoteBlock({ quote, where }: { quote: string; where?: string }) {
   return (
-    <blockquote className="mt-3 flex gap-2 rounded-xl border-l-2 border-[var(--accent-border)] bg-[var(--bg-surface-muted)] px-3 py-2">
+    <blockquote className="mt-3 flex gap-2 rounded-2xl border-l-2 border-[var(--accent-border)] bg-[var(--bg-surface-muted)] px-3 py-2">
       <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-      <div>
+      <div className="min-w-0">
         <div className="text-xs italic leading-relaxed text-[var(--text-secondary)]">
           <RichText text={quote} />
         </div>
@@ -44,7 +46,7 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
     <div className={`${card} relative overflow-hidden p-5`}>
       <div aria-hidden className="apple-hero-glow pointer-events-none absolute inset-0" />
       <div className="relative">
-        <div className="apple-display text-xl font-semibold text-[var(--text-primary)]">
+        <div className="apple-display break-words text-xl font-semibold text-[var(--text-primary)]">
           {sim.sim_title || sim.paper_title || "Simulated model"}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -65,7 +67,7 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
           )}
         </div>
         {citedModel && (
-          <div className="mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+          <div className="mt-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2 text-xs leading-relaxed text-[var(--text-secondary)]">
             The simulation implements <span className="font-semibold text-[var(--text-primary)]">{sim.sim_title}</span>, a
             model discussed in <span className="font-semibold text-[var(--text-primary)]">{sim.paper_title}</span>, rather
             than a model the paper introduces itself.
@@ -83,7 +85,7 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
             {facts.map((f, i) => (
               <div
                 key={f.label}
-                className="st-rise rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2"
+                className="st-rise rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
                 style={stagger(i, 50, 200)}
               >
                 <dt className="text-[10px] text-[var(--text-muted)]">{f.label}</dt>
@@ -111,7 +113,7 @@ export function FindingsBody({ findings }: { findings: string[] }) {
           <span className="apple-display font-mono text-2xl font-semibold text-[var(--accent)] opacity-80">
             {String(i + 1).padStart(2, "0")}
           </span>
-          <div className="text-xs leading-relaxed text-[var(--text-secondary)]">
+          <div className="min-w-0 text-xs leading-relaxed text-[var(--text-secondary)]">
             <RichText text={f} />
           </div>
         </li>
@@ -124,7 +126,8 @@ export function FindingsBody({ findings }: { findings: string[] }) {
 
 export function VariablesTable({ vars }: { vars: EquationVar[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
+    // overflow-x-auto (not hidden): a wide symbol scrolls instead of being cut off.
+    <div className="overflow-x-auto rounded-2xl border border-[var(--border-subtle)]">
       <table className="w-full text-left text-xs">
         <thead className="bg-[var(--bg-surface-muted)]">
           <tr>
@@ -167,18 +170,18 @@ export function EquationsBody({ equations, derived }: { equations: EquationDoc[]
             style={stagger(i, 80, 100)}
           >
             <header className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[var(--accent)]">
+              <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--accent)]">
                 Eq. {i + 1}
               </span>
-              <h3 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="apple-heading min-w-0 break-words text-sm font-semibold text-[var(--text-primary)]">
                 <RichText text={e.title || `Equation ${i + 1}`} />
               </h3>
-              <span className="ml-auto flex items-center gap-2">
+              <span className="ml-auto flex flex-wrap items-center gap-2">
                 <SourceBadge label={where} />
                 <CopyButton text={e.latex} label="LaTeX" title="Copy LaTeX source" />
               </span>
             </header>
-            <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-4 py-4 text-lg text-[var(--text-primary)]">
+            <div className={`${mathWell} mt-4 px-4 py-4 text-lg text-[var(--text-primary)]`}>
               <Tex latex={e.latex} display />
             </div>
             {e.explanation && (
@@ -208,7 +211,8 @@ export function DerivationBody({ steps }: { steps: DerivationStep[] }) {
       <span aria-hidden className="absolute bottom-4 left-[17px] top-4 w-px bg-[var(--border-strong)]" />
       {steps.map((s, i) => (
         <li key={i} className="st-rise relative flex gap-4" style={stagger(i, 90, 120)}>
-          <span className="relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--bg-surface)] font-mono text-xs font-semibold text-[var(--accent)]">
+          {/* Solid fill: the timeline rule runs behind this dot. */}
+          <span className="relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--bg-surface-solid)] font-mono text-xs font-semibold text-[var(--accent)]">
             {i + 1}
           </span>
           <div className={`${card} min-w-0 flex-1 p-4`}>
@@ -216,7 +220,7 @@ export function DerivationBody({ steps }: { steps: DerivationStep[] }) {
               <RichText text={s.title} />
             </h3>
             {s.latex && (
-              <div className="mt-2 rounded-xl bg-[var(--bg-canvas)] px-3 py-2 text-[var(--text-primary)]">
+              <div className={`${mathWell} mt-2 px-3 py-2 text-[var(--text-primary)]`}>
                 <Tex latex={s.latex} display />
               </div>
             )}
@@ -242,7 +246,7 @@ function RangeBar({ min, max, def, cur }: { min: number; max: number; def: numbe
       <span className="st-grow-x absolute inset-y-0 left-0 rounded-full bg-[var(--accent-soft)]" style={{ width: pct(cur) }} />
       <span className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded bg-[var(--text-muted)]" style={{ left: pct(def) }} title="default" />
       <span
-        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-surface)] bg-[var(--accent)] shadow"
+        className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-surface-solid)] bg-[var(--accent)] shadow"
         style={{ left: pct(cur) }}
       />
     </div>
@@ -388,7 +392,7 @@ export function CaveatsBody({ assumptions, limitations }: { assumptions: string[
         return (
           <div key={c.key} className={`${card} p-4`}>
             <div className="flex items-center gap-2">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${c.soft} ${c.tone}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${c.soft} ${c.tone}`}>
                 <Icon className="h-3.5 w-3.5" />
               </span>
               <div>
@@ -425,13 +429,13 @@ export function GlossaryBody({ items, derived }: { items: EquationVar[]; derived
         {items.map((g, i) => (
           <div
             key={i}
-            className="st-rise flex items-start gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
+            className="apple-card st-rise flex min-w-0 items-start gap-3 rounded-2xl border p-3"
             style={stagger(i, 30, 100)}
           >
-            <dt className="flex min-w-[3rem] items-center justify-center rounded-lg bg-[var(--bg-surface-muted)] px-2 py-1.5 text-base text-[var(--text-primary)]">
+            <dt className="flex min-w-[3rem] max-w-[45%] shrink-0 items-center overflow-x-auto [justify-content:safe_center] rounded-xl bg-[var(--bg-surface-muted)] px-2 py-1.5 text-base text-[var(--text-primary)]">
               <Tex latex={g.symbol_latex} />
             </dt>
-            <dd className="text-xs leading-relaxed text-[var(--text-secondary)]">
+            <dd className="min-w-0 text-xs leading-relaxed text-[var(--text-secondary)]">
               <RichText text={g.meaning} />
             </dd>
           </div>
@@ -458,7 +462,7 @@ export function SourcesBody({ groups }: { groups: SourceGroup[] }) {
             {g.items.map((it, i) => {
               const content = (
                 <>
-                  <span className="rounded bg-[var(--bg-surface-muted)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                  <span className="rounded-full bg-[var(--bg-surface-muted)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     {it.kind}
                   </span>
                   <span className="font-medium text-[var(--text-primary)]">{it.label}</span>

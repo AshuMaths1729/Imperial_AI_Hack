@@ -55,11 +55,19 @@ export function ParamCard({ param: p, doc, value, sweeping, onChange, style }: P
   return (
     // Outer wrapper owns the entrance animation (its fill-mode pins `transform`), the inner card
     // owns the hover lift; raised while the info popover is open so it paints over siblings.
-    <div style={style} className={`st-fade-up relative ${infoOpen ? "z-20" : ""}`}>
+    <div style={style} className={`st-fade-up relative h-full ${infoOpen ? "z-20" : ""}`}>
     <div
-      className={`relative h-full rounded-2xl border bg-[var(--bg-surface)] p-3.5 shadow-[var(--shadow-card)] transition-[box-shadow,border-color,transform] duration-200 hover:shadow-[var(--shadow-card-hover)] motion-safe:hover:-translate-y-0.5 ${
-        sweeping ? "border-[var(--accent-border)]" : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
-      }`}
+      // Glass card; while a sweep drives this parameter it gets an accent rim + soft halo.
+      className="apple-card relative h-full rounded-2xl border p-3.5 motion-safe:hover:-translate-y-0.5"
+      style={
+        sweeping
+          ? {
+              borderColor: "var(--accent-border)",
+              boxShadow:
+                "inset 0 1px 0 var(--glass-highlight), 0 0 0 3px var(--accent-soft), var(--shadow-card)",
+            }
+          : undefined
+      }
     >
       {/* Header: symbol + name + info */}
       <div className="flex items-start gap-2.5">
@@ -92,18 +100,20 @@ export function ParamCard({ param: p, doc, value, sweeping, onChange, style }: P
             disabled={atDefault}
             title={`Reset to default (${formatParam(p.default_val, p)})`}
             aria-label={`Reset ${label} to default`}
-            className="apple-press apple-focus rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
+            className="apple-press apple-focus rounded-full p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
           >
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
           {hasInfo && (
-            <div ref={infoRef} className="relative">
+            // Not `relative`: the popover anchors to the card, so it always stays inside the
+            // card's width (a narrow grid column can't push it off-screen).
+            <div ref={infoRef}>
               <button
                 type="button"
                 onClick={() => setInfoOpen((o) => !o)}
                 aria-expanded={infoOpen}
                 aria-label={`About ${label}`}
-                className={`apple-press apple-focus rounded-lg p-1.5 hover:bg-[var(--bg-surface-muted)] ${
+                className={`apple-press apple-focus rounded-full p-1.5 hover:bg-[var(--bg-surface-muted)] ${
                   infoOpen ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 }`}
               >
@@ -113,7 +123,7 @@ export function ParamCard({ param: p, doc, value, sweeping, onChange, style }: P
                 <div
                   role="dialog"
                   aria-label={`About ${label}`}
-                  className="apple-glass-elevated apple-materialize absolute right-0 top-full z-30 mt-2 w-[min(19rem,80vw)] rounded-2xl border p-3.5 text-left"
+                  className="apple-glass-elevated apple-materialize absolute right-2 top-12 z-30 w-[min(19rem,calc(100%-1rem))] rounded-2xl border p-3.5 text-left"
                 >
                   <div className="mb-2 flex items-center gap-2">
                     {symbol && <Tex latex={symbol} className="text-[var(--accent)]" />}
@@ -125,7 +135,7 @@ export function ParamCard({ param: p, doc, value, sweeping, onChange, style }: P
                     </p>
                   )}
                   {doc.effect && (
-                    <div className="mt-2.5 flex gap-2 rounded-xl bg-[var(--accent-soft)] p-2.5">
+                    <div className="mt-2.5 flex gap-2 rounded-2xl bg-[var(--accent-soft)] p-2.5">
                       <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
                       <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                         <span className="font-semibold text-[var(--text-primary)]">Increasing it </span>
@@ -186,7 +196,7 @@ export function ParamCard({ param: p, doc, value, sweeping, onChange, style }: P
                 onChange(next);
               }
             }}
-            className="apple-focus w-[7.5ch] rounded-lg border border-transparent bg-[var(--bg-surface-muted)] px-1.5 py-0.5 font-mono text-[15px] font-semibold tabular-nums text-[var(--text-primary)] hover:border-[var(--border-strong)] focus:border-[var(--accent-border)] focus:outline-none"
+            className="apple-focus w-[9ch] rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-0.5 font-mono text-[15px] font-semibold tabular-nums text-[var(--text-primary)] hover:border-[var(--border-strong)] focus:border-[var(--accent-border)]"
           />
           {p.unit && <span className="text-[11px] font-medium text-[var(--text-muted)]">{p.unit}</span>}
         </div>

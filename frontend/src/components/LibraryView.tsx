@@ -92,6 +92,11 @@ const COPY = {
   },
 } as const;
 
+/* apple-card (unlayered CSS) only transitions `transform`; Tailwind's hover lift and press
+   use the separate `translate` / `scale` properties, so the card states its own transition. */
+const CARD_TRANSITION =
+  "translate 300ms cubic-bezier(0.22, 1, 0.36, 1), scale 150ms ease-out, box-shadow 220ms ease, border-color 220ms ease";
+
 function formatTopicDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Recent";
@@ -114,16 +119,28 @@ export function LibraryView({
   onIngestUrl,
 }: LibraryViewProps) {
   const copy = COPY[mode];
+  const hue = MODE_META[mode];
+  // The module hue flows into the New Conversation panel (its tinted Load button, icon tile
+  // and drop-zone hover read --tint) and the hero's rotating glow border.
+  const heroVars = {
+    animationDelay: "160ms",
+    "--tint": hue.colorVar,
+    "--st-glow-a": hue.colorVar,
+    "--st-glow-b": mode === "paper2sim" ? "var(--accent)" : "var(--status-support)",
+  } as React.CSSProperties;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      {/* Ambient animated backdrop */}
+    // Transparent root so the body's colour field shows. overflow-x-clip (not overflow-hidden)
+    // stops the aurora blobs from causing a sideways scroll without making the root a scroll
+    // container, so the sticky header keeps sticking to the viewport.
+    <div className="relative flex min-h-screen flex-col overflow-x-clip text-[var(--text-primary)]">
+      {/* Ambient animated backdrop (soft tints over the colour field) */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="apple-hero-glow absolute inset-x-0 top-0 h-[520px]" />
         <div className="st-aurora absolute -top-40 left-[calc(50%-410px)] h-[520px] w-[820px] rounded-full bg-[var(--accent-soft)] blur-3xl" />
         <div className="st-aurora-slow absolute top-56 -left-40 h-[380px] w-[380px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
         <div className="st-aurora-slow absolute top-96 -right-32 h-[340px] w-[340px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
-        <div className="st-grid absolute inset-0 opacity-[0.35]" />
+        <div className="st-grid absolute inset-0 opacity-[0.22]" />
       </div>
 
       <AppHeader
@@ -135,7 +152,7 @@ export function LibraryView({
         subtitle="ScholarTwin Library"
       />
 
-      <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-6 pb-16 pt-10">
+      <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 pb-12 pt-8 sm:px-6 sm:pt-10">
         {/* Hero: centred New Conversation panel */}
         <section className="mx-auto max-w-xl">
           <div className="st-fade-up mb-6 text-center" style={{ animationDelay: "60ms" }}>
@@ -143,9 +160,9 @@ export function LibraryView({
             <h2 className="apple-display bg-gradient-to-r from-[var(--accent)] via-[var(--text-primary)] to-[var(--status-support)] bg-clip-text pb-1.5 text-2xl font-bold !leading-[1.25] text-transparent sm:text-3xl">
               {copy.tagline}
             </h2>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">{copy.desc}</p>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">{copy.desc}</p>
           </div>
-          <div className="st-fade-up st-pop" style={{ animationDelay: "160ms" }}>
+          <div className="st-fade-up st-pop" style={heroVars}>
             <NewConversationPanel
               variant="hero"
               loading={uploadLoading}
@@ -159,21 +176,28 @@ export function LibraryView({
         </section>
 
         {/* Library */}
-        <section className="mt-14">
+        <section className="mt-12 sm:mt-14">
           <div className="st-fade-up mb-5 flex items-center gap-3" style={{ animationDelay: "260ms" }}>
-            <BookOpen className="h-4 w-4 text-[var(--accent)]" />
-            <h3 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
-              Your {copy.title} Library
-            </h3>
-            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
-              {topics.length}
-            </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-[var(--border-strong)] to-transparent" />
+            <div className="apple-sheet flex min-w-0 items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5">
+              <BookOpen className="h-4 w-4 shrink-0" style={{ color: hue.colorVar }} />
+              <h3
+                title={`Your ${copy.title} Library`}
+                className="apple-heading min-w-0 truncate text-sm font-semibold text-[var(--text-primary)]"
+              >
+                {/* "Your" drops on phones so the full module name fits the capsule (no ellipsis). */}
+                <span className="hidden sm:inline">Your </span>
+                {copy.title} Library
+              </h3>
+              <span className="shrink-0 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--text-secondary)]">
+                {topics.length}
+              </span>
+            </div>
+            <div className="h-px min-w-4 flex-1 bg-gradient-to-r from-[var(--border-strong)] to-transparent" />
           </div>
 
           {topics.length === 0 ? (
             <div
-              className="st-fade-up flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] px-6 py-14 text-center"
+              className="apple-sheet st-fade-up flex flex-col items-center justify-center rounded-3xl border-dashed! border-[var(--border-strong)]! px-6 py-14 text-center"
               style={{ animationDelay: "320ms" }}
             >
               <BookOpen className="st-bob mb-3 h-8 w-8 text-[var(--text-muted)]" />
@@ -199,10 +223,17 @@ export function LibraryView({
                         onOpenTopic(topic);
                       }
                     }}
-                    style={{ animationDelay: `${320 + idx * 70}ms` }}
-                    className="apple-card apple-focus st-fade-up st-sheen group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[var(--border-subtle)] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent-border)] focus-visible:-translate-y-1 active:scale-[0.98]"
+                    style={
+                      {
+                        animationDelay: `${320 + idx * 70}ms`,
+                        transition: CARD_TRANSITION,
+                        "--card-c": meta.colorVar,
+                        "--card-b": meta.borderVar,
+                      } as React.CSSProperties
+                    }
+                    className="apple-card apple-focus st-fade-up st-sheen group relative flex min-w-0 cursor-pointer flex-col justify-between overflow-hidden rounded-3xl border p-5 hover:-translate-y-1 hover:border-[var(--card-b)]! focus-visible:-translate-y-1 active:scale-[0.98]"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span
                           style={{
@@ -210,40 +241,45 @@ export function LibraryView({
                             backgroundColor: meta.softVar,
                             borderColor: meta.borderVar,
                           }}
-                          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold"
+                          className="inline-flex min-w-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
                         >
-                          <ModeIcon className="h-3 w-3" />
-                          {meta.label}
+                          <ModeIcon className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{meta.label}</span>
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1">
+                          {/* Always visible on touch screens (no hover); revealed on hover/focus elsewhere. */}
                           <button
                             type="button"
                             aria-label={`Remove ${topic.title}`}
+                            title={`Remove ${topic.title}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               onDeleteTopic(topic.id);
                             }}
-                            className="apple-focus rounded-md p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
+                            className="apple-press apple-focus grid h-7 w-7 place-items-center rounded-full text-[var(--text-muted)] transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] [@media(hover:hover)]:opacity-0 focus-visible:opacity-100! group-hover:opacity-100! group-focus-visible:opacity-100!"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                          <ArrowUpRight className="h-4 w-4 -translate-x-1 translate-y-1 text-[var(--accent)] opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
+                          <ArrowUpRight className="h-4 w-4 -translate-x-1 translate-y-1 text-[var(--card-c)] opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
                         </div>
                       </div>
 
-                      <h3 title={topic.title} className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+                      <h3
+                        title={topic.title}
+                        className="truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--card-c)]"
+                      >
                         {topic.title}
                       </h3>
                       <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">
                         {topic.subtitle}
                       </p>
-                      <p className="mt-3 line-clamp-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-2 text-[11px] text-[var(--text-muted)] transition-colors group-hover:border-[var(--border-strong)]">
+                      <p className="mt-3 line-clamp-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2 text-[11px] text-[var(--text-muted)] transition-colors group-hover:border-[var(--border-strong)]">
                         {topic.lastReply}
                       </p>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--text-muted)]">
-                      <span className="flex max-w-[65%] items-center gap-1.5 truncate">
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--text-muted)]">
+                      <span className="flex min-w-0 items-center gap-1.5">
                         {topic.sourceType === "pdf" ? (
                           <FileText className="h-3 w-3 shrink-0 text-[var(--accent)]" />
                         ) : topic.sourceType === "url" ? (
@@ -265,6 +301,7 @@ export function LibraryView({
           )}
         </section>
       </main>
+
     </div>
   );
 }

@@ -94,7 +94,7 @@ export function ConceptCanvas({
     const zoom = Math.max(0.15, Math.min(FIT_VIEW_OPTIONS.maxZoom, width / ((x1 - x0) * pad), height / ((y1 - y0) * pad)));
     void setCenter((x0 + x1) / 2, (y0 + y1) / 2, { zoom, duration: motionMs(500) });
   }, [layout, setCenter, store]);
-  const [hover, setHover] = useState<{ id: string; x: number; y: number; w: number } | null>(null);
+  const [hover, setHover] = useState<{ id: string; x: number; y: number; w: number; h: number } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const linkById = useMemo(() => new Map(graph.links.map((l) => [l.id, l])), [graph.links]);
@@ -158,7 +158,7 @@ export function ConceptCanvas({
       return;
     }
     const rect = wrapRef.current.getBoundingClientRect();
-    setHover({ id, x: e.clientX - rect.left, y: e.clientY - rect.top, w: rect.width });
+    setHover({ id, x: e.clientX - rect.left, y: e.clientY - rect.top, w: rect.width, h: rect.height });
   }, []);
 
   const interaction: EdgeInteraction = useMemo(
@@ -193,7 +193,8 @@ export function ConceptCanvas({
 
   return (
     <EdgeInteractionContext.Provider value={interaction}>
-      <div ref={wrapRef} className="relative h-full w-full overflow-hidden bg-[var(--bg-canvas)]">
+      {/* Glass sheet; overflow-hidden only rounds the pane (every overlay below is kept inside it). */}
+      <div ref={wrapRef} className="apple-sheet relative h-full w-full overflow-hidden rounded-[22px]">
         {/* flow-along-edge animation (frozen by the global reduced-motion rule) */}
         <style>{`@keyframes cg-dash{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}.cg-flow{animation:cg-dash .9s linear infinite}`}</style>
         <ReactFlow
@@ -220,17 +221,20 @@ export function ConceptCanvas({
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="var(--border-strong)" />
+          {/* Top-left, under the search box: the bottom-left belongs to the legend, so the two
+              can't collide at any width. */}
           <Controls
             showInteractive={false}
-            position="bottom-right"
-            className="!overflow-hidden !rounded-xl !border !border-[var(--border-subtle)]"
+            position="top-left"
+            style={{ marginTop: 58, marginLeft: 12 }}
+            className="!overflow-hidden !rounded-2xl !border !border-[var(--glass-rim)] !shadow-[var(--shadow-card)]"
           />
         </ReactFlow>
 
         {/* Toolbar: search + fit */}
         <div className="absolute left-3 right-3 top-3 z-10 flex items-start gap-2">
-          <div className="relative w-full max-w-[300px]">
-            <div className="apple-glass flex items-center gap-2 rounded-xl border px-2.5 py-1.5 shadow-[var(--shadow-card)]">
+          <div className="relative min-w-0 w-full max-w-[300px]">
+            <div className="apple-glass-elevated flex items-center gap-2 rounded-full border py-1.5 pl-3 pr-2">
               <Search className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
               <input
                 value={query}
@@ -249,7 +253,7 @@ export function ConceptCanvas({
                 }}
                 placeholder="Find a concept or parameter…"
                 aria-label="Search the concept graph"
-                className="w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                className="min-w-0 w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
               />
               {query && (
                 <button
@@ -257,14 +261,14 @@ export function ConceptCanvas({
                   aria-label="Clear search"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onQueryChange("")}
-                  className="apple-press apple-focus rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  className="apple-press apple-focus shrink-0 rounded-full p-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
                 >
                   <X className="h-3 w-3" />
                 </button>
               )}
             </div>
             {searchOpen && query.trim() && (
-              <div className="apple-glass-elevated st-fade-down absolute left-0 right-0 top-full mt-1.5 overflow-hidden rounded-xl border">
+              <div className="apple-glass-elevated st-fade-down absolute left-0 right-0 top-full mt-1.5 overflow-hidden rounded-2xl border">
                 {matches.length === 0 ? (
                   <p className="px-3 py-2.5 text-[11.5px] text-[var(--text-muted)]">Nothing matches “{query}”.</p>
                 ) : (
@@ -295,7 +299,9 @@ export function ConceptCanvas({
           <button
             type="button"
             onClick={showWholeMap}
-            className="apple-glass apple-press apple-focus ml-auto flex shrink-0 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11.5px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-card)] hover:text-[var(--text-primary)]"
+            aria-label="Show the whole map"
+            title="Show the whole map"
+            className="apple-glass-elevated apple-press apple-focus ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             <Maximize2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Whole map</span>
@@ -303,16 +309,17 @@ export function ConceptCanvas({
         </div>
 
         {/* Legend + kind spotlight */}
-        <details open className="group/legend apple-glass absolute bottom-3 left-3 z-10 max-w-[calc(100%-5.5rem)] rounded-xl border text-[11px] shadow-[var(--shadow-card)] sm:max-w-[440px]">
-          <summary className="apple-focus cursor-pointer select-none list-none rounded-xl px-3 py-1.5 font-semibold text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+        {/* Legend: its body scrolls inside itself on short canvases rather than being cut off. */}
+        <details open className="group/legend apple-glass-elevated absolute bottom-3 left-3 z-10 max-w-[calc(100%-5.5rem)] rounded-2xl border text-[11px] sm:max-w-[min(440px,calc(100%-12rem))]">
+          <summary className="apple-focus cursor-pointer select-none list-none rounded-2xl px-3 py-1.5 font-semibold text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
             <span className="apple-label text-[10px] uppercase">Legend</span>
             <span className="ml-2 font-normal text-[var(--text-muted)] group-open/legend:hidden">show</span>
             <span className="ml-2 hidden font-normal text-[var(--text-muted)] group-open/legend:inline">
               tap a kind to spotlight it
             </span>
           </summary>
-          <div className="space-y-2 px-3 pb-2.5">
-            <div className="flex flex-wrap gap-1.5">
+          <div className="max-h-[min(40vh,14rem)] space-y-2 overflow-y-auto px-3 pb-2.5 pt-0.5">
+            <div className="flex flex-wrap gap-1.5 p-0.5">
               {presentKinds.map(({ kind, count }) => {
                 const m = KIND_META[kind];
                 const Icon = m.icon;
@@ -361,10 +368,11 @@ export function ConceptCanvas({
         {hover && hoverLink && (
           <div
             role="tooltip"
-            className="apple-glass-elevated pointer-events-none absolute z-20 w-[260px] rounded-xl border p-3"
+            className="apple-glass-elevated pointer-events-none absolute z-20 w-[min(260px,calc(100%-16px))] rounded-2xl border p-3"
             style={{
               left: Math.min(Math.max(8, hover.x + 14), Math.max(8, hover.w - 272)),
-              top: hover.y + 16,
+              // Flip above the cursor in the lower half so the sheet's rounded clip never cuts it.
+              ...(hover.y > hover.h / 2 ? { bottom: hover.h - hover.y + 12 } : { top: hover.y + 16 }),
             }}
           >
             <p className="apple-label text-[9.5px] font-bold uppercase" style={{ color: LINK_META[hoverLink.kind].color }}>
