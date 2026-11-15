@@ -343,10 +343,30 @@ def fallback_deck(track_id: str) -> Optional[dict]:
     return json.loads(p.read_text()) if p.exists() else None
 
 
-def materials_text(track: Track, limit: int = 12000) -> str:
-    """What the student uploaded, as prompt text. Only demo datasets are stored in full; others give their KPs."""
+PDF_CHARS = 30000  # budget for an uploaded PDF's text in the deck prompt
+
+
+def pdf_excerpt(pages: List[str], kps: List[str], budget: int = PDF_CHARS) -> str:
+    """The PDF's text; if over budget, the pages sharing most words with the material's KPs, kept in page order."""
+    from .pdf import joined
+    full = joined(pages)
+    if len(full) <= budget:
+        return full
+    words = {w for k in kps for w in re.findall(r"[a-z]{4,}", k.lower())}
+    score = {i: len(words & set(re.findall(r"[a-z]{4,}", p.lower()))) for i, p in enumerate(pages)}
+    keep, used = set(), 0
+    for i in sorted(score, key=lambda i: (-score[i], i)):
+        size = len(pages[i]) + 12
+        if pages[i] and used + size <= budget:
+            keep.add(i)
+            used += size
+    return joined([p if i in keep else "" for i, p in enumerate(pages)])
+
+
+def materials_text(track: Track, limit: int = 40000, store=None) -> str:
+    """What the student uploaded, as prompt text: demo datasets and stored PDF text in full; others give their KPs."""
     parts = []
-    for m in track.materials:
+    for i, m in enumerate(track.materials):
         parts.append(f"Material ({m.kind}): {m.dataset_title}")
         if m.kind == "demo" and re.fullmatch(r"[a-z0-9_]+", m.ref) and (DEMO_DIR / f"{m.ref}.json").exists():
             d = json.loads((DEMO_DIR / f"{m.ref}.json").read_text())
@@ -355,6 +375,11 @@ def materials_text(track: Track, limit: int = 12000) -> str:
                 parts.append(f"- {n.get('label')}: {n.get('summary', '')}")
                 for q in n.get("quiz", [])[:1]:
                     parts.append(f"  quiz: {q.get('question')} (answer: {q['options'][q['correct_index']]})")
+        doc = store.get_material_text(track.track_id, f"m{i}") if store is not None and m.kind == "pdf" else None
+        if doc:
+            kps = [f"{k.title} {k.summary}" for k in track.knowledge_points if k.kp_id.startswith(f"m{i}:")]
+            parts.append("Full text of the student's notes (teach from this; follow its examples and order):")
+            parts.append(pdf_excerpt(doc["pages"], kps))
     return "\n".join(parts)[:limit]
 
 
@@ -415,14 +440,14 @@ Objects never named by a show action are visible as soon as the slide opens, so 
 Compute every number exactly and check it; make sure dots and labels sit inside their axes and do not overlap."""
 
 
-def build_prompt(track: Track) -> str:
+def build_prompt(track: Track, store=None) -> str:
     kps = "\n".join(
         f"- {k.kp_id}: {k.title} — {k.summary}" + (f" (after {', '.join(k.prereq_ids)})" if k.prereq_ids else "")
         for k in track.knowledge_points
     )
     return (
         f"Topic: {track.title}\n\nRequired knowledge points:\n{kps or '(none listed)'}\n\n"
-        f"Student's materials:\n{materials_text(track) or '(none)'}\n\n"
+        f"Student's materials:\n{materials_text(track, store=store) or '(none)'}\n\n"
         "Plan the lesson first: one concrete visual anchor, the question each slide answers, and how each slide "
         "bridges from the last. Then make the deck: every slide sets idea, builds_on (except the first) and check, "
         "and every narration hint is at most 2 short sentences. Call make_deck once."
@@ -451,10 +476,10 @@ def anthropic_llm(body: dict) -> dict:
     return r.json()
 
 
-def generate_deck(track: Track, llm: LLM, attempts: int = 2) -> Tuple[dict, List[str]]:
+def generate_deck(track: Track, llm: LLM, attempts: int = 2, store=None) -> Tuple[dict, List[str]]:
     """-> (deck JSON, warnings). Retries once with the validation errors; raises if no renderable deck."""
     tool = deck_tool()
-    messages: list = [{"role": "user", "content": build_prompt(track)}]
+    messages: list = [{"role": "user", "content": build_prompt(track, store)}]
     kp_ids = [k.kp_id for k in track.knowledge_points]
     deck, errs, missing = None, ["no make_deck call"], []
     for _ in range(attempts):
@@ -512,7 +537,7 @@ def run_generation(store, track_id: str, llm: LLM) -> None:
     prev = store.get_deck(track_id) or {}
     try:
         track = store.get_track(track_id)
-        deck, warnings = generate_deck(track, llm)
+        deck, warnings = generate_deck(track, llm, store=store)
         store.save_deck(track_id, {"status": "ready", "deck": deck, "error": "", "warnings": warnings, "updated_at": now()})
     except Exception as e:
         log.exception("deck generation failed for %s", track_id)

@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from schemas import WorkspaceDataset
 
 from . import deck as decks
+from . import pdf
 from .models import KP, Lesson, LessonCheckpoint, Material, Struggle, Track, Worked
 from .livekit_token import mint_token
 from .store import Store, make_store
@@ -129,6 +130,32 @@ def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_sto
 def get_deck_llm() -> decks.LLM:
     """Overridden in tests with a fake Anthropic client."""
     return decks.anthropic_llm
+
+
+@tutor_router.post("/tracks/{track_id}/materials/pdf")
+def add_pdf(track_id: str, file: UploadFile = File(...), store: Store = Depends(get_store),
+            llm: decks.LLM = Depends(get_deck_llm)) -> Track:
+    """Full text of the PDF is stored; KPs are built from it (Sonnet, else headings). Returns the updated Track."""
+    _lookup(store.get_track, track_id)
+    try:
+        pages = pdf.extract_pages(file.file.read(pdf.MAX_BYTES + 1))
+    except pdf.PdfError as e:
+        raise HTTPException(e.status, str(e))
+    name = file.filename or "upload.pdf"
+    # The model call runs outside the write lock (it can take tens of seconds); KP ids get their prefix under it.
+    title, kps = pdf.build_kps(pages, name, "_", llm, decks.MODEL)  # "_" = placeholder prefix, swapped below
+    with _write_lock:
+        track = _lookup(store.get_track, track_id)
+        prefix = f"m{len(track.materials)}"
+        for k in kps:
+            k.kp_id = prefix + k.kp_id[1:]
+            k.prereq_ids = [prefix + p[1:] for p in k.prereq_ids]
+        store.save_material_text(track_id, prefix, {"track_id": track_id, "material": prefix, "filename": name,
+                                                    "pages": pages})
+        track.materials.append(Material(kind="pdf", ref=name, dataset_title=title or name))
+        track.knowledge_points += kps
+        store.save_track(track)
+        return track
 
 
 @tutor_router.get("/tracks/{track_id}/deck")
