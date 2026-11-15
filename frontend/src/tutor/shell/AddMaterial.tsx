@@ -79,20 +79,20 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
   return (
     <div className="space-y-2">
       <form onSubmit={onUrl} className="flex gap-2">
-        <div className="relative flex-1">
-          <Link2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--st-muted)]" aria-hidden />
+        <div className="relative min-w-0 flex-1">
+          <Link2 className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" aria-hidden />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-label="Material URL"
             placeholder="https://arxiv.org/abs/…"
-            className="w-full rounded-xl border border-[var(--st-line-strong)] bg-[var(--st-surface)] py-2 pl-8 pr-2 text-xs text-[var(--st-text)] placeholder-[var(--st-muted)] focus:border-[var(--st-accent)] focus:outline-none"
+            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-2 pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
           />
         </div>
         <button
           type="submit"
           disabled={!!busy || !url.trim()}
-          className="rounded-xl bg-black/5 px-3 text-xs font-medium text-[var(--st-text)] transition-colors hover:bg-black/10 disabled:opacity-50"
+          className="apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] disabled:opacity-50"
         >
           Add URL
         </button>
@@ -100,7 +100,7 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
           type="button"
           disabled={!!busy}
           onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1 rounded-xl bg-black/5 px-3 text-xs font-medium text-[var(--st-text)] transition-colors hover:bg-black/10 disabled:opacity-50"
+          className="apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Upload className="h-3.5 w-3.5" aria-hidden />}
           PDF
@@ -119,12 +119,12 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
         />
       </form>
       {busy && (
-        <p role="status" className="text-[11px] text-[var(--st-muted)]">
+        <p role="status" className="text-[11px] text-[var(--text-muted)]">
           {busy === "pdf" ? "Reading the PDF… building knowledge points" : "Reading material…"}
         </p>
       )}
       {msg && (
-        <p role={msg.ok ? "status" : "alert"} className={`text-[11px] ${msg.ok ? "text-[var(--st-accent)]" : "text-[var(--st-danger)]"}`}>
+        <p role={msg.ok ? "status" : "alert"} className={`text-[11px] ${msg.ok ? "text-[var(--status-support)]" : "text-[var(--status-contradict)]"}`}>
           {msg.text}
         </p>
       )}

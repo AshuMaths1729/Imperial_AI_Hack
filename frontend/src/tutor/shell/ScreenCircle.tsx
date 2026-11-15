@@ -84,15 +84,14 @@ export function ScreenCircle({ video, onCircle }: { video: HTMLVideoElement | nu
         setPoints([]);
       }}
     >
-      <p className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-slate-950/80 px-3 py-1 text-xs text-sky-200 backdrop-blur">
+      <p className="apple-glass pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium text-[var(--text-primary)]">
         Circle what you want to ask about
       </p>
       {points.length > 1 && (
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
           <polyline
             points={points.map((p) => p.join(",")).join(" ")}
-            fill="rgba(56,189,248,0.08)"
-            stroke="rgb(56,189,248)"
+            style={{ fill: "color-mix(in srgb, var(--accent) 8%, transparent)", stroke: "var(--accent)" }}
             strokeWidth={2.5}
             strokeDasharray="6 4"
             strokeLinejoin="round"

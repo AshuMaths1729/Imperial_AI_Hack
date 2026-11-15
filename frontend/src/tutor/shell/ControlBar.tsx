@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType, type FormEvent } from "react";
+import { useState, type ComponentType, type CSSProperties, type FormEvent } from "react";
 import { Captions, Hand, Lasso, Mic, MicOff, MonitorUp, PenTool, PhoneOff, Send, Video, VideoOff } from "lucide-react";
 
 type Icon = ComponentType<{ className?: string }>;
@@ -24,19 +24,21 @@ function ControlButton({
     <button
       type="button"
       onClick={onClick}
+      title={label}
       aria-pressed={pressed}
-      className={`flex min-w-14 flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-[transform,background-color] duration-150 ease-out active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-[var(--st-accent)] ${
+      className={`apple-press apple-focus flex min-w-[44px] flex-col items-center gap-1 rounded-2xl border px-1.5 py-1.5 sm:px-2 text-[11px] font-medium sm:min-w-14 ${
         accent
-          ? "bg-[var(--st-warn-soft)] text-[var(--st-warn)] hover:bg-[#8a4b12]/20"
+          ? "border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] text-[var(--status-warning)] hover:border-[var(--status-warning)]"
           : pressed
-            ? "bg-[var(--st-accent-soft)] text-[var(--st-accent)] ring-1 ring-[var(--st-accent-border)] hover:bg-[#1e4a33]/15"
+            ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)]"
             : off
-              ? "text-[var(--st-danger)] hover:bg-black/5"
-              : "text-[var(--st-text-2)] hover:bg-black/5"
+              ? "border-transparent text-[var(--status-contradict)] hover:bg-[var(--bg-surface-muted)]"
+              : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)]"
       }`}
     >
       <I className="h-5 w-5" />
-      {label}
+      {/* Icon-only on phones (the label stays the accessible name), so the bar keeps to one or two rows. */}
+      <span className="max-sm:sr-only">{label}</span>
     </button>
   );
 }
@@ -72,9 +74,9 @@ export function ControlBar(p: Props) {
     <div
       role="toolbar"
       aria-label="Lesson controls"
-      className="st-glass flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-[18px] px-3 py-2"
+      className="apple-glass flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-[28px] border px-2.5 py-2 sm:px-3"
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1">
         <ControlButton icon={p.mic ? Mic : MicOff} label={p.mic ? "Mute" : "Unmute"} off={!p.mic} onClick={p.onMic} />
         <ControlButton
           icon={p.cam ? Video : VideoOff}
@@ -84,7 +86,7 @@ export function ControlBar(p: Props) {
         />
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-0.5 sm:gap-1">
         <ControlButton icon={MonitorUp} label="Share screen" pressed={p.sharing} onClick={p.onShare} />
         <ControlButton icon={PenTool} label="Board" pressed={p.boardShown} onClick={p.onBoard} />
         <ControlButton icon={Lasso} label="Circle" pressed={p.circleMode} onClick={p.onCircle} />
@@ -99,12 +101,12 @@ export function ControlBar(p: Props) {
             onChange={(e) => setText(e.target.value)}
             aria-label="Type to the tutor"
             placeholder="Type to the tutor…"
-            className="w-56 rounded-full border border-[var(--st-line-strong)] bg-[var(--st-surface)] py-2 pl-4 pr-10 text-xs placeholder-[var(--st-muted)] focus:border-[var(--st-accent)] focus:outline-none"
+            className="apple-focus w-56 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-2 pl-4 pr-10 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
           />
           <button
             type="submit"
             aria-label="Send"
-            className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-[var(--st-accent)] text-[var(--st-accent-fg)] transition-colors hover:bg-[var(--st-accent-hover)]"
+            className="apple-tint apple-press apple-focus absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full"
           >
             <Send className="h-3 w-3" />
           </button>
@@ -112,7 +114,8 @@ export function ControlBar(p: Props) {
         <button
           type="button"
           onClick={p.onLeave}
-          className="flex items-center gap-1.5 rounded-full bg-[var(--st-danger)] px-4 py-2.5 text-xs font-semibold text-white transition-[transform,background-color] duration-150 ease-out hover:bg-[#8a2c17] active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--st-danger)]"
+          style={{ "--tint": "var(--status-contradict)", color: "var(--status-contradict-fg)" } as CSSProperties}
+          className="apple-tint apple-press apple-focus flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold hover:opacity-90"
         >
           <PhoneOff className="h-4 w-4" aria-hidden />
           Leave

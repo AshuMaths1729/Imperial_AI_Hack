@@ -52,55 +52,55 @@ type Props = {
 
 export function VideoTiles({ tutorName, connecting, avatarVideo, tutorSpeaking, selfVideo, cam, mic, where }: Props) {
   return (
-    <section aria-label="Tutor" className="st-glass shrink-0 rounded-[20px] p-3">
+    <section aria-label="Tutor" className="apple-sheet st-fade-up shrink-0 rounded-[22px] p-3">
       <div className="mb-2 flex items-baseline justify-between px-1">
-        <h2 className="text-sm font-semibold">Tutor</h2>
-        {where && <span className="font-mono text-[11px] text-[var(--st-muted)]">{where}</span>}
+        <h2 className="apple-heading text-sm font-semibold">Tutor</h2>
+        {where && <span className="font-mono text-[11px] text-[var(--text-muted)]">{where}</span>}
       </div>
       <div className="relative">
         <figure
-          className={`relative aspect-video overflow-hidden rounded-2xl bg-[#26352c] ring-2 transition-[box-shadow] duration-200 ${
-            tutorSpeaking ? "ring-[var(--st-accent)] shadow-[0_0_0_4px_rgba(30,74,51,0.15)]" : "ring-transparent"
+          className={`relative aspect-video overflow-hidden rounded-2xl bg-[var(--bg-surface-muted)] ring-2 transition-[box-shadow] duration-200 ${
+            tutorSpeaking ? "ring-[var(--accent)] shadow-[0_0_0_4px_var(--accent-soft)]" : "ring-transparent"
           }`}
         >
           {avatarVideo ? (
             <TrackVideo track={avatarVideo} label={`${tutorName}, your tutor`} />
           ) : (
             // Voice-only fallback (no avatar, or avatar still starting): a ring that breathes while the tutor talks.
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_50%_40%,#3c5a47,#1f2f26_70%)]">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[radial-gradient(circle_at_50%_40%,var(--accent-soft),transparent_70%)]">
               <div className="relative grid h-16 w-16 place-items-center">
                 <span
                   aria-hidden
-                  className={`absolute inset-0 rounded-full border-2 border-[#cfe3d3]/60 ${
+                  className={`absolute inset-0 rounded-full border-2 border-[var(--accent-border)] ${
                     tutorSpeaking || connecting ? "animate-ping motion-reduce:animate-none" : ""
                   }`}
                 />
-                <span className="grid h-16 w-16 place-items-center rounded-full bg-[#f2f6f0] text-lg font-semibold text-[var(--st-accent)]">
+                <span className="grid h-16 w-16 place-items-center rounded-full bg-[var(--accent)] text-lg font-semibold text-[var(--accent-fg)]">
                   {initials(tutorName)}
                 </span>
               </div>
-              <span className="text-xs text-[#d8e4da]">{connecting ? `Waiting for ${tutorName} to join…` : "Voice only"}</span>
+              <span className="text-xs text-[var(--text-secondary)]">{connecting ? `Waiting for ${tutorName} to join…` : "Voice only"}</span>
             </div>
           )}
           {!connecting && (
-            <span className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-[#13201a]/70 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#4ade80]" aria-hidden /> Live
+            <span className="apple-glass absolute left-2 top-2 flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-support)]" aria-hidden /> Live
             </span>
           )}
-          <figcaption className="absolute bottom-2 left-2 rounded-full bg-[#13201a]/70 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">
+          <figcaption className="apple-glass absolute bottom-2 left-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
             {tutorName}
-            {tutorSpeaking && <span className="ml-1.5 text-[#bfe3c9]">· speaking</span>}
+            {tutorSpeaking && <span className="ml-1.5 text-[var(--accent)]">· speaking</span>}
           </figcaption>
         </figure>
         {/* self-view, shown only to you */}
-        <figure className="absolute bottom-2 right-2 aspect-video w-[30%] min-w-24 overflow-hidden rounded-xl bg-[#3a4a40] shadow-lg ring-1 ring-white/30">
+        <figure className="absolute bottom-2 right-2 aspect-video w-[30%] min-w-24 overflow-hidden rounded-xl bg-[var(--bg-surface-solid)] shadow-[var(--shadow-card)] ring-1 ring-[var(--glass-rim)]">
           {cam && selfVideo ? (
             <TrackVideo track={selfVideo} mirror label="Your camera (only you see this)" />
           ) : (
-            <div className="grid h-full w-full place-items-center text-[10px] text-[#d8e4da]">Camera off</div>
+            <div className="grid h-full w-full place-items-center text-[10px] text-[var(--text-muted)]">Camera off</div>
           )}
-          <figcaption className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-[#13201a]/70 px-1.5 py-0.5 text-[10px] text-white">
-            {!mic && <MicOff className="h-3 w-3 text-[#ffb4a1]" aria-label="muted" />}
+          <figcaption className="apple-glass absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-[var(--text-primary)]">
+            {!mic && <MicOff className="h-3 w-3 text-[var(--status-contradict)]" aria-label="muted" />}
             You
           </figcaption>
         </figure>

@@ -365,8 +365,8 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref, 
 
       {slide && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-slate-950/70 px-1.5 py-1 text-[11px] text-slate-300 shadow-lg backdrop-blur">
-            <button aria-label="Previous" onClick={prev} disabled={st.index === 0 && st.step === 0} className="grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-30">
+          <div className="apple-glass pointer-events-auto flex items-center gap-1 rounded-full border px-1.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+            <button aria-label="Previous" onClick={prev} disabled={st.index === 0 && st.step === 0} className="apple-press apple-focus grid h-7 w-7 place-items-center rounded-full hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:opacity-30">
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </button>
             <span className="px-1 tabular-nums" aria-live="polite">
@@ -374,13 +374,13 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref, 
             </span>
             <span className="flex items-center gap-1 px-1" aria-label={`Step ${st.step} of ${steps}`}>
               {Array.from({ length: steps }, (_, i) => (
-                <span key={i} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i < st.step ? "w-3 bg-sky-400" : "w-1.5 bg-slate-600"}`} />
+                <span key={i} className={`h-1.5 rounded-full transition-[width,background-color] duration-300 ${i < st.step ? "w-3 bg-[var(--accent)]" : "w-1.5 bg-[var(--border-strong)]"}`} />
               ))}
             </span>
-            <button aria-label="Replay step" onClick={replay} disabled={st.step === 0} className="grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-30">
+            <button aria-label="Replay step" onClick={replay} disabled={st.step === 0} className="apple-press apple-focus grid h-7 w-7 place-items-center rounded-full hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:opacity-30">
               <RotateCcw className="h-3.5 w-3.5" aria-hidden />
             </button>
-            <button aria-label="Next" onClick={next} disabled={st.index === st.slides.length - 1 && st.step === steps} className="grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-30">
+            <button aria-label="Next" onClick={next} disabled={st.index === st.slides.length - 1 && st.step === steps} className="apple-press apple-focus grid h-7 w-7 place-items-center rounded-full hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:opacity-30">
               <ChevronRight className="h-4 w-4" aria-hidden />
             </button>
           </div>
@@ -401,16 +401,16 @@ function ExplanationCard({ ex, aim, laserOn, reduced, rootRef, docked }: { ex: E
     <section
       data-testid="explanation"
       aria-label={`Explaining: ${ex.slide.title}`}
-      className="flex flex-col overflow-hidden rounded-xl border border-sky-400/30 bg-[#0b0d12] shadow-2xl shadow-black/60"
+      className="flex flex-col overflow-hidden rounded-2xl border border-[var(--accent-border)] bg-[#0b0d12] shadow-[var(--shadow-elevated)]"
       style={{ animation: reduced ? undefined : `explain-in 280ms ${EASE} both`, maxHeight: docked ? "45vh" : undefined }}
     >
-      <header className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-100">
-        <Lightbulb className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden />
+      <header className="flex shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-solid)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)]">
+        <Lightbulb className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-hidden />
         <span className="min-w-0 flex-1 truncate">Explaining: {ex.slide.title}</span>
         {steps > 0 && (
           <span className="flex items-center gap-1" aria-label={`Step ${ex.step} of ${steps}`}>
             {Array.from({ length: steps }, (_, i) => (
-              <span key={i} className={`h-1 rounded-full transition-[width,background-color] duration-300 ${i < ex.step ? "w-2.5 bg-sky-400" : "w-1 bg-slate-600"}`} />
+              <span key={i} className={`h-1 rounded-full transition-[width,background-color] duration-300 ${i < ex.step ? "w-2.5 bg-[var(--accent)]" : "w-1 bg-[var(--border-strong)]"}`} />
             ))}
           </span>
         )}

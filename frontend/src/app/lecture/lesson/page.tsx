@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Download, GraduationCap, Loader2 } from "lucide-react";
+import { Download, GraduationCap, Loader2 } from "lucide-react";
+import { AppHeader, HeaderAction } from "@/components/AppHeader";
 import type { BoardHandle } from "@/tutor/contracts/types";
 import { listTracks, listTutors, type Track, type Tutor } from "@/tutor/shell/api";
 import { CallView } from "@/tutor/shell/CallView";
@@ -12,37 +12,24 @@ import type { Caption } from "@/tutor/shell/session";
 import { LessonPanel, useTrackData } from "@/tutor/shell/SidePanel";
 import { useTutorSession } from "@/tutor/shell/useTutorSession";
 
-type RecapProps = { trackId: string; lessonId?: string; onBack: () => void; onDownload?: () => void };
+type RecapProps = { trackId: string; lessonId?: string; onBack: () => void };
 
-function Recap({ trackId, lessonId, onBack, onDownload }: RecapProps) {
+function Recap({ trackId, lessonId, onBack }: RecapProps) {
   // the agent posts the lesson summary a few seconds after the room closes; keep polling for it
   const [data] = useTrackData(trackId, true);
   const ended = !!data?.lessons.some((l) => l.lesson_id === lessonId && l.ended_at);
   return (
-    <div className="st-glass mx-auto my-6 w-[calc(100%-2rem)] max-w-xl space-y-5 rounded-[20px] p-6">
-      <h2 className="text-lg font-semibold">Lesson ended</h2>
+    <div className="apple-sheet st-fade-up mx-auto my-auto w-full max-w-xl space-y-5 rounded-[22px] p-6">
+      <h2 className="apple-heading text-lg font-semibold">Lesson ended</h2>
       {!ended && (
-        <p role="status" className="flex items-center gap-2 text-sm text-[var(--st-muted)]">
+        <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Your tutor is writing the recap…
         </p>
       )}
       {data && <LessonPanel {...data} lessonId={lessonId} />}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={onBack}
-          className="rounded-full bg-[var(--st-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--st-accent-fg)] transition-[transform,background-color] duration-150 ease-out hover:bg-[var(--st-accent-hover)] active:scale-[0.98]"
-        >
-          Back to lobby
-        </button>
-        {onDownload && (
-          <button
-            onClick={onDownload}
-            className="flex items-center gap-1.5 rounded-full border border-[var(--st-line-strong)] bg-[var(--st-surface)] px-4 py-2.5 text-sm font-medium transition-[transform,border-color] duration-150 ease-out hover:border-[var(--st-accent)] active:scale-[0.98]"
-          >
-            <Download className="h-4 w-4" aria-hidden /> Download transcript
-          </button>
-        )}
-      </div>
+      <button onClick={onBack} className="apple-tint apple-press apple-focus rounded-full px-5 py-2.5 text-sm font-semibold">
+        Back to lobby
+      </button>
     </div>
   );
 }
@@ -87,29 +74,22 @@ export default function TutorPage() {
     );
   }
 
+  const download = ended?.captions.length ? () => downloadTranscript(ended.captions, tutor?.name ?? "Tutor", track?.title ?? "") : undefined;
   return (
-    <div className="tutor-field min-h-dvh pb-6">
-      <header className="st-glass mx-3 mt-3 flex h-14 items-center justify-between rounded-[18px] px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--st-accent)] text-[var(--st-accent-fg)]">
-            <GraduationCap className="h-4 w-4" aria-hidden />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-semibold tracking-tight">ScholarTwin Live Tutor</h1>
-            <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[var(--st-muted)]">Face-to-face lessons · slides · whiteboard</p>
-          </div>
-        </div>
-        <Link href="/" className="flex items-center gap-1.5 text-xs font-medium text-[var(--st-text-2)] underline-offset-4 transition-colors hover:text-[var(--st-text)] hover:underline">
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Workspace
-        </Link>
-      </header>
+    // Transparent root: the body's colour field shows through the glass sheets.
+    <div className="flex min-h-dvh flex-col pb-4">
+      <AppHeader
+        tone="accent"
+        back={{ label: "Lecture workspace", href: "/" }}
+        icon={GraduationCap}
+        title="Live lesson"
+        subtitle={ended && track ? `${track.title}${tutor ? ` · with ${tutor.name}` : ""}` : "Face-to-face lessons · slides · whiteboard"}
+        actions={download && <HeaderAction icon={Download} label="Download transcript" onClick={download} />}
+      />
       {ended ? (
-        <Recap
-          trackId={trackId}
-          lessonId={ended.lessonId}
-          onBack={() => setEnded(null)}
-          onDownload={ended.captions.length ? () => downloadTranscript(ended.captions, tutor?.name ?? "Tutor", track?.title ?? "") : undefined}
-        />
+        <div className="flex flex-1 flex-col px-3 py-4">
+          <Recap trackId={trackId} lessonId={ended.lessonId} onBack={() => setEnded(null)} />
+        </div>
       ) : (
         <Lobby
           tutors={tutors}
