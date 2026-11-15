@@ -357,7 +357,10 @@ def test_explain_plans_validates_opens_the_pop_up_and_tells_the_tutor():
     assert "pop-up" in call["system"] and "Concrete" in call["system"] and "at most 10 objects" in call["system"]
     prompt = call["messages"][0]["content"]
     assert '"id": "tan"' in prompt and "why the slope is 3 here" in prompt and "Circled objects: tan" in prompt
-    assert sent == [{"slide": EXPLANATION}]
+    # the page builds clip ids from the slide id, so the pop-up never reuses the open slide's id
+    [payload] = sent
+    assert payload["slide"]["id"].startswith("explain-") and payload["slide"]["id"] != DECK["slides"][2]["id"]
+    assert {**payload["slide"], "id": EXPLANATION["id"]} == EXPLANATION
     assert not any(m == "slides.edit" for m, _ in io.rpcs)  # the open slide is never edited
     note = ctx.notes[0]
     assert "pop-up" in note and "2 steps" in note and "step 1: this is the tangent you circled" in note

@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import re
+import uuid
 from pathlib import Path
 from typing import Any, Literal
 
@@ -416,7 +417,9 @@ class SlideTools:
             prompt = (f"The student asked about: {brief}\nCircled objects: {', '.join(object_ids) or 'none'}\n\n"
                       f"The open slide (shown up to step {d.get('step', '?')}):\n{context}")
             done = await self._generate("explanation", EXPLAIN_SYSTEM, EXPLAIN_TOOL, prompt,
-                                        lambda e: explain_problems(e, taken), "slides.explain", lambda e: {"slide": e})
+                                        lambda e: explain_problems(e, taken), "slides.explain",
+                                        # its own id: the page derives clip ids from it, so it must never clash with the slide's
+                                        lambda e: {"slide": {**e, "id": f"explain-{uuid.uuid4().hex[:8]}"}})
             if done:
                 exp, _ = done
                 self.explanation, self.explain_at = exp, 0
