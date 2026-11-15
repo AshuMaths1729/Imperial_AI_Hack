@@ -366,7 +366,8 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref, 
 
       {slide && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-          <div className="apple-glass pointer-events-auto flex items-center gap-1 rounded-full border px-1.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
+          {/* Thick glass: the pill floats over the dark slide, so its text needs a solid-enough ground in every theme. */}
+          <div className="apple-glass-elevated pointer-events-auto flex items-center gap-1 rounded-full border px-1.5 py-1 text-[11px] font-medium text-[var(--text-primary)]">
             <button aria-label="Previous" onClick={prev} disabled={st.index === 0 && st.step === 0} className="apple-press apple-focus grid h-7 w-7 place-items-center rounded-full hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)] disabled:opacity-30">
               <ChevronLeft className="h-4 w-4" aria-hidden />
             </button>

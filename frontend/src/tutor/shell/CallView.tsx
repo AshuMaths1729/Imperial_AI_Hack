@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, GraduationCap, Loader2 } from "lucide-react";
+import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { AppHeader, HeaderAction } from "@/components/AppHeader";
+import { MODULES } from "@/modules";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 import type { Deck, SlidesHandle } from "@/tutor/slides";
 import { getDeck } from "./api";
@@ -58,8 +59,8 @@ function useDeckPosition(slidesRef: React.RefObject<SlidesHandle | null>) {
 
 function Meter({ label, value, text }: { label: string; value: number; text: string }) {
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      <span className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">{label}</span>
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
       <div
         role="progressbar"
         aria-label={label}
@@ -67,11 +68,14 @@ function Meter({ label, value, text }: { label: string; value: number; text: str
         aria-valuemax={100}
         aria-valuenow={Math.round(value)}
         aria-valuetext={text}
-        className="h-1.5 w-20 overflow-hidden rounded-full bg-[var(--bg-surface-muted)] ring-1 ring-[var(--border-subtle)] sm:w-28"
+        className="h-1.5 w-16 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)] sm:w-24"
       >
-        <div className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-500 ease-out" style={{ width: `${value}%` }} />
+        <div
+          className="h-full rounded-full transition-[width] duration-500 ease-out"
+          style={{ width: `${value}%`, background: "linear-gradient(90deg, var(--accent), var(--status-support))" }}
+        />
       </div>
-      <span className="font-mono text-xs tabular-nums text-[var(--text-secondary)]">{text}</span>
+      <span className="font-mono text-[11px] tabular-nums text-[var(--text-primary)]">{text}</span>
     </div>
   );
 }
@@ -155,18 +159,25 @@ export function CallView({ session: s, boardRef, tutorName, tutorPortrait, track
     // Transparent root: the body's colour field shows through the glass sheets.
     <div className="flex h-dvh flex-col overflow-hidden">
       <AppHeader
-        tone="accent"
+        tone={MODULES.lecture.tone}
         back={{ label: "Leave lesson", onClick: onLeave }}
-        icon={GraduationCap}
-        title={trackTitle || "Live lesson"}
-        subtitle={`Live lesson with ${tutorName}`}
+        icon={MODULES.lecture.icon}
+        title={trackTitle || MODULES.lecture.name}
+        subtitle={`${MODULES.lecture.name} · with ${tutorName}`}
         actions={
           <>
             {live ? (
-              <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--status-support-border)] bg-[var(--status-support-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--status-support)]">
-                <span className="h-2 w-2 rounded-full bg-[var(--status-support)]" aria-hidden />
+              <span
+                title={`Live · ${formatElapsed(elapsed)}`}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--status-support-border)] bg-[var(--status-support-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--status-support)]"
+              >
+                <span className="relative grid h-2 w-2 place-items-center" aria-hidden>
+                  <span className="st-ping absolute inset-0 rounded-full bg-[var(--status-support)]" />
+                  <span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />
+                </span>
                 <span className="hidden sm:inline">Live</span>
-                <span className="font-mono tabular-nums" aria-label={`Lesson time ${formatElapsed(elapsed)}`}>
+                {/* Phones keep just the live dot, so the lesson title keeps some room in the bar. */}
+                <span className="font-mono tabular-nums max-sm:sr-only" aria-label={`Lesson time ${formatElapsed(elapsed)}`}>
                   {formatElapsed(elapsed)}
                 </span>
               </span>
@@ -180,16 +191,10 @@ export function CallView({ session: s, boardRef, tutorName, tutorPortrait, track
         }
       />
       <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-2 pb-2 pt-2.5 sm:px-3 sm:pb-3">
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-5 gap-y-1.5 px-2">
-          <Meter
-            label="Progress"
-            value={progress.total ? (progress.covered / progress.total) * 100 : 0}
-            text={`${progress.covered}/${progress.total} ideas`}
-          />
-          <Meter label="Mastery" value={mastered ?? 0} text={mastered === null ? "—" : `${mastered}%`} />
-        </div>
         {s.micError && (
-          <p role="alert" className="shrink-0 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
+          // On thick glass with a warning rim, so it reads over the landscape.
+          <p role="alert" className="apple-sheet flex shrink-0 items-start gap-2 rounded-2xl !border-[var(--status-warning-border)] px-4 py-2.5 text-xs text-[var(--text-primary)]">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-[var(--status-warning)]" aria-hidden />
             {s.micError}
           </p>
         )}
@@ -197,6 +202,16 @@ export function CallView({ session: s, boardRef, tutorName, tutorPortrait, track
         {/* Narrow windows stack stage over side panel and scroll; the stage keeps real height so the board can render. */}
         <main className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto lg:flex-row lg:overflow-visible">
           <Stage
+            meters={
+              <>
+                <Meter
+                  label="Progress"
+                  value={progress.total ? (progress.covered / progress.total) * 100 : 0}
+                  text={`${progress.covered}/${progress.total} ideas`}
+                />
+                <Meter label="Mastery" value={mastered ?? 0} text={mastered === null ? "—" : `${mastered}%`} />
+              </>
+            }
             tab={tab}
             onTab={show}
             boardRef={boardRef}

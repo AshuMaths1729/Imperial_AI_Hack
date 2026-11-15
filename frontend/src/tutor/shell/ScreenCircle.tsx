@@ -84,7 +84,7 @@ export function ScreenCircle({ video, onCircle }: { video: HTMLVideoElement | nu
         setPoints([]);
       }}
     >
-      <p className="apple-glass pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium text-[var(--text-primary)]">
+      <p className="apple-glass-elevated pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium text-[var(--text-primary)]">
         Circle what you want to ask about
       </p>
       {points.length > 1 && (

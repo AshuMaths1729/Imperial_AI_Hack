@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Download, GraduationCap, Loader2 } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { AppHeader, HeaderAction } from "@/components/AppHeader";
+import { useScene } from "@/components/nature/Scene";
+import { MODULES } from "@/modules";
 import type { BoardHandle } from "@/tutor/contracts/types";
 import { tutorPortrait } from "@/tutor/media";
 import { listTracks, listTutors, type Track, type Tutor } from "@/tutor/shell/api";
@@ -13,6 +16,8 @@ import type { Caption } from "@/tutor/shell/session";
 import { LessonPanel, useTrackData, type TrackData } from "@/tutor/shell/SidePanel";
 import { useTutorSession } from "@/tutor/shell/useTutorSession";
 
+const LESSONS = MODULES.lecture;
+
 type RecapProps = { trackId: string; lessonId?: string; onBack: () => void };
 
 function Recap({ trackId, lessonId, onBack }: RecapProps) {
@@ -21,29 +26,48 @@ function Recap({ trackId, lessonId, onBack }: RecapProps) {
   const [data] = useTrackData(trackId, true, isEnded);
   const ended = !!data && isEnded(data);
   return (
-    <div className="apple-sheet st-fade-up mx-auto my-auto w-full max-w-xl space-y-5 rounded-[22px] p-6">
-      <h2 className="apple-heading text-lg font-semibold">Lesson ended</h2>
-      {!ended && (
-        <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Your tutor is writing the recap…
-        </p>
-      )}
-      {data && <LessonPanel {...data} lessonId={lessonId} />}
-      <button onClick={onBack} className="apple-tint apple-press apple-focus rounded-full px-5 py-2.5 text-sm font-semibold">
-        Back to lobby
-      </button>
+    <div className="mx-auto w-full max-w-[760px] px-3 pb-10 sm:px-5">
+      <div className="st-fade-up grid grid-cols-1 gap-2.5 px-1 pb-6 pt-8 sm:pt-12">
+        <p className="on-scene font-mono text-[11px] font-medium uppercase tracking-[0.12em]">Recap</p>
+        <h2 id="recap-heading" className="st-display on-scene text-[clamp(32px,5vw,52px)]">
+          Lesson ended. <span className="on-scene-soft">Here&apos;s where you are.</span>
+        </h2>
+      </div>
+      <section aria-labelledby="recap-heading" className="apple-sheet st-fade-up grid grid-cols-1 gap-5 rounded-[26px] p-4 sm:p-6" style={{ animationDelay: "80ms" }}>
+        {!ended && (
+          <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Your tutor is writing the recap…
+          </p>
+        )}
+        {data && <LessonPanel {...data} lessonId={lessonId} />}
+        <div>
+          <button
+            onClick={onBack}
+            className="apple-tint st-sheen apple-press apple-focus relative inline-flex items-center gap-2 overflow-hidden rounded-full px-5 py-2.5 text-sm font-semibold"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Back to lobby
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
 
-export default function TutorPage() {
+/** The lesson screens: lobby → call → recap. `?track=<track_id>` preselects a topic (Home's recent list, "Ask a tutor
+    about this"); an id the backend doesn't know is ignored. */
+function LessonScreens() {
+  useScene(LESSONS.scene, true);
   const boardRef = useRef<BoardHandle | null>(null);
   const session = useTutorSession(boardRef);
+  const wanted = useSearchParams()?.get("track") ?? "";
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loadError, setLoadError] = useState<string>();
   const [tutorId, setTutorId] = useState("");
-  const [trackId, setTrackId] = useState("");
+  // null until the student picks one: until then the URL's track (once it is known to exist) is the choice
+  const [picked, setPicked] = useState<string | null>(null);
+  const trackId = picked ?? (tracks.some((t) => t.track_id === wanted) ? wanted : "");
   // The finished lesson's transcript stays downloadable on the recap screen.
   const [ended, setEnded] = useState<{ lessonId?: string; captions: Caption[] } | null>(null);
 
@@ -53,7 +77,7 @@ export default function TutorPage() {
         setTutors(tu);
         setTracks(tr);
       },
-      (e) => setLoadError(`Couldn't load tutors and tracks (${e instanceof Error ? e.message : e}). Is the backend running on :8000?`)
+      (e) => setLoadError(`Couldn't load tutors and topics (${e instanceof Error ? e.message : e}). Is the backend running on :8000?`)
     );
   }, []);
 
@@ -79,20 +103,18 @@ export default function TutorPage() {
 
   const download = ended?.captions.length ? () => downloadTranscript(ended.captions, tutor?.name ?? "Tutor", track?.title ?? "") : undefined;
   return (
-    // Transparent root: the body's colour field shows through the glass sheets.
-    <div className="flex min-h-dvh flex-col pb-4">
+    // Transparent root: the landscape shows through around the glass sheets.
+    <div className="flex min-h-dvh flex-col">
       <AppHeader
-        tone="accent"
+        tone={LESSONS.tone}
         back={{ label: "Home", href: "/" }}
-        icon={GraduationCap}
-        title="LectureUnderstanding"
-        subtitle={ended && track ? `${track.title}${tutor ? ` · with ${tutor.name}` : ""}` : "Live lesson · slides · whiteboard"}
+        icon={LESSONS.icon}
+        title={LESSONS.name}
+        subtitle={ended && track ? `${track.title}${tutor ? ` · with ${tutor.name}` : ""}` : "Slides, a whiteboard and a tutor who listens"}
         actions={download && <HeaderAction icon={Download} label="Download transcript" onClick={download} />}
       />
       {ended ? (
-        <div className="flex flex-1 flex-col px-3 py-4">
-          <Recap trackId={trackId} lessonId={ended.lessonId} onBack={() => setEnded(null)} />
-        </div>
+        <Recap trackId={trackId} lessonId={ended.lessonId} onBack={() => setEnded(null)} />
       ) : (
         <Lobby
           tutors={tutors}
@@ -100,7 +122,7 @@ export default function TutorPage() {
           tutorId={tutorId}
           trackId={trackId}
           onTutor={setTutorId}
-          onTrack={setTrackId}
+          onTrack={setPicked}
           onTracksChange={setTracks}
           onJoin={() => void session.start(trackId, tutorId)}
           error={session.status === "error" ? session.error : undefined}
@@ -108,5 +130,20 @@ export default function TutorPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function LessonPage() {
+  // useSearchParams needs a Suspense boundary: the header shows while the rest renders on the client.
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh flex-col">
+          <AppHeader tone={LESSONS.tone} back={{ label: "Home", href: "/" }} icon={LESSONS.icon} title={LESSONS.name} />
+        </div>
+      }
+    >
+      <LessonScreens />
+    </Suspense>
   );
 }

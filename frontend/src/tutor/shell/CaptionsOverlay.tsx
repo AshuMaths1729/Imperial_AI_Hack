@@ -20,6 +20,7 @@ export function CaptionsOverlay({ captions, tutorName }: { captions: Caption[]; 
       aria-live="polite"
       className="flex h-8 shrink-0 items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3.5 text-sm leading-none"
     >
+      {!c && <span className="truncate text-xs text-[var(--text-muted)]">Captions appear here as you and {tutorName} talk.</span>}
       {c && (
         <>
           <span className={`apple-label shrink-0 text-[10px] font-semibold uppercase ${c.who === "tutor" ? "text-[var(--accent)]" : "text-[var(--status-warning)]"}`}>

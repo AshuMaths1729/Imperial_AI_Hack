@@ -7,6 +7,9 @@ import { SlidesStage, type DeckView } from "@/tutor/slides";
 import { getDeck, prepareDeck } from "./api";
 
 const POLL_MS = 3000;
+/** Quiet pill buttons; disabled keeps legible muted ink instead of fading out. */
+const QUIET =
+  "apple-press apple-focus flex items-center gap-1 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:hover:text-[var(--text-muted)]";
 
 function statusLine(v: DeckView | null, err?: string): string {
   if (err) return err;
@@ -58,18 +61,21 @@ export function DeckPrep({ trackId, offer: offered = false }: { trackId: string;
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-2">
-      <Presentation className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
-      <p role="status" className={`min-w-0 flex-1 text-[11px] ${err || view?.status === "failed" ? "text-[var(--status-contradict)]" : "text-[var(--text-muted)]"}`}>
-        {generating && <Loader2 className="mr-1 inline h-3 w-3 animate-spin align-[-2px]" aria-hidden />}
-        {offer && view && !generating && !err ? "Your PDF is in. Prepare slides to build the lesson from it." : statusLine(view, err)}
+    <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-2.5">
+      {/* The status keeps a readable width; the buttons wrap below it on narrow screens. */}
+      <p
+        role="status"
+        className={`flex min-w-[min(100%,13rem)] flex-1 items-start gap-1.5 text-xs ${err || view?.status === "failed" ? "text-[var(--status-contradict)]" : "text-[var(--text-muted)]"}`}
+      >
+        {generating ? (
+          <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+        ) : (
+          <Presentation className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        )}
+        <span>{offer && view && !generating && !err ? "Your PDF is in. Prepare slides to build the lesson from it." : statusLine(view, err)}</span>
       </p>
       {view?.deck && (
-        <button
-          type="button"
-          onClick={() => setPreview(true)}
-          className="apple-press apple-focus flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
-        >
+        <button type="button" onClick={() => setPreview(true)} className={QUIET}>
           <Play className="h-3 w-3" aria-hidden /> Preview
         </button>
       )}
@@ -77,11 +83,7 @@ export function DeckPrep({ trackId, offer: offered = false }: { trackId: string;
         type="button"
         onClick={prepare}
         disabled={generating || !view}
-        className={`apple-press apple-focus flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium disabled:opacity-40 ${
-          offer
-            ? "apple-tint font-semibold"
-            : "border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
-        }`}
+        className={offer && !generating && view ? "apple-tint st-sheen apple-press apple-focus relative flex items-center gap-1 overflow-hidden rounded-full px-2.5 py-1 text-[11px] font-semibold" : QUIET}
       >
         <RefreshCw className="h-3 w-3" aria-hidden /> {!offer && view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
       </button>
@@ -98,7 +100,7 @@ export function DeckPrep({ trackId, offer: offered = false }: { trackId: string;
                 aria-label="Close preview"
                 onClick={() => setPreview(false)}
                 title="Close preview"
-                className="apple-glass apple-press apple-focus absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="apple-glass-elevated apple-press apple-focus absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border text-[var(--text-primary)]"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
