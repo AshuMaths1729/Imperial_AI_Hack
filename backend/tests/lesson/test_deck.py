@@ -161,6 +161,24 @@ def test_generate_accepts_coverage_gaps_after_retry():
     assert deck and warnings == ["not covered: gd2", "not covered: gd3", "not covered: gd4"]
 
 
+def test_generate_lowers_effort_when_thinking_uses_up_the_reply():
+    # A large track: Sonnet 5.5's thinking filled max_tokens and the reply never reached make_deck.
+    out_of_room = {"content": [{"type": "thinking", "thinking": ""}], "stop_reason": "max_tokens"}
+    llm = FakeLLM(out_of_room, tool_reply(tiny_deck()))
+    deck, warnings = decks.generate_deck(demo_track(), llm)
+    assert deck["slides"][0]["id"] == "s1" and warnings == []
+    first, second = llm.bodies
+    assert first["output_config"] == {"effort": "medium"} and first["max_tokens"] == 32000
+    assert second["output_config"] == {"effort": "low"}
+    assert second["messages"] == first["messages"]  # same request, nothing appended for the empty reply
+
+
+def test_generate_says_when_the_reply_ran_out_of_room():
+    out_of_room = {"content": [{"type": "thinking", "thinking": ""}], "stop_reason": "max_tokens"}
+    with pytest.raises(ValueError, match="ran out of output tokens"):
+        decks.generate_deck(demo_track(), FakeLLM(out_of_room, out_of_room))
+
+
 def test_generate_raises_when_never_valid():
     with pytest.raises(ValueError):
         decks.generate_deck(demo_track(), FakeLLM({"content": []}, {"content": []}))

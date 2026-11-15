@@ -470,10 +470,18 @@ def anthropic_llm(body: dict) -> dict:
         "https://api.anthropic.com/v1/messages",
         headers={"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
         json=body,
-        timeout=300,
+        timeout=600,  # a 32k-token deck at medium effort can take several minutes
     )
     r.raise_for_status()
     return r.json()
+
+
+# Sonnet 5.5 thinks adaptively at effort "high" by default, and on a large track (30+ knowledge points) that
+# thinking alone used all 16k output tokens, so the reply ended (stop_reason "max_tokens") before any
+# make_deck call. Effort is the control on this model (thinking can't be disabled): start at "medium"; if a
+# reply still runs out of room before the tool call, the retry drops to "low".
+DECK_EFFORT = ("medium", "low")
+DECK_MAX_TOKENS = 32000
 
 
 def generate_deck(track: Track, llm: LLM, attempts: int = 2, store=None) -> Tuple[dict, List[str]]:
@@ -482,13 +490,18 @@ def generate_deck(track: Track, llm: LLM, attempts: int = 2, store=None) -> Tupl
     messages: list = [{"role": "user", "content": build_prompt(track, store)}]
     kp_ids = [k.kp_id for k in track.knowledge_points]
     deck, errs, missing = None, ["no make_deck call"], []
+    effort = DECK_EFFORT[0]
     for _ in range(attempts):
         resp = llm({
-            "model": MODEL, "max_tokens": 16000, "system": SYSTEM, "tools": [tool],
+            "model": MODEL, "max_tokens": DECK_MAX_TOKENS, "system": SYSTEM, "tools": [tool],
             "tool_choice": {"type": "auto"}, "messages": messages,  # Sonnet 5.5 rejects a forced tool_choice; SYSTEM names it
+            "output_config": {"effort": effort},
         })
         use = next((b for b in resp.get("content", []) if b.get("type") == "tool_use"), None)
         if use is None:
+            if resp.get("stop_reason") == "max_tokens":
+                errs = ["no make_deck call (the reply ran out of output tokens before calling make_deck)"]
+                effort = DECK_EFFORT[-1]
             continue
         deck, errs, missing = parse_deck(use.get("input"), kp_ids)
         if deck is not None and not errs and not missing:
