@@ -90,7 +90,8 @@ def test_instructions_include_where_the_last_lesson_stopped():
 
 def test_greeting_resumes_from_the_saved_slide():
     g = greeting_instruction({**CTX, "resume": RESUME})
-    assert 'show_tab("slides")' in g and "slide_go(3)" in g
+    # the agent restores slide and step before the greeting, so the recap points at a picture the student can see
+    assert "slide_go" not in g and "already" in g and "slide 3" in g
     assert "rise over run" in g and "Alex" in g
 
 
@@ -103,6 +104,17 @@ def test_rules_stay_short_for_the_voice_model():
     import lesson_state
     from prompting import RULES
     assert len(RULES) + len(lesson_state.RULES) < 4000
+
+
+def test_voice_llm_makes_one_tool_call_at_a_time():
+    # live: three slide_step calls fired at once (steps 1, 3, 2) and broke the pacing
+    import agent
+    assert agent.VoiceLLM(model="claude-haiku-5-5")._opts.parallel_tool_calls is False
+
+
+def test_rules_forbid_narrating_the_machinery():
+    from prompting import RULES
+    assert "never mention slides, steps or tools" in RULES.lower()
 
 
 def test_voice_llm_answers_without_thinking_and_the_first_call_has_room():

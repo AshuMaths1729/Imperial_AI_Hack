@@ -60,6 +60,10 @@ class VoiceLLM(anthropic.LLM):
 
     EXTRA = {"thinking": {"type": "disabled"}}
 
+    def __init__(self, **kw):
+        # one tool call at a time: parallel slide_step calls (live: steps 1, 3, 2 at once) break the pacing
+        super().__init__(parallel_tool_calls=False, **kw)
+
     def chat(self, *, extra_kwargs=None, **kw):
         more = extra_kwargs if isinstance(extra_kwargs, dict) else {}  # callers may pass NOT_GIVEN
         return super().chat(extra_kwargs={**self.EXTRA, **more}, **kw)
@@ -303,6 +307,12 @@ async def entrypoint(ctx: JobContext) -> None:
             audio_input=room_io.AudioInputOptions(noise_cancellation=noise_cancellation.BVC()),
         ),
     )
+    resume = tctx.get("resume") or {}
+    if resume.get("slide"):
+        # put the slide back where the student stopped, so the recap points at a picture they can see
+        await deck.slide_go(int(resume["slide"]))
+        if step := min(int(resume.get("step") or 0), len(deck.narration)):  # extra steps from edits are not in the deck
+            await deck.slide_step(step)
     session.generate_reply(instructions=greeting_instruction(tctx))
 
     async def checkpoint_loop() -> None:

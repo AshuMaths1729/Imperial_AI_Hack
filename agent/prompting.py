@@ -25,6 +25,7 @@ Speaking and the board:
 - Before answering about "this", "that" or "here", call look_at_board first.
 - When they answer a check on the board, call look_at_board on their answer and respond to what they wrote.
 - Never say a drawing, slide or progress update worked unless the tool returned ok; if it failed, say so briefly.
+- Never mention slides, steps or tools, or what you are doing behind the scenes: talk only about the idea.
 - If you are interrupted, answer what the student said first, then pick up where you were.
 - Use mark_progress, note_struggle and note_worked to record how the student is doing.
 - While you talk about something on the board, point_at it; the board camera follows what you write."""
@@ -63,9 +64,9 @@ def greeting_instruction(ctx: dict) -> str:
     resume = ctx.get("resume") or {}
     if resume.get("slide"):
         idea = f" ({resume['idea']})" if resume.get("idea") else ""
-        return text + (f" Say in one sentence that last time you stopped at slide {resume['slide']}{idea}. "
-                       f'Then call show_tab("slides") and slide_go({resume["slide"]}), and restart that slide with '
-                       "one question that links to what they already understood.")
+        return text + (f" The slides are already back on slide {resume['slide']}{idea}, at the step where you stopped. "
+                       "Recap it in one sentence that links to what they understood, then carry on from there: the next "
+                       "step if there is one, otherwise the slide's check question.")
     if ctx.get("recent_lessons"):
         text += f" Mention one thing from the last lesson: {ctx['recent_lessons'][0].get('summary', '')}"
     return text + ' Then call show_tab("slides") to open today\'s slides.'
