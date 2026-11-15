@@ -14,8 +14,18 @@ def test_seed_on_empty_store(store):
     tutors = store.list_tutors()
     assert len(tutors) == 3
     assert len({t.voice_id for t in tutors}) == 3
-    assert store.list_tracks("demo")[0].title == "Gradient Descent"
+    assert [t.track_id for t in store.list_tracks("demo")] == ["differentiation", "gradient-descent"]
     assert store.get_profile("demo").style == "visual"
+
+
+def test_existing_store_gains_the_new_showcase_track_first_and_keeps_its_data(store, tmp_path, monkeypatch):
+    gd = store.get_track("gradient-descent")
+    gd.title = "My edited GD"
+    store.save_track(gd)
+    monkeypatch.setenv("TUTOR_DATA_DIR", str(tmp_path))
+    again = make_store()  # restart on the same data
+    tracks = again.list_tracks("demo")
+    assert tracks[0].track_id == "differentiation" and again.get_track("gradient-descent").title == "My edited GD"
 
 
 def test_lesson_roundtrip(store):

@@ -27,7 +27,8 @@ def dataset(nodes=("n1", "n2")):
 
 
 def track_id(client):
-    return client.get("/api/tutor/tracks").json()[0]["track_id"]
+    # the gd* knowledge points these tests use belong to the Gradient Descent seed track
+    return next(t["track_id"] for t in client.get("/api/tutor/tracks").json() if t["track_id"] == "gradient-descent")
 
 
 def new_lesson(client):
@@ -37,7 +38,7 @@ def new_lesson(client):
 
 def test_tutors_and_seed_track(client):
     assert len(client.get("/api/tutor/tutors").json()) == 3
-    assert client.get("/api/tutor/tracks").json()[0]["title"] == "Gradient Descent"
+    assert [t["track_id"] for t in client.get("/api/tutor/tracks").json()][:2] == ["differentiation", "gradient-descent"]
 
 
 def test_create_track_and_get_with_lessons(client):

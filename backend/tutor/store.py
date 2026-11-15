@@ -64,12 +64,7 @@ class MongoBackend:
 class Store:
     def __init__(self, backend):
         self.b = backend
-        if not self.b.all("tutors"):  # empty store: apply seed
-            for t in seed.TUTORS:
-                self.b.put("tutors", t.tutor_id, t.model_dump())
-            self.b.put("profiles", seed.PROFILE.user_id, seed.PROFILE.model_dump())
-            tr = seed.demo_track()
-            self.b.put("tracks", tr.track_id, tr.model_dump())
+        seed.apply(self.b)  # adds missing seed docs only (new showcase tracks reach existing stores), never overwrites
 
     def _get(self, coll: str, key: str, model: Type[M]) -> M:
         doc = self.b.get(coll, key)
@@ -87,7 +82,9 @@ class Store:
         return self._get("tutors", tutor_id, Tutor)
 
     def list_tracks(self, user_id: str) -> List[Track]:
-        return [t for t in (Track.model_validate(d) for d in self.b.all("tracks")) if t.user_id == user_id]
+        tracks = [t for t in (Track.model_validate(d) for d in self.b.all("tracks")) if t.user_id == user_id]
+        order = [t.track_id for t in seed.demo_tracks()]  # showcase tracks first, in seed order; the rest after
+        return sorted(tracks, key=lambda t: order.index(t.track_id) if t.track_id in order else len(order))
 
     def get_track(self, track_id: str) -> Track:
         return self._get("tracks", track_id, Track)
