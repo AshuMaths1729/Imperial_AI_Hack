@@ -76,7 +76,7 @@ function PeekStats({ run }: { run: TopicRun }) {
 }
 
 /**
- * Saved HypothesisGraph topics, as a floating glass sheet. Collapses to a narrow rail of mini
+ * Saved Evidence Map topics, as a floating thick-glass sheet. Collapses to a narrow rail of mini
  * cards (short title, evidence mix, date) with a full-title peek on hover; on phones the rail is
  * icon-only and the expanded sheet overlays the page.
  *
@@ -103,7 +103,7 @@ export function TopicSidebar({
     <aside
       id="hypothesis-topics"
       aria-label="Saved topics"
-      className={`apple-sheet z-20 flex h-full shrink-0 flex-col overflow-hidden rounded-[22px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-md:absolute max-md:inset-y-0 max-md:left-0 md:relative ${
+      className={`apple-sheet z-20 flex h-full shrink-0 flex-col overflow-hidden rounded-[26px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-md:absolute max-md:inset-y-0 max-md:left-0 md:relative ${
         collapsed
           ? "w-[60px] md:w-[124px]"
           : "w-64 max-md:!shadow-[inset_0_1px_0_var(--glass-highlight),var(--shadow-elevated)] max-md:backdrop-blur-[22px] max-md:backdrop-saturate-150"
@@ -227,7 +227,7 @@ export function TopicSidebar({
         <>
           <div className="flex shrink-0 items-center justify-between px-3.5 pb-1.5 pt-3">
             <span className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
-              Previous topics
+              Saved topics
             </span>
             <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-px text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">
               {runs.length}
@@ -238,7 +238,7 @@ export function TopicSidebar({
               <div className="st-fade-up mt-2 flex flex-col items-center rounded-2xl border border-dashed border-[var(--border-strong)] px-3 py-6 text-center">
                 <History className="st-bob mb-2 h-5 w-5 text-[var(--text-muted)]" />
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  Paper graphs you generate are saved here.
+                  Evidence maps you make are saved here, so you can come back to them.
                 </p>
               </div>
             ) : (
@@ -251,6 +251,7 @@ export function TopicSidebar({
                     onClick={() => onOpenRun(run)}
                     role="button"
                     tabIndex={0}
+                    aria-label={`Open ${run.title}`}
                     aria-current={active ? "true" : undefined}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -318,9 +319,11 @@ export function TopicSidebar({
                         e.stopPropagation();
                         onDeleteRun(run.id);
                       }}
-                      className="apple-focus shrink-0 rounded-full p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
+                      title="Delete this topic"
+                      // Hidden until hover on desktop; always shown on touch screens (no hover there).
+                      className="apple-focus shrink-0 rounded-full p-1.5 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );

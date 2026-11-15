@@ -1,29 +1,19 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import {
-  AlertTriangle,
-  ArrowRight,
-  GitCompare,
-  Loader2,
-  Mic,
-  MicOff,
-  MousePointerClick,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, Mic, MicOff, MousePointerClick } from "lucide-react";
 import { createTopicGraph, stt } from "../api/endpoints";
 import { graphToWorkspaceDataset } from "../api/adapters";
 import { GraphEdgeData } from "../types/scholartwin";
-import { GraphCanvas } from "./GraphCanvas";
+import { EdgeSwatch, GraphCanvas } from "./GraphCanvas";
 import { AppHeader } from "./AppHeader";
 import { TopicSidebar, type TopicRun } from "./hypothesis/TopicSidebar";
-import { EvidenceGlyph, EvidenceLegend, SearchProgress, StarterTopics } from "./hypothesis/EvidenceHero";
+import { SearchProgress, StarterTopics } from "./hypothesis/EvidenceHero";
 import { buildHypothesisModel } from "./hypothesis/model";
-import { EdgeBubble, NodeBubble } from "./hypothesis/Bubbles";
+import { EdgeDetails, NodeDetails, QuestionDetails, type DetailVariant } from "./hypothesis/Details";
 import { PaperList } from "./hypothesis/PaperList";
-import { LiveTutorFab } from "../tutor/LiveTutorFab";
-import { useAvatarCall } from "../tutor/useAvatarCall";
+import { AskTutorButton } from "../tutor/AskTutorButton";
+import { MODULES } from "../modules";
 
 export type HypothesisTopicRun = TopicRun;
 
@@ -41,8 +31,12 @@ const STARTER_QUERIES = [
   "LoRA vs full fine-tuning generalization on domain-specific tasks",
 ] as const;
 
-/** Keep focused nodes in the top half: the details bubble covers the bottom of the canvas. */
-const FOCUS_PADDING = { top: "12%", left: "10%", right: "10%", bottom: "50%" } as const;
+/** Focus zooms. With the details in the side panel the map is free all round; with the details
+ *  bubble docked to the bottom of the map (narrower screens), focused nodes stay in the top half. */
+const PANEL_FOCUS_PADDING = { top: "12%", left: "10%", right: "10%", bottom: "12%" } as const;
+const BUBBLE_FOCUS_PADDING = { top: "10%", left: "10%", right: "10%", bottom: "56%" } as const;
+
+const MODULE = MODULES.hypothesis;
 
 type SpeechRecCtor = new () => {
   lang: string;
@@ -105,32 +99,43 @@ function persistHistory(next: HypothesisTopicRun[]) {
   }
 }
 
-function isNarrowScreen(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-}
+/* Screen-size breakpoints as external stores (no setState in effects, no hydration guesswork). */
+const PHONE_QUERY = "(max-width: 767px)"; // the sidebar overlays the page below md
+const WIDE_QUERY = "(min-width: 1024px)"; // the details move into the side panel from lg
 
-/** A tinted glass capsule counting one kind of node or line. */
-function StatChip({ n, label, color }: { n: number; label: string; color: string }) {
+function mediaStore(query: string) {
+  return {
+    subscribe: (cb: () => void) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    get: () => window.matchMedia(query).matches,
+  };
+}
+const phoneStore = mediaStore(PHONE_QUERY);
+const wideStore = mediaStore(WIDE_QUERY);
+const serverFalse = () => false;
+
+/** A glass capsule that is both a legend entry (the line's colour and dash) and a count. */
+function CountChip({ type, label, n }: { type: GraphEdgeData["type"]; label: string; n: number }) {
   return (
-    <span
-      style={{
-        color: `color-mix(in srgb, ${color} 86%, var(--text-primary))`,
-        borderColor: `color-mix(in srgb, ${color} 32%, var(--glass-rim))`,
-        background: `linear-gradient(160deg, var(--glass-specular), transparent 60%), color-mix(in srgb, ${color} 11%, var(--bg-surface))`,
-        boxShadow: "inset 0 1px 0 var(--glass-highlight)",
-      }}
-      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10.5px] font-semibold leading-none"
-    >
-      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      {n} {label}
+    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-1 text-[11px] font-medium leading-none sm:px-2.5 sm:text-[11.5px] text-[var(--text-secondary)]">
+      <EdgeSwatch type={type} width={16} />
+      {label}
+      <span className="font-semibold tabular-nums text-[var(--text-primary)]">{n}</span>
     </span>
   );
 }
 
-export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
+export function HypothesisChatView({ onBackHome, initialTopicId }: HypothesisChatViewProps) {
   const history = useSyncExternalStore(subscribeHistory, getHistorySnapshot, getServerHistorySnapshot);
+  const phone = useSyncExternalStore(phoneStore.subscribe, phoneStore.get, serverFalse);
+  const wide = useSyncExternalStore(wideStore.subscribe, wideStore.get, serverFalse);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // null = follow the screen (collapsed on phones, where the open sidebar covers the page).
+  const [collapsedPref, setCollapsedPref] = useState<boolean | null>(null);
+  const sidebarCollapsed = collapsedPref ?? phone;
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -139,12 +144,10 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
   const [dataset, setDataset] = useState<HypothesisTopicRun["dataset"] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphEdgeData | null>(null);
+  const [arrivedFor, setArrivedFor] = useState<string | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecCtor> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  // The Live Tutor call lives here (the button is only on the results view), so switching
-  // topics remounts the floating button but never drops a call in progress.
-  const tutorCall = useAvatarCall();
 
   // Paper-level graph: papers and open questions as nodes, claims inside their paper.
   const model = useMemo(() => (dataset ? buildHypothesisModel(dataset) : null), [dataset]);
@@ -169,7 +172,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     setSelectedEdge(null);
   }, []);
 
-  // Esc closes the details bubble.
+  // Esc closes the details.
   useEffect(() => {
     if (!selectedId && !selectedEdge) return;
     const onKey = (e: KeyboardEvent) => {
@@ -186,7 +189,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     setSelectedEdge(null);
     setErrorMsg(null);
     setQuery("");
-    if (isNarrowScreen()) setSidebarCollapsed(true);
+    if (phone) setCollapsedPref(true);
   };
 
   const openRun = (run: HypothesisTopicRun) => {
@@ -197,8 +200,18 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     setSelectedId(run.dataset.nodes.some((n) => n.id === run.lastNodeId) ? run.lastNodeId! : null);
     setSelectedEdge(null);
     setErrorMsg(null);
-    if (isNarrowScreen()) setSidebarCollapsed(true);
+    if (phone) setCollapsedPref(true);
   };
+
+  // Arriving with a saved topic (e.g. from Home's recent list) opens it straight away. Derived
+  // during render, not in an effect: React re-renders with the topic before anything paints.
+  if (initialTopicId && arrivedFor !== initialTopicId) {
+    const run = history.find((r) => r.id === initialTopicId);
+    if (run) {
+      setArrivedFor(initialTopicId);
+      openRun(run);
+    }
+  }
 
   const selectNode = (id: string) => {
     setSelectedId(id);
@@ -265,7 +278,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     };
     const Ctor = win.SpeechRecognition || win.webkitSpeechRecognition;
     if (!Ctor) {
-      setErrorMsg("Microphone recording is unavailable in this browser. Type your topic below.");
+      setErrorMsg("Microphone recording is unavailable in this browser. Type your question instead.");
       return;
     }
     const rec = new Ctor();
@@ -277,7 +290,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     };
     rec.onerror = () => {
       setListening(false);
-      setErrorMsg("Browser speech recognition failed. Type your topic below.");
+      setErrorMsg("Browser speech recognition failed. Type your question instead.");
     };
     rec.onend = () => setListening(false);
     recognitionRef.current = rec;
@@ -310,7 +323,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     } catch (err) {
       setErrorMsg(
         err instanceof Error
-          ? `HypothesisGraph failed: ${err.message}`
+          ? `Couldn't map that question: ${err.message}`
           : "Could not reach /api/topics. Make sure the backend is running."
       );
     } finally {
@@ -323,29 +336,36 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     runTopicSearch(query);
   };
 
-
   const hero = !dataset;
+  const canSubmit = !!query.trim() && !loading;
 
+  // The question bar: one thick glass capsule with a refracting rim, floating on the landscape.
+  // On phones it wraps: the question gets the whole first line, mic and "Map it" sit below it.
   const searchForm = (
     <form
       onSubmit={handleSubmit}
-      style={hero ? ({ "--st-glow-a": "var(--status-gap)", "--st-glow-b": "var(--status-support)" } as React.CSSProperties) : undefined}
-      className={`relative flex items-center gap-2 rounded-full border border-[var(--status-gap-border)] shadow-[inset_0_1px_0_var(--glass-highlight),inset_0_-1px_1px_var(--glass-lowlight),var(--shadow-elevated)] transition-[border-color,box-shadow] duration-300 [background:linear-gradient(160deg,var(--glass-specular),transparent_40%,transparent_75%,var(--glass-specular-2)),var(--bg-surface)] focus-within:border-[var(--status-gap)] focus-within:shadow-[inset_0_1px_0_var(--glass-highlight),0_0_0_4px_var(--status-gap-soft),var(--shadow-card)] ${
-        hero ? "st-glow-border p-2" : "p-1.5"
-      }`}
+      className="apple-sheet glass-lens relative flex flex-wrap items-center gap-1.5 rounded-[26px] py-1.5 pl-4 pr-1.5 transition-[outline-color] focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--status-gap)] sm:flex-nowrap sm:rounded-full sm:pl-5"
     >
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={listening ? "Listening… click the mic again to stop" : "Ask a research question, e.g. Chinchilla scaling laws"}
+        aria-label="Research topic or question"
+        className="min-w-0 flex-1 basis-full bg-transparent py-2.5 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none sm:basis-auto sm:py-2"
+      />
       <button
         type="button"
         onClick={toggleMic}
         disabled={transcribing}
         aria-label={listening ? "Stop microphone" : "Start microphone"}
-        title={listening ? "Click to stop & transcribe" : "Speak research topic"}
-        className={`apple-press apple-focus relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
+        title={listening ? "Click to stop & transcribe" : "Speak your question"}
+        className={`apple-press apple-focus relative ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition sm:ml-0 ${
           listening
-            ? "bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
+            ? "border-transparent bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
             : transcribing
-              ? "bg-[var(--status-gap-soft)] text-[var(--status-gap)]"
-              : "bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--status-gap-soft)] hover:text-[var(--status-gap)]"
+              ? "border-[var(--status-gap-border)] bg-[var(--status-gap-soft)] text-[var(--status-gap)]"
+              : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
         }`}
       >
         {listening && (
@@ -359,32 +379,27 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
           <Mic className="relative h-4 w-4" />
         )}
       </button>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={listening ? "Listening… click the mic again to stop" : "Enter a research topic or question (e.g. Chinchilla scaling laws)…"}
-        aria-label="Research topic or question"
-        className={`min-w-0 flex-1 bg-transparent px-1.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none ${
-          hero ? "text-[15px]" : "text-sm"
-        }`}
-      />
       <button
         type="submit"
-        disabled={loading || !query.trim()}
+        disabled={!canSubmit}
         style={{ "--tint": "var(--status-gap)" } as React.CSSProperties}
-        className="apple-tint apple-press apple-focus st-sheen group relative flex h-10 shrink-0 items-center gap-1.5 overflow-hidden rounded-full px-3 text-xs font-semibold transition hover:brightness-110 disabled:opacity-50 sm:px-4"
+        // Until there's a question to map, the button rests on the muted wash (readable, but
+        // clearly not ready) instead of a faded tint.
+        className={`apple-press apple-focus group relative flex h-11 shrink-0 items-center gap-1.5 overflow-hidden rounded-full px-4 text-[13.5px] font-semibold transition sm:px-5 ${
+          canSubmit || loading
+            ? "apple-tint st-sheen hover:brightness-110"
+            : "cursor-not-allowed border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)]"
+        }`}
       >
         {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="hidden sm:inline">Generating…</span>
+            <span>Mapping…</span>
           </>
         ) : (
           <>
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Generate graph</span>
-            <ArrowRight className="hidden h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:block" />
+            <span>Map it</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </>
         )}
       </button>
@@ -392,24 +407,52 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
   );
 
   const errorBox = errorMsg && (
-    <div
-      role="alert"
-      className="st-shake mt-3 flex items-start gap-2 rounded-2xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3.5 py-2 text-xs text-[var(--status-contradict)]"
-    >
-      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 break-words">{errorMsg}</span>
+    // On thick glass, so the message never sits straight on the landscape.
+    <div role="alert" className="apple-sheet st-shake mt-4 overflow-hidden rounded-[20px]">
+      <div
+        className="flex items-start gap-2 bg-[var(--status-contradict-soft)] px-4 py-2.5 text-[12.5px] leading-relaxed"
+        style={{ color: "color-mix(in srgb, var(--status-contradict) 82%, var(--text-primary))" }}
+      >
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <span className="min-w-0 break-words">{errorMsg}</span>
+      </div>
     </div>
   );
 
+  const detailVariant: DetailVariant = wide ? "panel" : "bubble";
+  const detail = !model ? null : selectedEdge ? (
+    <EdgeDetails
+      key={selectedEdge.id}
+      variant={detailVariant}
+      model={model}
+      edge={selectedEdge}
+      onSelectNode={selectNode}
+      onBack={selectedNode ? () => setSelectedEdge(null) : undefined}
+      onClose={clearSelection}
+    />
+  ) : selectedNode ? (
+    <NodeDetails
+      key={selectedNode.id}
+      variant={detailVariant}
+      model={model}
+      node={selectedNode}
+      onSelectNode={selectNode}
+      onShowEdge={(edge) => setSelectedEdge(edge)}
+      onClose={clearSelection}
+      highlightClaimId={selectedId !== shownId ? selectedId : null}
+    />
+  ) : null;
+  const buildsOn = model ? model.edges.filter((e) => e.type === "prerequisite").length : 0;
+
   return (
-    // Transparent root: the body's colour field shows through the floating glass sheets.
+    // Transparent root: the landscape shows through around the floating glass sheets.
     <div className="flex h-screen flex-col text-[var(--text-primary)]">
       <AppHeader
-        tone="gap"
+        tone={MODULE.tone}
         back={{ label: "Home", onClick: onBackHome }}
-        icon={GitCompare}
-        title="HypothesisGraph"
-        subtitle="Grounded multi-paper evidence, contradictions & gaps"
+        icon={MODULE.icon}
+        title={MODULE.name}
+        subtitle={MODULE.description}
       />
 
       {/* Floating sheets inset from the edges, lined up with the header capsule. */}
@@ -420,7 +463,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
             runs={history}
             activeRunId={activeRunId}
             collapsed={sidebarCollapsed}
-            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+            onToggleCollapsed={() => setCollapsedPref(!sidebarCollapsed)}
             onNewTopic={startNewTopic}
             onOpenRun={openRun}
             onDeleteRun={deleteRun}
@@ -429,109 +472,95 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
 
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {hero ? (
-            // One floating glass sheet; `isolate` keeps its layers under the phone sidebar overlay.
-            <div className="apple-sheet relative isolate flex min-h-0 flex-1 flex-col rounded-[28px]">
-              {/* Ambient animated backdrop, clipped to the sheet's rounded corners */}
-              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[27px]">
-                <div className="apple-hero-glow absolute inset-x-0 top-0 h-[420px]" />
-                <div className="st-aurora absolute -top-40 left-[calc(50%-380px)] h-[460px] w-[760px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
-                <div className="st-aurora-slow absolute bottom-0 -left-32 h-[340px] w-[340px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
-                <div className="st-aurora-slow absolute -right-24 top-1/3 h-[300px] w-[300px] rounded-full bg-[var(--status-contradict-soft)] blur-3xl" />
-                <div className="st-grid absolute inset-0 opacity-[0.3]" />
-              </div>
+            // The start screen sits straight on the landscape: a two-tone page head in scene ink,
+            // then the glass question bar and the starter questions.
+            // A stable gutter, so the column doesn't jump sideways when the loading card adds a scrollbar.
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
+              <div className="mx-auto w-full max-w-[880px] px-1.5 pb-14 pt-[clamp(20px,7vh,76px)] sm:px-6">
+                <p className="on-scene st-fade-up font-mono text-[11.5px] font-medium uppercase tracking-[0.14em]">
+                  {MODULE.name}
+                </p>
+                <h2
+                  className="st-display on-scene st-fade-up mt-3 text-[clamp(34px,5.4vw,62px)]"
+                  style={{ animationDelay: "60ms" }}
+                >
+                  What does the research say? <span className="on-scene-soft">And where does it disagree?</span>
+                </h2>
+                <p
+                  className="on-scene st-fade-up mt-4 max-w-[600px] text-[15.5px] font-medium leading-relaxed"
+                  style={{ animationDelay: "120ms" }}
+                >
+                  Type a research question or speak it into the mic. We find grounded papers on arXiv, bioRxiv, PubMed
+                  and Semantic Scholar and map the evidence that supports it, contradicts it, and the gaps nobody has
+                  filled yet.
+                </p>
 
-              <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[27px] px-4 pb-10 pt-8 sm:px-6">
-                <div className="mx-auto my-auto w-full max-w-2xl">
-                  <div className="st-fade-up mx-auto mb-2 w-full max-w-[400px]">
-                    <EvidenceGlyph busy={loading} className="st-float h-auto w-full" />
-                  </div>
-                  <div className="text-center">
-                    <span
-                      className="st-fade-up inline-flex items-center gap-1.5 rounded-full border border-[var(--status-gap-border)] bg-[var(--status-gap-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--status-gap)]"
-                      style={{ animationDelay: "80ms" }}
-                    >
-                      <Sparkles className="st-twinkle h-3 w-3" />
-                      arXiv · bioRxiv · PubMed · Semantic Scholar
-                    </span>
-                    {/* leading/padding leave room for descenders, which bg-clip-text would otherwise cut */}
-                    <h2
-                      className="apple-display st-fade-up mt-3 bg-gradient-to-r from-[var(--status-gap)] via-[var(--text-primary)] to-[var(--status-support)] bg-clip-text pb-1.5 text-2xl font-bold !leading-[1.25] text-transparent sm:text-3xl"
-                      style={{ animationDelay: "140ms" }}
-                    >
-                      Map what the literature agrees on, and where it doesn&apos;t
-                    </h2>
-                    <p
-                      className="st-fade-up mx-auto mt-2 max-w-xl text-sm text-[var(--text-secondary)]"
-                      style={{ animationDelay: "200ms" }}
-                    >
-                      Type a research question or speak it into the mic. We find grounded papers and map the
-                      evidence that supports it, contradicts it, and the gaps nobody has filled yet.
-                    </p>
-                  </div>
+                <div className="st-fade-up mt-7" style={{ animationDelay: "180ms" }}>
+                  {searchForm}
+                </div>
+                {loading && <SearchProgress />}
+                {errorBox}
 
-                  <div className="st-fade-up mt-6" style={{ animationDelay: "260ms" }}>
-                    {searchForm}
-                  </div>
-                  {loading && <SearchProgress />}
-                  {errorBox}
-
-                  <div className="mt-5">
-                    <p
-                      className="st-fade-up apple-label mb-2 text-center text-[10px] font-semibold uppercase text-[var(--text-muted)]"
-                      style={{ animationDelay: "320ms" }}
-                    >
-                      Try one of these
-                    </p>
-                    <StarterTopics topics={STARTER_QUERIES} disabled={loading} onPick={runTopicSearch} baseDelay={360} />
-                  </div>
-
-                  <div className="mt-8">
-                    <EvidenceLegend baseDelay={520} />
-                  </div>
+                <div className="mt-7">
+                  <p
+                    className="on-scene st-fade-up mb-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em]"
+                    style={{ animationDelay: "240ms" }}
+                  >
+                    Try one of these
+                  </p>
+                  <StarterTopics topics={STARTER_QUERIES} disabled={loading} onPick={runTopicSearch} baseDelay={280} />
                 </div>
               </div>
             </div>
           ) : model ? (
-            // Full-space hypothesis graph (new searches start from "New topic" in the sidebar).
-            // Graph and paper list are two floating sheets; the negative margin spends the row's
-            // padding so their shadows have room inside the scroll box.
+            // The map on one thick glass sheet, the details and the list of papers on another.
+            // New searches start from "New topic" in the sidebar. The negative margin spends the
+            // row's padding so the sheets' shadows have room inside the scroll box.
             <div
               key={activeRunId ?? dataset.title}
-              className="st-fade-up -m-2 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto p-2 lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden"
+              className="st-fade-up -m-2 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto p-2 lg:grid-cols-[minmax(0,1fr)_340px] lg:overflow-hidden"
             >
               <section
-                aria-label="Paper graph"
-                className="apple-sheet relative flex min-h-[78vh] min-w-0 flex-col rounded-[22px] lg:min-h-0"
+                aria-label="Evidence map"
+                // Below lg the sheet takes its content's height (the map has a fixed height there),
+                // so a wrapped header or footer can never push past the sheet's rim.
+                className="apple-sheet relative flex min-w-0 flex-col rounded-[26px] lg:min-h-0"
               >
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border-subtle)] px-4 py-2.5">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <h2
-                      title={dataset.title}
-                      // Up to two lines, so a long topic still reads in full on a narrow canvas.
-                      className="apple-heading mr-1 line-clamp-2 min-w-0 max-w-[26rem] break-words text-sm font-semibold text-[var(--text-primary)]"
-                    >
-                      {dataset.title}
-                    </h2>
-                    <StatChip n={model.counts.paper} label={model.counts.paper === 1 ? "paper" : "papers"} color="var(--accent)" />
-                    <StatChip n={model.counts.supports} label={model.counts.supports === 1 ? "agreement" : "agreements"} color="var(--status-support)" />
-                    <StatChip n={model.counts.contradicts} label={model.counts.contradicts === 1 ? "contradiction" : "contradictions"} color="var(--status-contradict)" />
-                    <StatChip n={model.counts.gap} label={model.counts.gap === 1 ? "open question" : "open questions"} color="var(--status-gap)" />
-                  </div>
-                  {model.counts.unlinked > 0 && (
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      {model.counts.unlinked} {model.counts.unlinked === 1 ? "paper stands" : "papers stand"} alone (greyed out, bottom row)
+                <div className="flex shrink-0 flex-col gap-2 border-b border-[var(--border-subtle)] px-4 pb-3 pt-3.5 sm:px-5">
+                  <h2
+                    title={dataset.title}
+                    // Up to two lines, so a long question still reads in full on a narrow map.
+                    className="apple-heading line-clamp-2 min-w-0 break-words text-[17px] font-medium leading-snug text-[var(--text-primary)] sm:text-[19px]"
+                  >
+                    {dataset.title}
+                  </h2>
+                  {/* Counts double as the legend: each chip shows its line's colour and dash. */}
+                  <div className="flex flex-wrap items-center gap-1.5" aria-label="Legend and counts">
+                    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-1 text-[11px] font-medium leading-none sm:px-2.5 sm:text-[11.5px] text-[var(--text-secondary)]">
+                      <span aria-hidden className="h-2 w-2 shrink-0 rounded-sm bg-[var(--accent)]" />
+                      Papers
+                      <span className="font-semibold tabular-nums text-[var(--text-primary)]">{model.counts.paper}</span>
                     </span>
-                  )}
+                    <CountChip type="supports" label="Supports" n={model.counts.supports} />
+                    <CountChip type="contradicts" label="Contradicts" n={model.counts.contradicts} />
+                    {buildsOn > 0 && <CountChip type="prerequisite" label="Builds on" n={buildsOn} />}
+                    <CountChip type="gap" label="Open questions" n={model.counts.gap} />
+                    {model.counts.unlinked > 0 && (
+                      <span className="ml-1 text-[11.5px] text-[var(--text-muted)]">
+                        {model.counts.unlinked} {model.counts.unlinked === 1 ? "paper stands" : "papers stand"} alone
+                        (dashed, bottom row)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* The canvas ends above a footer lane holding the hint and the Live tutor button,
-                    so the button never sits on a node, the zoom controls or a bubble. */}
-                <div className="relative min-h-[420px] flex-1 overflow-hidden">
+                <div className="relative h-[62vh] min-h-[380px] shrink-0 overflow-hidden lg:h-auto lg:min-h-[420px] lg:flex-1 lg:shrink">
                   <GraphCanvas
                     nodes={model.nodes}
                     edges={model.edges}
-                    focusPadding={FOCUS_PADDING}
+                    focusPadding={wide ? PANEL_FOCUS_PADDING : BUBBLE_FOCUS_PADDING}
                     controlsPosition="top-left"
+                    legend="none"
                     nodeMeta={nodeMeta}
                     selectedNodeId={shownId}
                     selectedEdgeId={selectedEdge?.id ?? null}
@@ -540,46 +569,33 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
                     onSelectEdge={(edge) => setSelectedEdge(edge)}
                     onClearSelection={clearSelection}
                   />
-
-                  {selectedEdge ? (
-                    <EdgeBubble
-                      key={selectedEdge.id}
-                      model={model}
-                      edge={selectedEdge}
-                      onSelectNode={selectNode}
-                      onBack={selectedNode ? () => setSelectedEdge(null) : undefined}
-                      onClose={clearSelection}
-                    />
-                  ) : (
-                    selectedNode && (
-                      <NodeBubble
-                        key={selectedNode.id}
-                        model={model}
-                        node={selectedNode}
-                        onSelectNode={selectNode}
-                        onShowEdge={(edge) => setSelectedEdge(edge)}
-                        onClose={clearSelection}
-                        highlightClaimId={selectedId !== shownId ? selectedId : null}
-                      />
-                    )
-                  )}
-
+                  {!wide && detail}
                 </div>
 
-                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--border-subtle)] py-2 pl-4 pr-2.5">
-                  <p className="flex min-w-0 items-center gap-1.5 text-[11px] leading-snug text-[var(--text-secondary)]">
+                {/* A footer lane under the map holds the hint and the tutor button, so the button
+                    never sits on a node, the zoom controls or the details. */}
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--border-subtle)] py-2.5 pl-4 pr-2.5 sm:pl-5">
+                  <p className="flex min-w-[12rem] flex-1 items-center gap-1.5 text-[12px] leading-snug text-[var(--text-secondary)]">
                     <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-[var(--status-gap)]" aria-hidden />
                     <span>Click a paper to see its claims and links · click a line to see why</span>
                   </p>
-                  <LiveTutorFab call={tutorCall} className="relative shrink-0" />
+                  <AskTutorButton topic={{ title: dataset.title, dataset }} className="ml-auto shrink-0" />
                 </div>
               </section>
 
               <aside
-                aria-label="Papers in this topic"
-                className="apple-sheet flex h-[60vh] min-h-0 min-w-0 flex-col rounded-[22px] lg:h-auto"
+                aria-label="Details and papers"
+                className="apple-sheet flex h-[64vh] min-h-0 min-w-0 flex-col overflow-hidden rounded-[26px] lg:h-auto"
               >
-                <PaperList model={model} selectedId={selectedId} onSelect={selectNode} />
+                {wide && (
+                  // The details take what they need; the list below keeps at least ~40% of the panel.
+                  <div className="flex min-h-0 shrink flex-col border-b border-[var(--border-subtle)]">
+                    {detail ?? <QuestionDetails title={dataset.title} />}
+                  </div>
+                )}
+                <div className={`flex flex-1 basis-0 flex-col ${wide ? "min-h-[40%]" : "min-h-0"}`}>
+                  <PaperList model={model} selectedId={selectedId} onSelect={selectNode} />
+                </div>
               </aside>
             </div>
           ) : null}
