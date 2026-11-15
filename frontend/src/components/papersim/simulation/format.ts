@@ -1,11 +1,21 @@
 /**
- * Pure helpers for the Interactive Simulation tab: number formatting, step snapping,
+ * Pure helpers for the Simulate tab: number formatting, step snapping,
  * "nice" axis ticks, symbol derivation and CSV export. No React in here.
  */
 import type { ParamDoc, SimulationParam } from "../../../types/scholartwin";
 
-/** Okabe-Ito CVD-safe categorical order (fixed: colour follows the series index). */
-export const SERIES_PALETTE = ["#0284c7", "#e69f00", "#009e73", "#cc79a7", "#d55e00"];
+/**
+ * Categorical series order (fixed: colour follows the series index). Theme tokens only, so every
+ * series follows light / dark / contrast: river, clay, wheat, spruce, heather. The token set is
+ * CVD-safe (see globals.css), and the dashes below add a second, non-colour cue.
+ */
+export const SERIES_PALETTE = [
+  "var(--status-link)",
+  "var(--status-contradict)",
+  "var(--status-warning)",
+  "var(--status-support)",
+  "var(--status-gap)",
+];
 /** Dash patterns give every series a second, non-colour identity cue. */
 export const SERIES_DASHES: (string | undefined)[] = [undefined, "8 4", "2 4", "10 4 2 4", "14 5"];
 
@@ -228,6 +238,17 @@ export function paramSymbol(p: SimulationParam, doc?: ParamDoc): string | null {
     }
   }
   return null;
+}
+
+/**
+ * "Recall interval Δ", "Initial strength S₀": the name already ends in its symbol (Greek, or a
+ * single letter, possibly with a sub/superscript), so the symbol should not be shown again.
+ */
+export function endsWithSymbol(label: string): boolean {
+  const words = label.trim().split(/\s+/);
+  if (words.length < 2) return false;
+  const last = words[words.length - 1];
+  return last.length <= 4 && (/[Ͱ-Ͽ⁰-ₜ]/.test(last) || /^[A-Za-z]$/.test(last));
 }
 
 /** Param name without a trailing "(symbol)" (the symbol is rendered separately). */

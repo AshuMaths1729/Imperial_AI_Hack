@@ -1,21 +1,20 @@
 "use client";
 
-/** Small shared building blocks for the PaperSim analysis tabs. */
+/** Small shared building blocks for the Paper Simulator analysis tabs. */
 import React, { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { SERIES_PALETTE } from "../simulation/format";
+import { seriesColor as simSeriesColor, seriesDash as simSeriesDash } from "../simulation/format";
 
-/** Same dash order as the main simulation plot, so a series looks identical everywhere. */
-export const SERIES_DASHES: (string | undefined)[] = [undefined, "8 4", "2 3", "10 4 2 4", "14 4"];
-/** Okabe-Ito fallback, in fixed order (never cycled by rank): the simulation plot's own palette,
-    so the two tabs can never drift apart and no colour is hard-coded here. */
-export const SERIES_FALLBACK: readonly string[] = SERIES_PALETTE;
-
-export function seriesColor(color: string | undefined, idx: number): string {
-  return color || SERIES_FALLBACK[idx % SERIES_FALLBACK.length];
+/**
+ * A series' colour and dash follow its index, exactly as on the Simulate tab, so a series looks
+ * identical everywhere. The colour stored on the payload (a fixed hex from the API adapter) is
+ * ignored on purpose: the palette is theme tokens, so it follows light / dark / contrast.
+ */
+export function seriesColor(_stored: string | undefined, idx: number): string {
+  return simSeriesColor(idx);
 }
 export function seriesDash(idx: number): string | undefined {
-  return SERIES_DASHES[idx % SERIES_DASHES.length];
+  return simSeriesDash(idx);
 }
 
 /** Colour + dash line key, so identity never relies on colour alone. */
@@ -27,10 +26,10 @@ export function SeriesSwatch({ color, dash, width = 22 }: { color: string; dash?
         y1="5"
         x2={width - 1}
         y2="5"
-        stroke={color}
         strokeWidth="2.5"
         strokeDasharray={dash}
         strokeLinecap="round"
+        style={{ stroke: color }}
       />
     </svg>
   );

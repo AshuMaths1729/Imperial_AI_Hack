@@ -1,4 +1,4 @@
-/** Number / label formatting shared by the Series Breakdown and Model tabs. */
+/** Number / label formatting shared by the Results and Equations tabs. */
 
 const SUPERSCRIPT: Record<string, string> = {
   "-": "⁻",

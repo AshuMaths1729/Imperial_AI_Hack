@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
-import { Activity, Code2, GitBranch, LineChart, MessageSquarePlus } from "lucide-react";
+import { Activity, FilePlus2, GitBranch, LineChart, Sigma, TriangleAlert } from "lucide-react";
 import { UIAnnotation, WorkspaceDataset } from "../types/scholartwin";
 import { AppHeader, HeaderAction } from "./AppHeader";
+import { Segmented } from "./glass/Segmented";
 import { SimulationTab } from "./papersim/SimulationTab";
 import { ConceptGraphTab } from "./papersim/ConceptGraphTab";
 import { SeriesTab } from "./papersim/SeriesTab";
@@ -11,7 +12,8 @@ import { ModelTab } from "./papersim/ModelTab";
 import type { PaperSimTabProps } from "./papersim/types";
 import { normalizeSimulation } from "./papersim/normalize";
 import { prettyMath } from "./math/autoMath";
-import { LiveTutorFab } from "../tutor/LiveTutorFab";
+import { MODULES } from "../modules";
+import { AskTutorButton, type AskTutorTopic } from "../tutor/AskTutorButton";
 
 type PaperSimTab = "plot" | "concepts" | "series" | "code";
 
@@ -23,22 +25,39 @@ interface PaperSimTabsViewProps {
   onParamChange: (key: string, val: number) => void;
   onSetParams: (next: Record<string, number>) => void;
   onBackToLibrary: () => void;
+  /** Open another paper (the upload dialog). */
   onNewConversation: () => void;
 }
 
+const MODULE = MODULES.paper2sim;
+
+/** Internal ids are unchanged (state, tests); only the words people see are short. */
 const TABS: {
   id: PaperSimTab;
   label: string;
-  /** Phone-width label, so all four segments fit a 390px screen. */
-  short: string;
+  /** What the view holds (tooltip). */
+  hint: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   Component: React.ComponentType<PaperSimTabProps>;
 }[] = [
-  { id: "plot", label: "Interactive Simulation", short: "Simulation", icon: Activity, Component: SimulationTab },
-  { id: "concepts", label: "Concept & Parameter Graph", short: "Concepts", icon: GitBranch, Component: ConceptGraphTab },
-  { id: "series", label: "Series Breakdown", short: "Series", icon: LineChart, Component: SeriesTab },
-  { id: "code", label: "Model & Equations", short: "Model", icon: Code2, Component: ModelTab },
+  { id: "plot", label: "Simulate", hint: "Move the sliders and watch the model respond", icon: Activity, Component: SimulationTab },
+  { id: "concepts", label: "Concepts", hint: "How the paper's ideas and parameters connect", icon: GitBranch, Component: ConceptGraphTab },
+  { id: "series", label: "Results", hint: "What each curve does, and how they compare", icon: LineChart, Component: SeriesTab },
+  { id: "code", label: "Equations", hint: "The model, its equations, assumptions and code", icon: Sigma, Component: ModelTab },
 ];
+
+const tabId = (id: PaperSimTab) => `ps-tab-${id}`;
+const panelId = (id: PaperSimTab) => `ps-panel-${id}`;
+
+/** arXiv ids look like 2504.15965(v2) or hep-th/9901001; simulation ids ("sim_…") are not sources. */
+const ARXIV_ID = /^(\d{4}\.\d{4,5}(v\d+)?|[a-z-]+(\.[A-Z]{2})?\/\d{7}(v\d+)?)$/i;
+
+/** Where the paper came from, when the dataset says (only an arXiv id survives into it). */
+function sourceOf(dataset: WorkspaceDataset): AskTutorTopic["source"] {
+  const id = dataset.simulation?.arxiv_id?.trim();
+  if (id && ARXIV_ID.test(id)) return { kind: "url", ref: `https://arxiv.org/abs/${id}` };
+  return undefined;
+}
 
 export function PaperSimTabsView({
   dataset,
@@ -62,79 +81,96 @@ export function PaperSimTabsView({
     () => (dataset && simulation ? { ...dataset, simulation } : null),
     [dataset, simulation]
   );
+  const paperTitle = dataset?.title ? prettyMath(dataset.title) : undefined;
+  const topic = useMemo<AskTutorTopic | null>(() => {
+    if (!dataset) return null;
+    const source = sourceOf(dataset);
+    return { title: paperTitle ?? MODULE.name, dataset, ...(source ? { source } : {}) };
+  }, [dataset, paperTitle]);
+
+  const pick = (id: PaperSimTab) => {
+    if (id !== activeTab) scrollRef.current?.scrollTo({ top: 0 });
+    setActiveTab(id);
+  };
 
   return (
-    // Transparent root: the body's colour field shows through every glass layer.
+    // Transparent root: the landscape shows through every glass layer.
     <div className="flex h-screen flex-col text-[var(--text-primary)]">
+      {/* The paper's title appears once, here; the module name is the subtitle. */}
       <AppHeader
-        tone="support"
-        back={{ label: "PaperSim Library", onClick: onBackToLibrary }}
-        icon={Activity}
-        title={dataset?.title ? prettyMath(dataset.title) : "PaperSim Workspace"}
-        subtitle={dataset?.subtitle ? prettyMath(dataset.subtitle) : "Interactive paper visualisations"}
-        actions={
-          <HeaderAction icon={MessageSquarePlus} label="New Conversation" tone="support" onClick={onNewConversation} />
-        }
+        tone={MODULE.tone}
+        back={{ label: "All papers", onClick: onBackToLibrary }}
+        icon={MODULE.icon}
+        title={paperTitle ?? MODULE.name}
+        subtitle={paperTitle ? MODULE.name : undefined}
+        actions={<HeaderAction icon={FilePlus2} label="Open a paper" tone={MODULE.tone} onClick={onNewConversation} />}
       />
 
-      {/* Visualisation tabs: a segmented glass pill (scrolls inside itself if it can't fit) */}
-      <div className="mx-2 mt-2.5 flex shrink-0 justify-center sm:mx-3">
-        <nav
-          role="tablist"
-          aria-label="PaperSim views"
-          className="apple-seg flex min-w-0 max-w-full items-center gap-0.5 overflow-x-auto rounded-full p-1 [scrollbar-width:none]"
-        >
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                title={tab.label}
-                onClick={() => {
-                  if (tab.id !== activeTab) scrollRef.current?.scrollTo({ top: 0 });
-                  setActiveTab(tab.id);
-                }}
-                className={`apple-press apple-focus flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-1.5 text-xs sm:gap-1.5 sm:px-3.5 ${
-                  isActive
-                    ? "apple-seg-on font-semibold text-[var(--text-primary)]"
-                    : "font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                <Icon
-                  className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-[var(--status-support)]" : ""}`}
-                  aria-hidden
-                />
-                <span className="sm:hidden">{tab.short}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            );
+      {/* Workspace bar: the views, and the tutor (in the bar, so it never covers content). */}
+      <div className="mx-2 mt-2.5 flex shrink-0 flex-wrap items-center justify-between gap-2 sm:mx-3">
+        <Segmented
+          kind="tabs"
+          label={`${MODULE.name} views`}
+          value={activeTab}
+          onChange={pick}
+          // Thick glass (not the thin default) so the tab names stay legible over the landscape.
+          className="apple-glass glass-lens max-w-full !border-[var(--glass-rim)] !bg-[var(--bg-surface)]"
+          buttonClassName="sm:px-3.5"
+          options={TABS.map((t) => {
+            const Icon = t.icon;
+            return {
+              value: t.id,
+              title: t.hint,
+              label: (
+                <>
+                  <Icon
+                    className={`hidden h-3.5 w-3.5 shrink-0 sm:block ${t.id === activeTab ? "text-[var(--status-support)]" : ""}`}
+                    aria-hidden
+                  />
+                  {t.label}
+                </>
+              ),
+            };
           })}
-        </nav>
+          optionProps={(id) => ({
+            id: tabId(id),
+            // Only the shown panel exists, so only its tab points at it.
+            ...(id === activeTab ? { "aria-controls": panelId(id) } : {}),
+          })}
+        />
+        {topic && <AskTutorButton topic={topic} className="ml-auto" />}
       </div>
 
       {statusMsg && (
-        <div className="mx-2 mt-2.5 shrink-0 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)] sm:mx-3">
+        <div
+          role="status"
+          className="apple-sheet mx-2 mt-2.5 flex shrink-0 items-start gap-2 rounded-2xl px-4 py-2.5 text-xs text-[var(--text-primary)] sm:mx-3"
+        >
+          <TriangleAlert className="mt-px h-3.5 w-3.5 shrink-0 text-[var(--status-warning)]" aria-hidden />
           {statusMsg}
         </div>
       )}
 
-      {/* Tab content layer. The scroller ends above a slim lane that holds the Live Tutor button
-          (a sibling outside the keyed tab panel, so it keeps its call across tab switches). The
-          button floats bottom-right but never over tab content, so it can't cover a control at
-          rest or at any scroll position, on any tab or width. */}
+      {/* Tab content: one scroller for every tab. */}
       <main className="flex min-h-0 flex-1 flex-col">
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto pt-2.5">
           {!viewDataset || !simulation ? (
-            <div className="flex h-full items-center justify-center text-xs text-[var(--text-muted)]">
-              Loading simulation visualisations...
+            <div className="flex h-full items-center justify-center px-4">
+              <p className="apple-sheet rounded-full px-4 py-2 text-xs text-[var(--text-secondary)]">
+                Loading the simulation…
+              </p>
             </div>
           ) : (
-            // key re-mounts the panel so each tab switch plays its entrance animation
-            <div key={active.id} role="tabpanel" aria-label={active.label} className="st-fade-up h-full">
+            // key re-mounts the panel so each tab switch plays its entrance animation. Fill mode
+            // `backwards`, not `both`: an animation still filling makes the panel a backdrop root in
+            // Chromium, and every glass popover inside it would lose its blur.
+            <div
+              key={active.id}
+              id={panelId(active.id)}
+              role="tabpanel"
+              aria-labelledby={tabId(active.id)}
+              className="st-fade-up h-full ![animation-fill-mode:backwards]"
+            >
               <ActiveComponent
                 dataset={viewDataset}
                 simulation={simulation}
@@ -145,9 +181,6 @@ export function PaperSimTabsView({
               />
             </div>
           )}
-        </div>
-        <div className="pointer-events-none flex shrink-0 justify-end px-2 pb-2 pt-1 sm:px-3 sm:pb-2.5">
-          <LiveTutorFab className="pointer-events-auto relative" />
         </div>
       </main>
     </div>

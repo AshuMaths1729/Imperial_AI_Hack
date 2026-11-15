@@ -68,10 +68,10 @@ export function DataTable({
   };
 
   return (
-    <section className="st-fade-up apple-card min-w-0 rounded-2xl border p-4" style={stagger(0, 0, 260)} aria-labelledby="data-heading">
+    <section className="st-fade-up apple-card min-w-0 rounded-[22px] border p-4 sm:p-5" style={stagger(0, 0, 260)} aria-labelledby="data-heading">
       <div className="flex flex-wrap items-center gap-2">
         <div className="mr-auto min-w-0">
-          <h2 id="data-heading" className="apple-heading flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+          <h2 id="data-heading" className="flex items-center gap-1.5 text-[17px] font-normal tracking-[-0.015em] text-[var(--text-primary)]">
             <Table2 className="h-4 w-4 text-[var(--accent)]" /> Data table
           </h2>
           <p className="text-[11px] text-[var(--text-muted)]">
@@ -89,12 +89,12 @@ export function DataTable({
           {showAll ? "Show sample" : `Show all ${x.length}`}
         </button>
         <CopyButton label="Copy CSV" text={() => buildCsv(xLabel, x, views)} title="Copy every sample as CSV" />
-        {/* The view's one tinted primary action (PaperSim hue). */}
+        {/* The view's one tinted primary action (Paper Simulator hue). */}
         <button
           type="button"
           onClick={download}
           style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
-          className="apple-tint apple-press apple-focus inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1 text-[11px] font-semibold"
+          className="apple-tint apple-press apple-focus st-sheen relative inline-flex items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full px-3.5 py-1 text-[11px] font-semibold"
         >
           <Download className="h-3.5 w-3.5" /> Export CSV
         </button>

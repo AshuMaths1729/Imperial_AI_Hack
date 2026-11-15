@@ -34,7 +34,7 @@ interface SectionDef extends NavItem {
   aside?: React.ReactNode;
 }
 
-/** "Model & Equations" tab: a structured, sectioned reading of the simulated model. */
+/** "Equations" tab: a structured, sectioned reading of the simulated model. */
 export function ModelTab({ simulation, paramValues }: PaperSimTabProps) {
   const docs = simulation.docs;
 
@@ -139,7 +139,7 @@ export function ModelTab({ simulation, paramValues }: PaperSimTabProps) {
       simulation.python_code?.trim() ? (
         <CodeBlock code={simulation.python_code} />
       ) : (
-        <p className="apple-card rounded-2xl border border-dashed p-6 text-center text-xs text-[var(--text-muted)]">
+        <p className="apple-card rounded-[22px] border border-dashed p-6 text-center text-xs text-[var(--text-secondary)]">
           This simulation runs from a built-in model on the backend, so there is no generated code to show.
         </p>
       ),
@@ -165,7 +165,7 @@ export function ModelTab({ simulation, paramValues }: PaperSimTabProps) {
   return (
     <div className="mx-auto min-w-0 max-w-6xl px-2 pb-6 sm:px-4 lg:px-6">
       <SectionChips items={sections} active={active} onPick={pick} />
-      <div className="pt-5 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8 lg:pt-6">
+      <div className="pt-5 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8 lg:pt-1">
         <SectionNav items={sections} active={active} onPick={pick} />
         <div className="min-w-0 space-y-12">
           {sections.map((s, i) => (

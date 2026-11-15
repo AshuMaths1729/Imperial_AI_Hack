@@ -25,8 +25,8 @@ function Stat({ label, value, sub, i }: { label: string; value: string; sub?: st
       className="st-rise min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
       style={stagger(i, 35, 120)}
     >
-      <div className="text-[10px] font-medium text-[var(--text-muted)]">{label}</div>
-      <div className="break-all font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</div>
+      <div className="text-[10.5px] text-[var(--text-muted)]">{label}</div>
+      <div className="break-all font-mono text-sm font-medium tabular-nums text-[var(--text-primary)]">{value}</div>
       {sub && <div className="break-words text-[10px] leading-snug text-[var(--text-muted)]"><RichText text={sub} /></div>}
     </div>
   );
@@ -37,7 +37,7 @@ function Fact({ icon: Icon, label, value }: { icon: React.ElementType; label: st
     <div className="flex items-center gap-2 rounded-lg px-2 py-1.5">
       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
       <span className="text-[11px] text-[var(--text-muted)]">{label}</span>
-      <span className="ml-auto font-mono text-[11px] font-semibold text-[var(--text-primary)]">{value}</span>
+      <span className="ml-auto font-mono text-[11px] font-medium tabular-nums text-[var(--text-primary)]">{value}</span>
     </div>
   );
 }
@@ -62,7 +62,7 @@ export function SeriesCard({
   return (
     <article
       // overflow-hidden only rounds the identity rail + hover sheen; nothing inside extends past the padding.
-      className="st-fade-up apple-card st-sheen relative min-w-0 overflow-hidden rounded-2xl border p-4 sm:p-5"
+      className="st-fade-up apple-card st-sheen relative min-w-0 overflow-hidden rounded-[22px] border p-4 sm:p-5 ![animation-fill-mode:backwards]"
       style={stagger(index, 90, 180)}
       aria-label={`${view.name} analysis`}
     >
@@ -73,7 +73,7 @@ export function SeriesCard({
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <SeriesSwatch color={view.color} dash={view.dash} width={26} />
-            <h3 className="apple-heading min-w-0 break-words text-base font-semibold text-[var(--text-primary)]"><RichText text={view.name} /></h3>
+            <h3 className="min-w-0 break-words text-[19px] font-normal leading-tight tracking-[-0.02em] text-[var(--text-primary)]"><RichText text={view.name} /></h3>
           </div>
           {view.doc?.meaning && (
             <div className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">
@@ -151,7 +151,7 @@ export function SeriesCard({
             {/* Thresholds: where on the x-range notable moments happen */}
             {s.thresholds.length > 0 && (
               <div>
-                <div className="apple-label mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
+                <div className="mb-2 flex items-center gap-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">
                   <Timer className="h-3.5 w-3.5" /> Milestones along {xAxis.name}
                 </div>
                 <ul className="space-y-2">
@@ -192,7 +192,7 @@ export function SeriesCard({
             )}
 
             <div>
-              <div className="apple-label mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
+              <div className="mb-1 flex items-center gap-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">
                 <Sigma className="h-3.5 w-3.5" /> Shape
               </div>
               <div className="divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1">

@@ -28,7 +28,8 @@ export function useScrollSpy(ids: string[]): [string | null, (id: string) => voi
         const first = order.find((id) => visible.has(id));
         if (first) setActive(first);
       },
-      { rootMargin: "-110px 0px -55% 0px", threshold: 0 },
+      // The top margin clears the workspace header, the view tabs and the sticky section chips.
+      { rootMargin: "-180px 0px -50% 0px", threshold: 0 },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
@@ -58,9 +59,9 @@ export function SectionNav({
     // Floating glass sheet; the active section is a raised segment (scroll-spy keeps it in sync).
     <nav
       aria-label="Model sections"
-      className="apple-sheet sticky top-4 hidden max-h-[calc(100dvh-10rem)] self-start overflow-y-auto rounded-[22px] p-2 lg:block"
+      className="apple-sheet sticky top-1 hidden max-h-[calc(100dvh-10rem)] self-start overflow-y-auto rounded-[26px] p-2 lg:block"
     >
-      <p className="apple-label mb-1.5 px-3 pt-1 text-[10px] font-semibold uppercase text-[var(--text-muted)]">On this page</p>
+      <p className="mb-1.5 px-3 pt-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">On this page</p>
       <ol className="space-y-0.5">
         {items.map((it, i) => {
           const Icon = it.icon;
@@ -75,16 +76,16 @@ export function SectionNav({
                   e.preventDefault();
                   onPick(it.id);
                 }}
-                className={`apple-focus flex items-center gap-2 rounded-full py-1.5 pl-3 pr-2 text-xs transition-colors ${
+                className={`apple-focus flex items-center gap-2 rounded-full py-1.5 pl-3 pr-2 text-[13px] transition-colors ${
                   on
-                    ? "apple-seg-on font-semibold text-[var(--accent)]"
+                    ? "apple-seg-on font-medium text-[var(--text-primary)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                <Icon className={`h-3.5 w-3.5 shrink-0 ${on ? "text-[var(--accent)]" : ""}`} />
                 <span className="min-w-0 truncate">{it.label}</span>
                 {it.count !== undefined && (
-                  <span className="ml-auto shrink-0 rounded-full bg-[var(--bg-surface-muted)] px-1.5 font-mono text-[10px] text-[var(--text-muted)]">
+                  <span className="ml-auto shrink-0 rounded-full bg-[var(--bg-surface-muted)] px-1.5 font-mono text-[11px] text-[var(--text-muted)]">
                     {it.count}
                   </span>
                 )}
@@ -126,7 +127,7 @@ export function SectionChips({
     <nav
       ref={navRef}
       aria-label="Model sections"
-      className="apple-glass-elevated sticky top-2 z-20 mt-2.5 flex gap-1 overflow-x-auto rounded-full border p-1.5 [scrollbar-width:none] lg:hidden"
+      className="apple-glass-elevated sticky top-1 z-20 flex gap-1 overflow-x-auto rounded-full border p-1.5 [scrollbar-width:none] lg:hidden"
     >
       {items.map((it) => {
         const Icon = it.icon;
@@ -138,13 +139,13 @@ export function SectionChips({
             data-chip={it.id}
             onClick={() => onPick(it.id)}
             aria-current={on ? "location" : undefined}
-            className={`apple-press apple-focus flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[11px] ${
+            className={`apple-press apple-focus flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
               on
-                ? "apple-seg-on font-semibold text-[var(--accent)]"
-                : "font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
+                ? "apple-seg-on text-[var(--text-primary)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className={`h-3.5 w-3.5 ${on ? "text-[var(--accent)]" : ""}`} />
             {it.label}
           </button>
         );
@@ -153,7 +154,8 @@ export function SectionChips({
   );
 }
 
-/** Section shell with an anchored heading. */
+/** Section shell with an anchored heading. The heading sits on the landscape, so it uses the
+ *  on-scene ink (with its glow) in the Meadow Glass display style. */
 export function Section({
   id,
   icon: Icon,
@@ -173,16 +175,16 @@ export function Section({
 }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="st-fade-up min-w-0 scroll-mt-20 lg:scroll-mt-6" style={stagger(index, 70, 60)}>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2 px-1">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]">
+          <span className="apple-glass glass-lens relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border text-[var(--accent)]">
             <Icon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">
-              <span className="font-mono">{String(index + 1).padStart(2, "0")}</span> · {kicker}
+            <p className="on-scene-soft font-mono text-[11px] font-medium uppercase tracking-[0.12em]">
+              {String(index + 1).padStart(2, "0")} · {kicker}
             </p>
-            <h2 id={`${id}-h`} className="apple-heading text-lg font-semibold text-[var(--text-primary)]">
+            <h2 id={`${id}-h`} className="on-scene st-display mt-0.5 text-[24px] sm:text-[26px]">
               {title}
             </h2>
           </div>

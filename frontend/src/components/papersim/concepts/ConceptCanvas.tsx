@@ -96,6 +96,11 @@ export function ConceptCanvas({
   }, [layout, setCenter, store]);
   const [hover, setHover] = useState<{ id: string; x: number; y: number; w: number; h: number } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  // The legend starts open where there is room for it; on a phone it would cover most of the map.
+  // (This tab only renders client-side, after a paper has loaded, so reading the viewport is safe.)
+  const [legendOpenAtStart] = useState(
+    () => typeof window === "undefined" || window.matchMedia("(min-width: 640px)").matches
+  );
 
   const linkById = useMemo(() => new Map(graph.links.map((l) => [l.id, l])), [graph.links]);
   const nodeById = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n])), [graph.nodes]);
@@ -194,7 +199,7 @@ export function ConceptCanvas({
   return (
     <EdgeInteractionContext.Provider value={interaction}>
       {/* Glass sheet; overflow-hidden only rounds the pane (every overlay below is kept inside it). */}
-      <div ref={wrapRef} className="apple-sheet relative h-full w-full overflow-hidden rounded-[22px]">
+      <div ref={wrapRef} className="apple-sheet relative h-full w-full overflow-hidden rounded-[26px]">
         {/* flow-along-edge animation (frozen by the global reduced-motion rule) */}
         <style>{`@keyframes cg-dash{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}.cg-flow{animation:cg-dash .9s linear infinite}`}</style>
         <ReactFlow
@@ -210,6 +215,9 @@ export function ConceptCanvas({
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
+          // Edges themselves can't be selected, and their label buttons (focusable, with a focus
+          // ring) already follow the link, so the SVG edges would only be invisible tab stops.
+          edgesFocusable={false}
           onNodeClick={(_, n) => onSelect(n.id)}
           onEdgeClick={(_, e) => {
             const l = linkById.get(e.id);
@@ -253,7 +261,7 @@ export function ConceptCanvas({
                 }}
                 placeholder="Find a concept or parameter…"
                 aria-label="Search the concept graph"
-                className="min-w-0 w-full bg-transparent text-[12px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+                className="min-w-0 w-full bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
               />
               {query && (
                 <button
@@ -301,7 +309,7 @@ export function ConceptCanvas({
             onClick={showWholeMap}
             aria-label="Show the whole map"
             title="Show the whole map"
-            className="apple-glass-elevated apple-press apple-focus ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="apple-glass-elevated apple-press apple-focus ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium text-[var(--text-primary)]"
           >
             <Maximize2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Whole map</span>
@@ -310,9 +318,9 @@ export function ConceptCanvas({
 
         {/* Legend + kind spotlight */}
         {/* Legend: its body scrolls inside itself on short canvases rather than being cut off. */}
-        <details open className="group/legend apple-glass-elevated absolute bottom-3 left-3 z-10 max-w-[calc(100%-5.5rem)] rounded-2xl border text-[11px] sm:max-w-[min(440px,calc(100%-12rem))]">
-          <summary className="apple-focus cursor-pointer select-none list-none rounded-2xl px-3 py-1.5 font-semibold text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
-            <span className="apple-label text-[10px] uppercase">Legend</span>
+        <details open={legendOpenAtStart} className="group/legend apple-glass-elevated absolute bottom-3 left-3 z-10 max-w-[calc(100%-5.5rem)] rounded-2xl border text-[11px] sm:max-w-[min(440px,calc(100%-12rem))]">
+          <summary className="apple-focus cursor-pointer select-none list-none rounded-2xl px-3 py-1.5 font-medium text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.1em]">Legend</span>
             <span className="ml-2 font-normal text-[var(--text-muted)] group-open/legend:hidden">show</span>
             <span className="ml-2 hidden font-normal text-[var(--text-muted)] group-open/legend:inline">
               tap a kind to spotlight it
@@ -340,13 +348,13 @@ export function ConceptCanvas({
                   >
                     <Icon className="h-3 w-3" style={{ color: m.color }} />
                     {count > 1 ? m.plural : m.label}
-                    <span className="font-mono text-[9.5px] text-[var(--text-muted)]">{count}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)]">{count}</span>
                   </button>
                 );
               })}
             </div>
             {presentLinkKinds.length > 0 && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[var(--text-muted)]">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[var(--text-secondary)]">
                 {presentLinkKinds.map((k) => {
                   const m = LINK_META[k];
                   return (
@@ -375,7 +383,7 @@ export function ConceptCanvas({
               ...(hover.y > hover.h / 2 ? { bottom: hover.h - hover.y + 12 } : { top: hover.y + 16 }),
             }}
           >
-            <p className="apple-label text-[9.5px] font-bold uppercase" style={{ color: LINK_META[hoverLink.kind].color }}>
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: LINK_META[hoverLink.kind].color }}>
               {LINK_META[hoverLink.kind].label}
             </p>
             <p className="mt-1 flex flex-wrap items-center gap-x-1 text-[12px] leading-snug text-[var(--text-primary)]">
@@ -390,7 +398,7 @@ export function ConceptCanvas({
                 <RichText text={hoverLink.explanation} />
               </p>
             )}
-            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">Click to follow this link</p>
+            <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Click to follow this link</p>
           </div>
         )}
       </div>

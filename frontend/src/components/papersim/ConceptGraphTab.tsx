@@ -18,7 +18,7 @@ function hash(s: string): string {
   return (h >>> 0).toString(36);
 }
 
-/** "Concept & Parameter Graph" tab: a layered, explorable map of the paper's ideas and knobs. */
+/** "Concepts" tab: a layered, explorable map of the paper's ideas and knobs. */
 export function ConceptGraphTab(props: PaperSimTabProps) {
   return (
     <ReactFlowProvider>
@@ -193,9 +193,9 @@ function ConceptGraphWorkspace({ simulation: sim, paramValues, annotations }: Pa
   }, []);
 
   return (
-    // Two floating glass sheets with ~10px gutters. Stacked (< lg) the page scrolls; at lg the
-    // details sheet scrolls itself. (The Live Tutor button sits in its own lane below the tab.)
-    <div className="grid min-h-full grid-cols-1 content-start gap-2.5 px-2 pb-2 pt-2.5 sm:px-3 lg:h-full lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[minmax(0,1fr)] lg:pb-1">
+    // Two floating glass sheets with ~12px gutters. Stacked (< lg) the page scrolls; at lg the
+    // details sheet scrolls itself.
+    <div className="grid min-h-full grid-cols-1 content-start gap-3 px-2 pb-3 pt-1 sm:px-3 lg:h-full lg:grid-cols-[minmax(0,1fr)_400px] lg:grid-rows-[minmax(0,1fr)]">
       <div className="relative h-[62vh] min-h-[440px] min-w-0 lg:h-full lg:min-h-0">
         <ConceptCanvas
           key={layoutKey}
@@ -215,14 +215,14 @@ function ConceptGraphWorkspace({ simulation: sim, paramValues, annotations }: Pa
           onReady={intro}
         />
         {!graph.fromDocs && (
-          <p className="apple-glass-elevated pointer-events-none absolute right-3 top-14 z-10 hidden max-w-[220px] rounded-2xl border px-3 py-1.5 text-right text-[10.5px] leading-snug text-[var(--text-muted)] sm:block">
+          <p className="apple-glass-elevated pointer-events-none absolute right-3 top-14 z-10 hidden max-w-[220px] rounded-2xl border px-3 py-1.5 text-right text-[11px] leading-snug text-[var(--text-secondary)] sm:block">
             Built from the simulation spec — re-run the extraction for page references.
           </p>
         )}
       </div>
       <aside
         aria-label="Concept details"
-        className="apple-sheet min-h-0 min-w-0 rounded-[22px] lg:overflow-y-auto"
+        className="apple-sheet min-h-0 min-w-0 rounded-[26px] lg:overflow-y-auto"
       >
         {selected && (
           <ConceptDetails

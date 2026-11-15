@@ -105,7 +105,7 @@ export interface LinkMeta {
 export const LINK_META: Record<LinkKind, LinkMeta> = {
   prerequisite: {
     label: "Builds on",
-    color: "var(--accent)",
+    color: "var(--status-link)",
     blurb: "Understand the first to understand the second.",
   },
   supports: {
