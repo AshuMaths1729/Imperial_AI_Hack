@@ -1,9 +1,9 @@
-// Pure timing and CSS for the tutor's pen: writing is revealed line by line, left to right, behind a pen tip.
+// Pure timing and CSS for the tutor's pen: writing is revealed line by line, left to right (no pen icon).
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** ms to write one line of `chars` characters: slow enough for the student to read along (2–3 s). */
-export const lineMs = (chars: number) => clamp(1200 + Math.round(chars * 60), 2000, 3000);
+/** ms to write one line of `chars` characters at speaking pace (~20 characters ≈ 4 s), 1.5–8 s a line. */
+export const lineMs = (chars: number) => clamp(Math.round(chars * 200), 1500, 8000);
 
 /** Total writing time for `chars` characters spread over `lines` rendered lines. */
 export const writeMs = (chars: number, lines: number) => lines * lineMs(chars / Math.max(1, lines));
@@ -25,23 +25,17 @@ export function schedule(now: number, penFreeAt: number, durationMs: number): { 
 
 const pct = (v: number) => `${+v.toFixed(3)}%`;
 
-/**
- * @keyframes bodies for an n-line reveal. `clip` animates clip-path on the shape (rows above fully shown, the current
- * row up to the pen); `tip` moves the pen tip (left/top in % of the shape box) along the same path.
- */
-export function writeKeyframes(n: number): { clip: string; tip: string } {
-  const clip: string[] = [], tip: string[] = [];
+/** @keyframes body for an n-line reveal: rows above fully shown, the current row up to the (invisible) pen. */
+export function writeKeyframes(n: number): string {
+  const clip: string[] = [];
   const ease = "animation-timing-function: cubic-bezier(.35,.05,.6,1)";
   for (let i = 0; i < n; i++) {
     // Edge rows extend past the box so glyph overhangs aren't cut while writing.
     const top = i === 0 ? -30 : (i / n) * 100, bottom = i === n - 1 ? 130 : ((i + 1) / n) * 100;
-    const mid = ((i + 0.5) / n) * 100;
     const poly = (p: number) => `polygon(-5% -30%, 105% -30%, 105% ${pct(top)}, ${pct(p)} ${pct(top)}, ${pct(p)} ${pct(bottom)}, -5% ${pct(bottom)})`;
     const t0 = (i / n) * 100, t1 = ((i + 1) / n) * 100;
     // Two keyframes per row; the pen jumps to the next row's start right after the previous one ends.
     clip.push(`${pct(i ? t0 + 0.001 : t0)} { clip-path: ${poly(-5)}; ${ease} }`, `${pct(t1)} { clip-path: ${poly(105)} }`);
-    tip.push(`${pct(i ? t0 + 0.001 : t0)} { left: 0%; top: ${pct(mid)}; opacity: 1; ${ease} }`, `${pct(i === n - 1 ? t1 - 0.001 : t1)} { left: 100%; top: ${pct(mid)}; opacity: 1 }`);
   }
-  tip.push("100% { left: 100%; opacity: 0 }");
-  return { clip: clip.join(" "), tip: tip.join(" ") };
+  return clip.join(" ");
 }

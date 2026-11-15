@@ -1,28 +1,26 @@
 "use client";
 
-import { PenLine } from "lucide-react";
 import { atom, b64Vecs, EASINGS, useEditor, useValue, type Editor, type TLShapeId } from "tldraw";
 import type { Box } from "../contracts/types";
 import { cameraFor, followPaused } from "./camera";
 import { schedule, writeKeyframes } from "./pen";
 
-type Tip = { key: string; box: Box; lines: number; ms: number };
 type Laser = { x: number; y: number };
 
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const HIDDEN = "clip-path: polygon(0 0, 0 0, 0 0)";
+const sel = (id: string) => `.tl-shape[data-shape-id="${id}"]`;
 const FOLLOW_MS = 650;
 
 /**
- * Per-board effects that are not stored on the board: pen writing reveal, stroke drawing, the laser dot and the camera
- * following the pen. Page units throughout (BOARD_SCALE is 1).
+ * Per-board effects that are not stored on the board: pen writing reveal (no pen icon), stroke drawing, the laser dot
+ * and the camera following the pen. Page units throughout (BOARD_SCALE is 1).
  */
 export class BoardFx {
-  readonly tips = atom<Tip[]>("pen tips", []);
   readonly laser = atom<Laser | null>("laser", null);
   private penFreeAt = 0;
   private lastUserAt: number | undefined;
-  private rules = new Map<string, string>(); // shape id → CSS declaration while it is being written
+  private rules = new Map<string, string>(); // shape id → CSS rules while it is being written
   private pending = new Map<string, string>(); // shape id → token of the write that owns it
   private lastFrame: [Box, Box] | undefined;
   private frames = new Set<number>(); // n-line keyframes already in the sheet
@@ -52,9 +50,10 @@ export class BoardFx {
     this.timers.add(t);
   }
 
-  private setRule(id: TLShapeId, decl: string | undefined) {
-    if (decl) this.rules.set(id, decl); else this.rules.delete(id);
-    this.style.textContent = this.keyframes + [...this.rules].map(([k, v]) => `.tl-shape[data-shape-id="${k}"]{${v}}`).join("\n");
+  /** `decl` styles the shape; `extra` is further full CSS rules for it (its maths layers). */
+  private setRule(id: TLShapeId, decl: string | undefined, extra = "") {
+    if (decl) this.rules.set(id, `${sel(id)}{${decl}}${extra}`); else this.rules.delete(id);
+    this.style.textContent = this.keyframes + [...this.rules.values()].join("\n");
   }
 
   private hide(id: TLShapeId) {
@@ -67,8 +66,7 @@ export class BoardFx {
   private ensureFrames(n: number) {
     if (this.frames.has(n)) return;
     this.frames.add(n);
-    const { clip, tip } = writeKeyframes(n);
-    this.keyframes += `@keyframes tw-clip-${n}{${clip}}\n@keyframes tw-tip-${n}{${tip}}\n`;
+    this.keyframes += `@keyframes tw-clip-${n}{${writeKeyframes(n)}}\n`;
   }
 
   /** Queue `ms` of pen work; `start` runs when the pen gets to it. Returns the delay. */
@@ -80,23 +78,21 @@ export class BoardFx {
   }
 
   /**
-   * Write an existing text/math shape as if by hand: hidden now, revealed row by row behind a pen tip when the pen
-   * gets to it. Call before the shape first renders. `onStart` runs as the pen starts (the camera follows it there).
+   * Write an existing text/math shape as if by hand: hidden now, revealed row by row, left to right, when the pen gets
+   * to it. Maths draws its glyph outlines first and the ink follows a moment behind (Manim "Write" style).
+   * Call before the shape first renders. `onStart` runs as the pen starts (the camera follows it there).
    */
-  write(id: TLShapeId, box: Box, lines: number, ms: number, onStart?: () => void) {
+  write(id: TLShapeId, lines: number, ms: number, onStart?: () => void) {
     if (reducedMotion()) return this.queue(0, () => onStart?.());
     this.ensureFrames(lines);
     const mine = this.hide(id);
-    const key = `${id}:${Math.random()}`;
+    const lead = Math.min(400, ms / 5), run = ms - lead;
     this.queue(ms, () => {
       if (!mine()) return;
-      this.setRule(id, `animation: tw-clip-${lines} ${ms}ms linear both`);
-      this.tips.update((t) => [...t, { key, box, lines, ms }]);
+      this.setRule(id, `animation: tw-clip-${lines} ${run}ms linear both`,
+        `${sel(id)} .tw-ink-outline{visibility:visible}${sel(id)} .tw-ink{animation: tw-clip-${lines} ${run}ms linear ${lead}ms both}`);
       onStart?.();
-      this.later(ms + 50, () => {
-        if (mine()) this.cancel(id);
-        this.tips.update((t) => t.filter((x) => x.key !== key));
-      });
+      this.later(ms + 50, () => mine() && this.cancel(id));
     });
   }
 
@@ -188,27 +184,24 @@ export const disposeFx = (editor: Editor) => {
   fxByEditor.delete(editor);
 };
 
+// The laser (same look as on the slides): one small solid red dot with a soft glow, no ring; glides ~450 ms.
 const CSS = `
-.tw-tip { position: absolute; width: 30px; height: 30px; margin: -26px 0 0 -3px; opacity: 0; color: #334155;
-  filter: drop-shadow(0 2px 2px rgba(15,23,42,.25)); pointer-events: none; }
 .tw-laser { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none;
-  transition: transform 700ms cubic-bezier(.2,.8,.2,1); }
-.tw-laser > i { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%;
-  background: radial-gradient(circle, #ff3b30 0 45%, rgba(255,59,48,.35) 60%, rgba(255,59,48,0) 72%);
-  animation: tw-pulse 1.1s ease-in-out infinite; }
+  transition: transform 450ms cubic-bezier(.2,.8,.2,1); }
+.tw-laser > i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%;
+  background: #ff3b30; box-shadow: 0 0 8px 2px rgba(255,59,48,.45); }
 .tw-ask { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: #7c3aed;
   color: #fff; font: 700 15px/24px system-ui, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(15,23,42,.3); }
 @keyframes tw-fade { from { opacity: 0 } to { opacity: 1 } }
-@keyframes tw-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.45) } }
-@media (prefers-reduced-motion: reduce) { .tw-tip { display: none } .tw-laser { transition: none } .tw-laser > i { animation: none } }
+@media (prefers-reduced-motion: reduce) { .tw-laser { transition: none } }
 `;
 
 /** Rendered by tldraw inside the camera-transformed layer (`OnTheCanvas`), so positions are page units. */
 export function BoardFxLayer() {
   const editor = useEditor();
   const fx = fxFor(editor);
-  const tips = useValue("pen tips", () => fx.tips.get(), [fx]);
   const laser = useValue("laser", () => fx.laser.get(), [fx]);
+  const zoom = useValue("zoom", () => editor.getZoomLevel(), [editor]); // the dot stays ~12 screen px at any zoom
   // The student's open questions: a "?" on each persistent Circle-to-Ask mark.
   const circles = useValue("circles", () => editor.getCurrentPageShapes().flatMap((s) => {
     const b = s.meta.circle_id ? editor.getShapePageBounds(s) : undefined;
@@ -217,13 +210,8 @@ export function BoardFxLayer() {
   return (
     <div style={{ position: "absolute", left: 0, top: 0, zIndex: 100000, pointerEvents: "none" }} aria-hidden>
       <style>{CSS}</style>
-      {tips.map((t) => (
-        <div key={t.key} style={{ position: "absolute", left: t.box.x, top: t.box.y, width: t.box.w, height: t.box.h }}>
-          <PenLine className="tw-tip" style={{ animation: `tw-tip-${t.lines} ${t.ms}ms linear forwards` }} />
-        </div>
-      ))}
       {circles.map((c) => <span key={c.id} className="tw-ask" style={{ left: c.x, top: c.y }}>?</span>)}
-      {laser && <div className="tw-laser" style={{ transform: `translate(${laser.x}px, ${laser.y}px)` }}><i /></div>}
+      {laser && <div className="tw-laser" style={{ transform: `translate(${laser.x}px, ${laser.y}px)` }}><i style={{ transform: `scale(${1 / zoom})` }} /></div>}
     </div>
   );
 }

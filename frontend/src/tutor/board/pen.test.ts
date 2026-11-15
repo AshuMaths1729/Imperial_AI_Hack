@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { latexChars, lineMs, schedule, writeKeyframes, writeMs, PEN_LIFT_MS } from "./pen";
 
 describe("pen timing", () => {
-  it("writes one line slowly enough to follow: 2–3 s", () => {
-    expect(lineMs(1)).toBe(2000);
-    expect(lineMs(20)).toBe(2400);
-    expect(lineMs(200)).toBe(3000);
+  it("writes at speaking pace: ~20 characters in 4 s, at least 1.5 s a line, capped for very long lines", () => {
+    expect(lineMs(20)).toBe(4000);
+    expect(lineMs(10)).toBe(2000);
+    expect(lineMs(1)).toBe(1500);
+    expect(lineMs(30)).toBe(6000);
+    expect(lineMs(200)).toBe(8000);
   });
 
   it("multi-line writing takes a line's time per line", () => {
@@ -29,17 +31,15 @@ describe("pen timing", () => {
 
 describe("writeKeyframes", () => {
   it("starts hidden and ends fully revealed", () => {
-    const { clip } = writeKeyframes(1);
+    const clip = writeKeyframes(1);
     expect(clip.startsWith("0% { clip-path: polygon(-5% -30%, 105% -30%, 105% -30%, -5% -30%, -5% 130%, -5% 130%)")).toBe(true);
     expect(clip).toContain("100% { clip-path: polygon(-5% -30%, 105% -30%, 105% -30%, 105% -30%, 105% 130%, -5% 130%)");
   });
 
   it("reveals rows in order, one row per equal slice of time", () => {
-    const { clip, tip } = writeKeyframes(3);
+    const clip = writeKeyframes(3);
     expect(clip.match(/clip-path/g)).toHaveLength(6);
     expect(clip).toContain("33.333% { clip-path: polygon(-5% -30%, 105% -30%, 105% -30%, 105% -30%, 105% 33.333%");
     expect(clip).toContain("33.334% { clip-path: polygon(-5% -30%, 105% -30%, 105% 33.333%, -5% 33.333%, -5% 66.667%");
-    expect(tip).toContain("top: 50%");
-    expect(tip.endsWith("100% { left: 100%; opacity: 0 }")).toBe(true);
   });
 });

@@ -19,7 +19,7 @@ import { PlotShapeUtil, plotYDomain } from "./shapes/PlotShape";
 
 const shapeUtils = [MathShapeUtil, PlotShapeUtil];
 // No page menu (one page; it sat over the first line of working). The always-open style panel covered the right
-// of the page, so it lives behind a colour button instead (tldraw's mobile popover). The pen/laser layer moves with the camera.
+// of the page, so it lives behind a colour button instead (tldraw's mobile popover). The laser layer moves with the camera.
 const components: TLComponents = {
   PageMenu: null,
   StylePanel: (props) => (props.isMobile ? <DefaultStylePanel {...props} /> : null),
@@ -55,7 +55,7 @@ function penWrite(editor: Editor, fx: BoardFx, shape: TLShape) {
   const p = shape.props as { latex?: string; richText?: unknown };
   const lines = shape.type === "math" ? 1 : Math.max(1, Math.round(b.h / TEXT_LINE));
   const chars = shape.type === "math" ? latexChars(p.latex ?? "") : plain(p.richText).length;
-  fx.write(shape.id, { x: b.x, y: b.y, w: b.w, h: b.h }, lines, writeMs(chars, lines), () => followItem(editor, fx, boardIdOf(shape)));
+  fx.write(shape.id, lines, writeMs(chars, lines), () => followItem(editor, fx, boardIdOf(shape)));
 }
 
 /** Freshly created shapes of item `id` go through the pen: written (text/math) or faded in, in order. */
@@ -269,7 +269,7 @@ export const Whiteboard = forwardRef<BoardHandle, Props>(function Whiteboard({ o
 
   const onMount = (editor: Editor) => {
     editorRef.current = editor;
-    preloadMathFonts();
+    preloadMathFonts(editor);
     const fx = fxFor(editor);
     // Fit the page width, then go back to what the camera was following (if anything).
     const fit = () => fitBoardCamera(editor) && fx.refollow();
