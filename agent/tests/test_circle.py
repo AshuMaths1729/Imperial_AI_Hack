@@ -1,6 +1,6 @@
 from livekit.agents import llm
 
-from circle import circle_message, handle_circle, handle_lost, lost_message
+from circle import PendingCircle, circle_message, handle_circle, handle_lost, lost_message
 
 PAYLOAD = {"png_b64": "AAAA", "region": {"x": 1, "y": 2, "w": 3, "h": 4}, "item_ids": ["eq1", "u1"], "user_text": "why minus?"}
 
@@ -19,8 +19,10 @@ def test_circle_turn_asks_first_and_explains_only_after_the_answer():
     ask, after = text.split("After I answer", 1)
     assert "Don't explain yet" in ask and "what about it is unclear" in ask and "wait for my answer" in ask
     assert "board_write" not in ask and "slide_edit" not in ask  # no tool before the student has answered
-    assert "board_write" in after and "point_at" in after  # board circles: explain next to the circled items
-    assert 'clear_circle("c7")' in after and after.index("helped") < after.index("clear_circle")
+    assert "board_write" in after and "[[eq1]]" in after  # board circles: explain next to the circled items, laser on them
+    assert "write the whole working first" in after and "line by line" in after  # v3.1 F6: write, then explain
+    # v3.1 F2: the circle clears by itself as the explanation starts; still ask if it helped, no clear_circle then
+    assert "helped" in after and "clears by itself" in after and 'clear_circle("c7")' not in after
 
 
 def test_circle_message_without_items_or_id():
@@ -40,8 +42,43 @@ def test_slide_circle_explains_on_the_same_slide():
     after = text.split("After I answer", 1)[1]
     assert "slide_edit(brief=..., object_ids=['curve'])" in after  # edit in place, from the circled objects
     assert "slide_animate" in after and "not on this slide" in after  # a new slide only for ideas not on the page
-    assert 'clear_circle("k1")' in after
+    assert "clears by itself" in after and 'clear_circle("k1")' not in after
     assert "point_at" not in text and 'show_tab("board")' not in text  # stay on the slide
+
+
+def test_screen_circle_is_cleared_by_the_tutor_as_it_explains():
+    after = circle_message({**PAYLOAD, "source": "screen", "circle_id": "w1"}, "").content[0].split("After I answer", 1)[1]
+    assert 'clear_circle("w1")' in after and after.index("clear_circle") < after.index("helped")
+
+
+class RpcIO:
+    def __init__(self, fail=False):
+        self.rpcs, self.fail = [], fail
+
+    async def rpc(self, method, payload):
+        self.rpcs.append((method, payload))
+        if self.fail:
+            raise RuntimeError("page gone")
+        return {"ok": True, "errors": []}
+
+
+async def test_pending_circle_clears_once_for_its_own_stage():
+    io = RpcIO()
+    c = PendingCircle(io)
+    assert await c.clear("slide") is False  # nothing circled
+    c.open({"circle_id": "c7", "source": "board"})
+    assert await c.clear("slide") is False and io.rpcs == []  # a slide explanation leaves a board circle alone
+    assert await c.clear("board") is True
+    assert await c.clear("board") is False
+    assert io.rpcs == [("ui.clear_circle", {"circle_id": "c7"})]
+    c.open({"source": "slide"})  # an old page without circle ids
+    assert await c.clear("slide") is False
+
+
+async def test_pending_circle_never_raises():
+    c = PendingCircle(RpcIO(fail=True))
+    c.open({"circle_id": "c1", "source": "slide"})
+    assert await c.clear("slide") is False and c.id is None
 
 
 def test_screen_circle_keeps_plain_reexplain():

@@ -54,10 +54,12 @@ def _op_error(i: int, op: Any) -> str | None:
 
 
 class TutorTools:
-    def __init__(self, io: TutorIO, lesson_id: str, on_note: Callable[[str], Awaitable[None]] | None = None):
+    def __init__(self, io: TutorIO, lesson_id: str, on_note: Callable[[str], Awaitable[None]] | None = None,
+                 circle=None):
         self.io = io
         self.lesson_id = lesson_id
         self.on_note = on_note  # tells the tutor's chat context something happened (e.g. a visual arrived)
+        self.circle = circle  # circle.PendingCircle (or None): a board explanation clears the student's board circle
         self.covered: list[str] = []  # KPs marked during this lesson, sent with /end
         self._tasks: set[asyncio.Task] = set()
 
@@ -79,6 +81,11 @@ class TutorTools:
             except Exception as e:
                 errors.append(f"board unreachable: {e}")
         if not errors:
+            lines = [op["id"] for op in valid if op["op"] in ("write_math", "write_text") and op.get("id")]
+            # v3.1 F6: the board writes at speaking pace; the explanation comes after, with the laser on each line
+            if len(lines) > 1:
+                return (f"ok: drew {', '.join(ids)}. Now explain it line by line, tagging each line as you reach it "
+                        f"([[{lines[0]}]] ...).")
             return f"ok: drew {', '.join(ids)}"
         if ids:
             return f"partial: drew {', '.join(ids)}; failed: {'; '.join(errors)}"
@@ -190,7 +197,10 @@ class TutorTools:
             "parameters": BOARD_WRITE_PARAMS,
         })
         async def board_write(raw_arguments: dict[str, Any]) -> str:
-            return await t.board_write(raw_arguments.get("ops") or [])
+            # the explanation starts: the student's board circle goes (v3.1 F2)
+            cleared = t.circle is not None and await t.circle.clear("board")
+            out = await t.board_write(raw_arguments.get("ops") or [])
+            return out + (" The student's circle is cleared." if cleared else "")
 
         @llm.function_tool
         async def look_at_board(region: Box | None = None) -> str:

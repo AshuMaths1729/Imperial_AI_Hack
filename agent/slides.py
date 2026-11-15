@@ -37,8 +37,9 @@ RULES = """Slides (slowly, one idea at a time):
 - Right after your greeting, call show_tab("slides"); the result lists the slides and the open slide's idea, check \
 question, objects and step hints.
 - Open every slide with one bridge sentence from the last one ("We just saw X; now..."), then its question.
-- Each step: 2-3 short sentences in your own words from its hint, then slide_step to the next step (it returns when \
-the animation has finished). slide_point at what you are talking about. Never read the slide out.
+- Each step: 1-2 short sentences in your own words from its hint, then slide_step to the next step (it returns when \
+the animation has finished). After each reveal let it land: end your sentence, never chain straight on. Tag what you \
+talk about with its object id ("the [[tan]] tangent"); slide_point only when not speaking. Never read the slide out.
 - Once per slide, before a reveal, ask what they think will happen and wait for the answer. Otherwise go on \
 through the steps without waiting for the student.
 - After the last step, ask the slide's check question and wait. slide_go to the next slide only after a good answer; \
@@ -46,7 +47,8 @@ otherwise explain again on this slide.
 - A question about the open slide is answered ON it: slide_edit adds steps to it (it builds in the background and \
 tells you which steps to play). Never jump to a new slide for it; slide_animate (a new slide) only for an idea that is \
 not on this slide.
-- A circle stays on screen until you call clear_circle(circle_id), once the student says your explanation helped.
+- The student's circle clears by itself when slide_edit (or board_write) starts your explanation; only if you explain \
+in words alone, call clear_circle(circle_id) as you start.
 - For worked problems use the whiteboard (show_tab("board")), then come back to the slides."""
 
 _CANVAS = """- Canvas 1600x900, title drawn for you at the top (keep content below y=150). Palette names: blue, teal, green, \
@@ -151,12 +153,13 @@ async def _note(ctx: RunContext | None, text: str, speak: str | None = None) -> 
 
 
 class SlideTools:
-    def __init__(self, io, lesson_id: str, client=None, timeout_s: float = 60.0, lesson=None):
+    def __init__(self, io, lesson_id: str, client=None, timeout_s: float = 60.0, lesson=None, circle=None):
         self.io = io
         self.lesson_id = lesson_id
         self.client = client  # anthropic.AsyncAnthropic-like; created lazily (tests inject a fake)
         self.timeout_s = timeout_s
         self.lesson = lesson  # lesson_state.LessonState (or None): told whenever the open slide/step changes
+        self.circle = circle  # circle.PendingCircle (or None): an explanation on the slide clears the student's circle
         self.narration: list[str] = []  # step hints of the open slide, from the last describe
         self.index: int | None = None
         self.step: int | None = None  # last step shown on the open slide (None until the page tells us)
@@ -215,7 +218,7 @@ class SlideTools:
         self._note_slide(index, step)
         total = len(self.narration)
         if step < total:
-            nxt = f" Next: {self.narration[step]} (2-3 short sentences, then slide_step({step + 1}))."
+            nxt = f" Next: {self.narration[step]} (1-2 short sentences, then slide_step({step + 1}))."
         else:
             q = f'its check question "{self.check}"' if self.check else "a short check question on its idea"
             nxt = f" That was the last step of this slide: ask {q} and wait for the answer before slide_go."
@@ -227,13 +230,15 @@ class SlideTools:
         if self.step is None or said.rstrip().endswith("?") or self.step >= len(self.narration):
             return None
         n = self.step + 1
-        return f"Continue the slide: 2-3 short sentences for step {n} ({self.narration[n - 1]}), then slide_step({n})."
+        return f"Continue the slide: 1-2 short sentences for step {n} ({self.narration[n - 1]}), then slide_step({n})."
 
     async def slide_point(self, object_id: str) -> str:
         return self._failed(await self._rpc("slides.point", {"id": object_id})) or f"ok: pointing at {object_id}"
 
     async def clear_circle(self, circle_id: str) -> str:
         reply = await self._rpc("ui.clear_circle", {"circle_id": circle_id})
+        if self.circle is not None and self.circle.id == circle_id:
+            self.circle.id = None
         return self._failed(reply) or f"ok: circle {circle_id} cleared"
 
     def _spawn(self, coro) -> None:
@@ -242,16 +247,23 @@ class SlideTools:
         task.add_done_callback(self._tasks.discard)
         task.add_done_callback(lambda t: t.cancelled() and logger.warning("background slide task was cancelled"))
 
+    async def _clear_circle(self) -> str:
+        """The explanation starts: the student's circle on the slide goes (v3.1 F2)."""
+        cleared = self.circle is not None and await self.circle.clear("slide")
+        return " The student's circle is cleared." if cleared else ""
+
     async def slide_edit(self, brief: str, object_ids: list[str] | None = None, ctx: RunContext | None = None) -> str:
+        cleared = await self._clear_circle()
         self._spawn(self._edit(brief, object_ids or [], ctx))
         return ("queued: adding your explanation to the open slide; a note lists its new steps in a few seconds. "
                 "Meanwhile say one short sentence about the idea; do not describe the new drawing until the note says "
-                "it is on the slide.")
+                "it is on the slide." + cleared)
 
     async def slide_animate(self, brief: str, object_ids: list[str] | None = None, ctx: RunContext | None = None) -> str:
+        cleared = await self._clear_circle()
         self._spawn(self._animate(brief, object_ids or [], ctx))
         return ("queued: building the follow-up animation; it opens on the Slides tab by itself in about 10-20 seconds. "
-                "Meanwhile talk about the idea itself; do not describe the animation until a note says it is on screen.")
+                "Meanwhile talk about the idea itself; do not describe the animation until a note says it is on screen." + cleared)
 
     async def _plan(self, system: str, tool: dict, messages: list) -> tuple[Any, Any]:
         if self.client is None:
@@ -325,7 +337,7 @@ class SlideTools:
         await self._tell("follow-up slide", ctx, note, speak)
 
     async def _edit(self, brief: str, object_ids: list[str], ctx: RunContext | None) -> None:
-        note = (f"Adding to the slide failed: {brief}. Explain it in words on this slide (slide_point at its parts) "
+        note = (f"Adding to the slide failed: {brief}. Explain it in words on this slide (tag its parts with [[id]]) "
                 "or on the board instead.")
         speak = None
         try:
@@ -346,7 +358,7 @@ class SlideTools:
                 first, last = nums[0], nums[-1]
                 hints = "; ".join(f"step {n}: {s.get('narration', '')}" for n, s in zip(nums, steps))
                 note = (f"Your explanation is on the open slide now as new steps {first}-{last} ({hints}). Walk the "
-                        f"student through them: 2-3 short sentences each, slide_step({first}) up to slide_step({last}), "
+                        f"student through them: 1-2 short sentences each, slide_step({first}) up to slide_step({last}), "
                         "then ask if that helped.")
                 speak = f"The new steps are on the slide. Say one short sentence, then slide_step({first})."
                 await self.describe()
@@ -416,7 +428,7 @@ class SlideTools:
 
         @llm.function_tool
         async def clear_circle(circle_id: str) -> str:
-            """Remove the student's circle mark (slides or whiteboard) once they said your explanation helped.
+            """Remove the student's circle mark. Only needed when you explain in words alone: slide_edit and board_write clear it themselves.
 
             Args:
                 circle_id: the circle_id from the [circled ...] message

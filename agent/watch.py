@@ -32,7 +32,8 @@ TOOL = {
                 "properties": {k: {"type": "number"} for k in ("x", "y", "w", "h")},
                 "required": ["x", "y", "w", "h"],
             },
-            "say": {"type": "string", "description": "One short spoken sentence for the tutor: the hint, or what is wrong. No symbols."},
+            "say": {"type": "string", "description": "One short spoken sentence for the tutor: the hint, or what is wrong. "
+                    "Describe only what is literally written. No symbols."},
             "correction_latex": {"type": "string", "description": "For a mistake: the corrected line as LaTeX."},
         },
         "required": ["verdict", "say"],
@@ -43,7 +44,9 @@ SYSTEM = (
     "they just wrote before pausing. Call report_check once. verdict 'ok' when the working is correct, on track but "
     "unfinished, unreadable, or not an attempt at the task; 'hint' when they seem stuck or are heading the wrong way "
     "without a wrong step yet; 'mistake' only for a clearly wrong step, with box around that step and correction_latex "
-    "for the corrected line. When unsure, say ok: interrupting a correct student is worse than missing a slip."
+    "for the corrected line. When unsure, say ok: interrupting a correct student is worse than missing a slip. "
+    "Describe only what is literally written: a bare 'ANS = 4' is a final answer with no working, so never mention "
+    "working, steps or a method that is not on the page."
 )
 _OK = {"verdict": "ok", "say": ""}
 _MIMES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -145,7 +148,7 @@ async def handle_idle(agent, session, tools, payload: dict, *, check=check_handw
         if verdict == "hint":
             session.generate_reply(instructions=(
                 f"[watching] The student paused while writing their answer. Give one short spoken hint, "
-                f"not the answer: {say}"))
+                f"not the answer, about only what they actually wrote: {say}"))
             return
         await _correct(session, tools, region, result, say)
     finally:
@@ -164,9 +167,10 @@ async def _correct(session, tools, region: dict, result: dict, say: str) -> None
     logger.info("idle: correction ops %s", drawn[:200])
     if drawn.startswith("ok"):
         board = f"The wrong part is circled in red (fix_mark_{tag})" + (f" and the correction is written below it (fix_{tag})" if latex else "")
-        how = f"Point at fix_{tag} while you explain. " if latex else ""
+        how = f"Tag it [[fix_{tag}]] as you explain it. " if latex else ""
     else:
         board, how = "Drawing the correction failed", f"Explain it in words{': the right line is ' + latex if latex else ''}. "
     session.generate_reply(instructions=(
         f"[watching] The student made a mistake in what they just wrote: {say}. {board}. {how}"
-        "Say in one or two short sentences what went wrong and why; do not redraw it."))
+        "Say in one or two short sentences what went wrong and why, about only what they actually wrote; "
+        "do not redraw it."))

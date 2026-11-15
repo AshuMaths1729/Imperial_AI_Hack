@@ -29,11 +29,12 @@ from livekit.agents import (
 from livekit.agents.utils import images
 from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
-from circle import handle_circle, handle_lost
+from circle import PendingCircle, handle_circle, handle_lost
 from lesson_end import LessonEnder, finish_lesson
 from prompting import build_instructions, greeting_instruction
 from rolling import RollingSummary, haiku_summarize
 import slides
+from speech_cues import SpeechCues
 import watch
 from lesson_state import LessonState
 from tutor_tools import TutorTools
@@ -48,7 +49,7 @@ AVATAR_JOIN_TIMEOUT = 12  # plugin default 30 s; a student should not wait that 
 VOICE_MAX_TOKENS = 2000
 # One turn teaches a whole slide (sentence, slide_step, slide_point, ...); LiveKit's default of 3 stops it mid-slide.
 MAX_TOOL_STEPS = 12
-SPEECH_SPEED = 0.9  # 3Blue1Brown pace; ElevenLabs allows 0.8-1.2
+SPEECH_SPEED = 0.85  # slower than 3Blue1Brown (v3.1 walkthrough); ElevenLabs allows 0.8-1.2
 CHECKPOINT_EVERY_S = 60
 # Measured on the live prompt: Haiku 5.5 without thinking ~1 s to first token but it followed the teaching rules
 # badly; Sonnet 5.5 without thinking ~1.2 s and follows them.
@@ -69,6 +70,20 @@ class VoiceLLM(anthropic.LLM):
     def chat(self, *, extra_kwargs=None, **kw):
         more = extra_kwargs if isinstance(extra_kwargs, dict) else {}  # callers may pass NOT_GIVEN
         return super().chat(extra_kwargs={**self.EXTRA, **more}, **kw)
+
+
+class TutorAgent(Agent):
+    """Strips the [[object_id]] laser tags before speech and captions and sends their cue script to the page."""
+
+    def __init__(self, cues: SpeechCues, **kw):
+        super().__init__(**kw)
+        self.cues = cues
+
+    def tts_node(self, text, model_settings):
+        return Agent.default.tts_node(self, self.cues.tts_text(text), model_settings)
+
+    def transcription_node(self, text, model_settings):
+        return self.cues.captions(text)
 
 
 class RoomTutorIO:
@@ -199,7 +214,8 @@ async def entrypoint(ctx: JobContext) -> None:
         chat.add_message(role="system", content=text)
         await agent.update_chat_ctx(chat)
 
-    tools = TutorTools(io, lesson_id, on_note=add_note)
+    circle = PendingCircle(io)  # the student's open circle; slide_edit / board_write clear it as they start explaining
+    tools = TutorTools(io, lesson_id, on_note=add_note, circle=circle)
     rolling = RollingSummary(haiku_summarize)
     ender = LessonEnder(io.post, lesson_id)
     tasks: set[asyncio.Task] = set()
@@ -234,8 +250,9 @@ async def entrypoint(ctx: JobContext) -> None:
         ),
     )
     lesson = LessonState(lesson_id, io.post, resume=tctx.get("resume"))
-    deck = slides.SlideTools(io, lesson_id, lesson=lesson)  # picks up the last lesson's understanding
-    agent = Agent(
+    deck = slides.SlideTools(io, lesson_id, lesson=lesson, circle=circle)  # picks up the last lesson's understanding
+    agent = TutorAgent(
+        SpeechCues(io.rpc),
         instructions=build_instructions(tctx),
         tools=tools.function_tools() + deck.function_tools() + lesson.function_tools(),
     )
@@ -275,7 +292,9 @@ async def entrypoint(ctx: JobContext) -> None:
             board = await tools.board_text()
         except Exception:
             board = "(board unavailable)"
-        await handle_circle(agent, session, json.loads(text), board)
+        payload = json.loads(text)
+        circle.open(payload)
+        await handle_circle(agent, session, payload, board)
 
     async def read_bytes(reader: rtc.ByteStreamReader) -> None:
         await on_circle(b"".join([chunk async for chunk in reader]).decode())
