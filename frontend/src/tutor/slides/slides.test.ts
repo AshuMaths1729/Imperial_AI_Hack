@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+import diff from "./decks/differentiation.json";
 import gd from "./decks/gradient-descent.json";
 import { describeDeck, editSlide, emptyDeck, goTo, pushSlide, slideErrors, stepTo } from "./deck";
-import { laserSpot, LASER_PARK } from "./lasso";
+import { GLIDE_MS, insideRun, laserFrames, laserSpot, LASER_PARK, TRACE } from "./lasso";
 import { makeSlidesRpcHandlers, type StageHandle } from "./rpc";
-import { axesMap, dotXAt, entranceMs, evalExpr, functionPath, hopMs, PACE, slopeAt, stateAt, stepMs, timeline, writeMs } from "./scene";
+import { axesMap, dotXAt, entranceMs, evalExpr, functionPath, hopMs, mainObject, PACE, slopeAt, stateAt, stepMs, TEXT_IN_MS, timeline } from "./scene";
 import type { AxesObj, Deck, Slide, SlidesHandle } from "./types";
 
 const deck = gd as unknown as Deck;
+const diffDeck = diff as unknown as Deck;
 const byId = (id: string) => deck.slides.find((s) => s.id === id)!;
 
 const tiny: Slide = {
@@ -89,18 +91,14 @@ describe("pacing", () => {
     expect(entranceMs(tiny.objects[0])).toBe(1440); // axes: 900 -> 1440
   });
 
-  it("equations and text are written at speaking pace: ~20 characters in 4 s, at least 1.5 s each", () => {
+  it("slide text and equations appear almost at once (handwriting is for the whiteboard)", () => {
     const m = (latex: string) => ({ kind: "math" as const, id: "m", latex, x: 0, y: 0 });
     const t = (text: string) => ({ kind: "text" as const, id: "t", text, x: 0, y: 0 });
-    expect(writeMs(m("x"))).toBe(1500);
-    expect(writeMs(t("x".repeat(20)))).toBe(4000);
-    expect(writeMs(t("twenty chars of text"))).toBe(3400); // spaces are not written: 17 glyphs
-    expect(writeMs(m("f'(x)=\\lim_{h\\to 0}\\frac{f(x+h)-f(x)}{h}"))).toBeGreaterThan(writeMs(m("y=2x")));
-    // colour arguments and layout commands are not rendered glyphs
-    expect(writeMs(m("\\textcolor{#F0AC5F}{\\theta} = \\theta - 2x + 10"))).toBe(writeMs(m("\\theta = \\theta - 2x + 10")));
-    expect(writeMs(m("\\frac{abcdefgh}{ijkl}\\,\\;c"))).toBe(writeMs(m("abcdefghijklc")));
-    expect(writeMs(m("x".repeat(500)))).toBe(10000); // capped so one long line can't stall the lesson
-    expect(entranceMs(m("y=2x"))).toBe(writeMs(m("y=2x")));
+    expect(TEXT_IN_MS).toBe(250);
+    expect(entranceMs(m("f'(x)=\\lim_{h\\to 0}\\frac{f(x+h)-f(x)}{h}"))).toBe(250);
+    expect(entranceMs(t("x".repeat(80)))).toBe(250);
+    expect(timeline(tiny, [{ do: "show", ids: ["m"] }]).total).toBe(250);
+    expect(entranceMs(tiny.objects[1])).toBe(2240); // curves keep their pace
   });
 
   it("stepMs is how long the next step's animation runs; jumps and going back are instant", () => {
@@ -120,11 +118,44 @@ describe("laser", () => {
     expect(laserSpot(box, false)).toEqual({ x: 120, y: 210 });
     expect(laserSpot(box, true)).toEqual({ x: 120, y: 234 });
   });
+
+  it("traces lines, curves, arrows and axes; glides to dots, text and formulas", () => {
+    for (const k of ["curve", "polyline", "tangent", "vector", "step_arrow", "axes"] as const) expect(TRACE[k], k).toBeTruthy();
+    for (const k of ["dot", "text", "math", "slider"] as const) expect(TRACE[k], k).toBeUndefined();
+  });
+
+  it("keeps the longest stretch of a curve that is inside its axes", () => {
+    const pts = [0, 5, 50, 12, 14, 16].map((y, i) => ({ x: i, y }));
+    expect(insideRun(pts, { x: 0, y: 0, w: 100, h: 20 }).map((p) => p.y)).toEqual([12, 14, 16]);
+    expect(insideRun(pts, { x: 50, y: 0, w: 1, h: 1 })).toEqual([]);
+  });
+
+  it("laser keyframes: glide to the start, travel along the path for 0.8-1.2 s at an even speed, rest at the end", () => {
+    const path = [{ x: 100, y: 0 }, { x: 200, y: 0 }, { x: 400, y: 0 }];
+    const { frames, ms } = laserFrames({ x: 0, y: 0 }, path);
+    expect(ms).toBe(GLIDE_MS + 800); // 300 px: the 0.8 s minimum
+    expect(frames.map((f) => f.transform)).toEqual(["translate(0px, 0px)", "translate(100px, 0px)", "translate(200px, 0px)", "translate(400px, 0px)"]);
+    expect(frames[1].offset).toBeCloseTo(GLIDE_MS / ms);
+    expect(frames[2].offset).toBeCloseTo((GLIDE_MS + 800 / 3) / ms); // a third of the way along
+    expect(frames.at(-1)!.offset).toBe(1);
+    expect(laserFrames({ x: 0, y: 0 }, [{ x: 0, y: 3000 }, { x: 0, y: 6000 }]).ms).toBe(GLIDE_MS + 1200); // long: capped
+    expect(laserFrames({ x: 0, y: 0 }, [{ x: 50, y: 50 }]).ms).toBe(GLIDE_MS); // a spot: just glide
+    expect(laserFrames({ x: 1, y: 1 }, [{ x: 1, y: 1 }])).toEqual({ frames: [], ms: 0 }); // already there
+  });
+
+  it("a step with no laser cue points at its main object: the first shown or indicated, else what it moves", () => {
+    expect(mainObject(tiny, tiny.steps![0])).toEqual({ id: "c", at: 0 });
+    expect(mainObject(tiny, tiny.steps![1])).toEqual({ id: "d", at: 0 });
+    const late = mainObject(tiny, { narration: "", actions: [{ do: "hide", ids: ["c"] }, { do: "move", id: "d", to: 2 }, { do: "indicate", ids: ["m"] }] });
+    expect(late).toEqual({ id: "m", at: 720 + 1760 }); // pointed once it is its turn
+    expect(mainObject(tiny, { narration: "", actions: [{ do: "hide", ids: ["c"] }] })).toBeNull();
+    expect(mainObject(tiny, undefined)).toBeNull();
+  });
 });
 
 describe("fallback deck", () => {
   it("passes the page-side checks and every dot path stays inside its axes", () => {
-    for (const s of deck.slides) {
+    for (const s of [...deck.slides, ...diffDeck.slides]) {
       expect(slideErrors(s), s.id).toEqual([]);
       const axes = new Map(s.objects.filter((o) => o.kind === "axes").map((o) => [o.id, o as AxesObj]));
       const final = stateAt(s, s.steps!.length);
@@ -140,6 +171,39 @@ describe("fallback deck", () => {
           expect(y).toBeLessThanOrEqual(ax.y_range[1]);
         }
       }
+    }
+  });
+});
+
+describe("differentiation slide 5: zoom inset", () => {
+  const limit = diffDeck.slides.find((s) => s.id === "limit")!;
+  const at = (n: number) => stateAt(limit, n);
+  const zoom = limit.steps!.findIndex((s) => s.actions.some((a) => a.do === "show" && a.ids.includes("z_ax"))) + 1;
+
+  it("the inset appears once Q is close to P, and Q, the h gap and the chord all shrink onto P together", () => {
+    expect(zoom).toBeGreaterThan(0);
+    expect(at(zoom - 1).visible.has("z_ax")).toBe(false);
+    const open = at(zoom);
+    for (const id of ["z_frame", "z_ax", "z_curve", "z_chord", "z_p", "z_q", "z_h", "z_hf"]) expect(open.visible.has(id), id).toBe(true);
+    expect([open.dotX.q, open.dotX.z_q, open.dotX.z_hf]).toEqual([1.15, 1.15, 1.15]);
+    const end = at(limit.steps!.length);
+    expect([end.dotX.q, end.dotX.z_q, end.dotX.z_hf]).toEqual([1.02, 1.02, 1.02]);
+    expect(end.expr.z_chord).toBe(end.expr.chord);
+    // the three moves run together, so the gap is always Q's x minus P's x
+    const shrink = limit.steps!.find((s) => s.actions.some((a) => a.do === "move" && a.id === "z_q"))!;
+    const { items } = timeline(limit, shrink.actions);
+    for (const t of [0, 400, 900, 1500]) expect(dotXAt(items, "z_hf", 1.15, t)).toBe(dotXAt(items, "z_q", 1.15, t));
+  });
+
+  it("the green arrow h runs from Q's x back to P, at P's height (its helper curve is never drawn)", () => {
+    const helper = limit.objects.find((o) => o.id === "z_hcurve") as { expr: string; x_range: [number, number] };
+    const arrow = limit.objects.find((o) => o.id === "z_h") as { scale: number; label: string; color: string };
+    const ax = limit.objects.find((o) => o.id === "z_ax") as AxesObj;
+    expect(helper.x_range[0]).toBeGreaterThan(ax.x_range[1]); // off the inset: clipped away
+    expect([arrow.label, arrow.color]).toEqual(["h", "green"]);
+    for (const x of [1.15, 1.08, 1.02]) {
+      expect(x - arrow.scale * slopeAt(helper.expr, x)).toBeCloseTo(1, 4); // the arrow ends at P's x
+      expect(evalExpr(helper.expr, x)).toBeCloseTo(1, 3); // at P's height
     }
   });
 });

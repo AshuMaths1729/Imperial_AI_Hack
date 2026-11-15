@@ -1,6 +1,6 @@
 // Pure slide logic: what is on screen after N steps, the animation timeline for a step, and geometry.
 import functionPlot from "function-plot";
-import type { Action, AxesObj, Color, CurveObj, DotObj, Slide, SlideObject, Vec } from "./types";
+import type { Action, AxesObj, Color, CurveObj, DotObj, Slide, SlideObject, Step, Vec } from "./types";
 
 export const CANVAS = { w: 1600, h: 900 };
 
@@ -132,29 +132,14 @@ export const slow = (ms: number) => Math.round(ms * PACE);
 export const STAGGER = slow(110);
 export const hopMs = (hops: number) => slow(Math.min(520, Math.max(110, 3600 / Math.max(1, hops))));
 
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-/** Rough rendered-glyph count of a LaTeX string: colour arguments, layout commands, spacing, braces, ^ and _ aren't written. */
-const latexChars = (latex: string) => {
-  const t = latex
-    .replace(/\\(?:textcolor|color)\{[^}]*\}/g, "")
-    .replace(/\\(?:frac|dfrac|tfrac|text|mathrm|mathbf|operatorname|left|right|quad|qquad)(?![a-zA-Z])|\\[,;:! ]/g, "");
-  return t.replace(/\\[a-zA-Z]+|[{}^_\s]/g, "").length + (t.match(/\\[a-zA-Z]+/g)?.length ?? 0);
-};
-
-/** Speaking pace (v3.1): ~20 rendered characters take 4 s; at least 1.5 s per item. */
-const WRITE_MS_PER_CHAR = 200;
-/** Equations and text are written in left to right at the pace the tutor speaks. */
-export function writeMs(o: SlideObject): number {
-  const chars = o.kind === "math" ? latexChars(o.latex) : o.kind === "text" ? o.text.replace(/\s/g, "").length : 0;
-  // shortcut: capped at 10 s so one very long line can't stall the lesson; split such lines in the deck instead
-  return clamp(WRITE_MS_PER_CHAR * chars, 1500, 10_000);
-}
+/** v3.2: slide text and equations appear almost at once (a quick fade-wipe); handwriting is for the whiteboard. */
+export const TEXT_IN_MS = 250;
 
 export function entranceMs(o: SlideObject | undefined): number {
   switch (o?.kind) {
     case "math":
     case "text":
-      return writeMs(o);
+      return TEXT_IN_MS;
     case "axes":
       return slow(900);
     case "curve":
@@ -219,6 +204,22 @@ export function dotXAt(items: Timed[], id: string, startX: number, t: number): n
   }
   return x;
 }
+
+/**
+ * The object a step is about: the first one it shows or indicates, else the first one it moves or morphs; `at` is
+ * when its action starts (ms into the step), so the laser goes there once it is on screen.
+ */
+export function mainObject(slide: Slide, step: Step | undefined): { id: string; at: number } | null {
+  const { items } = timeline(slide, step?.actions ?? []);
+  const pick = items.find(({ act }) => act.do === "show" || act.do === "indicate") ?? items.find(({ act }) => act.do === "move" || act.do === "path" || act.do === "morph");
+  if (!pick) return null;
+  const id = "ids" in pick.act ? pick.act.ids[0] : "id" in pick.act ? pick.act.id : undefined;
+  return id ? { id, at: pick.at } : null;
+}
+
+/** An object's colour, with the renderer's default per kind. */
+export const objColor = (o: SlideObject) =>
+  colorOf(o, o.kind === "curve" ? "blue" : o.kind === "dot" ? "gold" : o.kind === "tangent" ? "yellow" : "white");
 
 export const curveOf = (slide: Slide, dot: DotObj) =>
   slide.objects.find((o): o is CurveObj => o.kind === "curve" && o.id === dot.curve);

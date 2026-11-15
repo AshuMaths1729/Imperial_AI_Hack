@@ -1423,6 +1423,111 @@
           "y": 800,
           "size": 28,
           "color": "grey"
+        },
+        {
+          "kind": "shape",
+          "id": "z_frame",
+          "shape": "rect",
+          "x": 210,
+          "y": 200,
+          "w": 300,
+          "h": 280,
+          "color": "grey"
+        },
+        {
+          "kind": "text",
+          "id": "z_title",
+          "text": "zoomed in near P",
+          "x": 360,
+          "y": 224,
+          "size": 20,
+          "color": "grey"
+        },
+        {
+          "kind": "shape",
+          "id": "z_mark",
+          "shape": "rect",
+          "x": 0.95,
+          "y": 1.5,
+          "w": 0.25,
+          "h": 0.65,
+          "axes": "ax",
+          "color": "grey"
+        },
+        {
+          "kind": "axes",
+          "id": "z_ax",
+          "x": 265,
+          "y": 250,
+          "w": 225,
+          "h": 180,
+          "x_range": [
+            0.97,
+            1.19
+          ],
+          "y_range": [
+            0.9,
+            1.45
+          ]
+        },
+        {
+          "kind": "curve",
+          "id": "z_curve",
+          "axes": "z_ax",
+          "expr": "x^2",
+          "color": "blue"
+        },
+        {
+          "kind": "curve",
+          "id": "z_chord",
+          "axes": "z_ax",
+          "expr": "2.15*x-1.15",
+          "color": "yellow"
+        },
+        {
+          "kind": "curve",
+          "id": "z_hcurve",
+          "axes": "z_ax",
+          "expr": "1+0.01*(x-1)^2",
+          "x_range": [
+            5,
+            5.01
+          ],
+          "color": "green"
+        },
+        {
+          "kind": "dot",
+          "id": "z_hf",
+          "axes": "z_ax",
+          "x": 1.15,
+          "curve": "z_hcurve",
+          "color": "green"
+        },
+        {
+          "kind": "step_arrow",
+          "id": "z_h",
+          "dot": "z_hf",
+          "scale": 50,
+          "label": "h",
+          "color": "green"
+        },
+        {
+          "kind": "dot",
+          "id": "z_p",
+          "axes": "z_ax",
+          "x": 1,
+          "curve": "z_curve",
+          "color": "white",
+          "label": "P"
+        },
+        {
+          "kind": "dot",
+          "id": "z_q",
+          "axes": "z_ax",
+          "x": 1.15,
+          "curve": "z_curve",
+          "color": "white",
+          "label": "Q"
         }
       ],
       "steps": [
@@ -1501,6 +1606,54 @@
           ]
         },
         {
+          "narration": "Let's zoom in near P. The green gap is h, how far Q is along from P.",
+          "actions": [
+            {
+              "do": "hide",
+              "ids": [
+                "hseg",
+                "h_l",
+                "rise",
+                "q_l"
+              ]
+            },
+            {
+              "do": "move",
+              "id": "q",
+              "to": 1.15,
+              "with_prev": true
+            },
+            {
+              "do": "morph",
+              "id": "chord",
+              "expr": "2.15*x-1.15",
+              "with_prev": true
+            },
+            {
+              "do": "show",
+              "ids": [
+                "z_frame",
+                "z_mark",
+                "z_ax",
+                "z_title"
+              ]
+            },
+            {
+              "do": "show",
+              "ids": [
+                "z_curve",
+                "z_p",
+                "z_q",
+                "z_chord",
+                "z_hcurve",
+                "z_hf",
+                "z_h"
+              ],
+              "with_prev": true
+            }
+          ]
+        },
+        {
           "narration": "Now slide Q onto P, so h shrinks to zero. Before I show you, what do you think is left?",
           "actions": [
             {
@@ -1515,22 +1668,31 @@
           "narration": "Only 2x is left. That's the gradient of y = x² at any point x.",
           "actions": [
             {
-              "do": "hide",
-              "ids": [
-                "hseg",
-                "h_l",
-                "rise",
-                "q_l"
-              ]
-            },
-            {
               "do": "move",
               "id": "q",
               "to": 1.02
             },
             {
+              "do": "move",
+              "id": "z_q",
+              "to": 1.02,
+              "with_prev": true
+            },
+            {
+              "do": "move",
+              "id": "z_hf",
+              "to": 1.02,
+              "with_prev": true
+            },
+            {
               "do": "morph",
               "id": "chord",
+              "expr": "2.02*x-1.02",
+              "with_prev": true
+            },
+            {
+              "do": "morph",
+              "id": "z_chord",
               "expr": "2.02*x-1.02",
               "with_prev": true
             },

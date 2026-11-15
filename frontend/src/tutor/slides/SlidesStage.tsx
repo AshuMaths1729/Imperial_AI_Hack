@@ -2,17 +2,20 @@
 
 import "katex/dist/katex.min.css";
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, Lightbulb, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
 import type { CircleEvent } from "@/tutor/contracts/types";
-import { describeDeck, editSlide, emptyDeck, goTo, pushSlide, stepTo, type DeckState, type Result } from "./deck";
-import { bboxOf, hitItems, LASER_PARK, laserSpot, objectBoxes, slidePng } from "./lasso";
-import { CANVAS, stateAt, stepCount, stepMs } from "./scene";
+import { describeDeck, editSlide, emptyDeck, goTo, pushSlide, slideErrors, stepTo, type DeckState, type Result } from "./deck";
+import { LaserDot, type Aim } from "./LaserDot";
+import { bboxOf, hitItems, objectBoxes, slidePng } from "./lasso";
+import { CANVAS, mainObject, objColor, stateAt, stepCount, stepMs } from "./scene";
 import { SlideView } from "./SlideView";
 import type { Deck, Slide, SlidesHandle, SlidesReply } from "./types";
 
 const EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
 const FADE_MS = 700; // slide-to-slide cross-fade
-const LASER_PX = 12; // laser dot diameter on screen
+/** A step that plays with no laser cue for this long (after its main object starts entering) gets the laser on it (G1). */
+export const AUTO_POINT_MS = 900;
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -40,11 +43,11 @@ function useFit() {
   return [ref, k] as const;
 }
 
-/** The laser is always on: parked near the title when a slide opens, then wherever it last pointed. */
-type Laser = { id: string | null; x: number; y: number; nonce: number };
-const parked = (l: Laser): Laser => ({ ...l, id: null, ...LASER_PARK });
-/** A student's circle: stays drawn (with a "?") until the tutor clears it by id. */
-type Mark = { id: string; slideId: string; pts: { x: number; y: number }[] };
+/** A student's circle: stays drawn (with a "?") until the tutor clears it by id. `items`: the object ids it encloses. */
+type Mark = { id: string; slideId: string; pts: { x: number; y: number }[]; items: string[] };
+/** The explanation pop-up: its own small slide; `focus` is what stays highlighted on the main slide meanwhile. */
+type Explanation = { slide: Slide; step: number; focus: string[]; key: number };
+const park = (a: Aim): Aim => ({ id: null, nonce: a.nonce + 1 });
 const newCircleId = () => `slide-circle-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 type Props = {
@@ -57,13 +60,25 @@ type Props = {
   explanationSlot?: HTMLElement | null;
 };
 
-export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }: Props) {
+export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref, explanationSlot }: Props) {
   const reduced = useReducedMotion();
   const [fitRef, k] = useFit();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [st, setSt] = useState<DeckState>(() => emptyDeck(deck?.slides ?? []));
   const stRef = useRef<DeckState>(st); // the RPC handle answers synchronously, before React re-renders
-  const [laser, setLaser] = useState<Laser>(() => parked({ id: null, x: 0, y: 0, nonce: 0 }));
+  // The laser is always on: parked near the title when a slide opens, then wherever it last pointed.
+  const [aim, setAim] = useState<Aim>({ id: null, nonce: 0 });
+  const [popAim, setPopAim] = useState<Aim>({ id: null, nonce: 0 });
+  const [ex, setExState] = useState<Explanation | null>(null);
+  const exRef = useRef<Explanation | null>(null);
+  const setEx = (next: Explanation | null) => {
+    exRef.current = next;
+    setExState(next);
+  };
+  const [laserIn, setLaserIn] = useState<"main" | "pop">("main");
+  const popRoot = useRef<HTMLDivElement>(null);
+  const cues = useRef(0); // point() calls so far: a step's auto-point is skipped when a cue arrived after the step
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [marks, setMarksState] = useState<Mark[]>([]);
   const marksRef = useRef<Mark[]>(marks);
   const clearedRef = useRef(new Set<string>()); // circles an edit already cleared: a later ui.clear_circle for them is a no-op
@@ -78,7 +93,11 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     const cur = stRef.current;
     const was = cur.slides[cur.index];
     if (was && next.slides[next.index]?.id !== was.id && !reduced) setLeaving({ slide: was, step: cur.step, key: Date.now() });
-    if (next.slides[next.index]?.id !== was?.id) setLaser(parked);
+    if (next.slides[next.index]?.id !== was?.id) {
+      setAim(park);
+      clearTimeout(autoTimer.current);
+      if (exRef.current) closeEx(); // the pop-up explained something on the slide being left
+    }
     stRef.current = next;
     setSt(next);
   };
@@ -87,13 +106,52 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     return { ok: !r.errors.length, errors: r.errors, index: r.state.index + 1, step: r.state.step };
   };
 
+  const closeEx = () => {
+    setEx(null);
+    setLaserIn("main");
+  };
+
+  /** Aims the laser at `id`: an object of the open explanation pop-up first, else of the open slide. */
+  const pointAt = (id: string): SlidesReply => {
+    const pop = exRef.current;
+    const popObj = pop?.slide.objects.find((o) => o.id === id);
+    if (pop && popObj) {
+      if (!stateAt(pop.slide, pop.step).visible.has(id)) return { ok: false, errors: [`${id} is not on screen in the explanation yet; play its step first`] };
+      setPopAim((a) => ({ id, kind: popObj.kind, color: objColor(popObj), nonce: a.nonce + 1 }));
+      setLaserIn("pop");
+      return { ok: true, errors: [], step: pop.step };
+    }
+    const cur = stRef.current;
+    const slide = cur.slides[cur.index];
+    if (!slide) return { ok: false, errors: ["no slides are loaded"] };
+    const o = slide.objects.find((x) => x.id === id);
+    if (!o) return { ok: false, errors: [`no object ${id} on this slide${pop ? " or in the explanation" : ""}`] };
+    if (!stateAt(slide, cur.step).visible.has(id)) return { ok: false, errors: [`${id} is not on screen yet; step to it first`] };
+    setAim((a) => ({ id, kind: o.kind, color: objColor(o), nonce: a.nonce + 1 }));
+    setLaserIn("main");
+    return { ok: true, errors: [], index: cur.index + 1, step: cur.step };
+  };
+
+  /** G1: when a step plays and no laser cue arrives for it soon, point at the step's main object. */
+  const autoPoint = (main: { id: string; at: number } | null) => {
+    clearTimeout(autoTimer.current);
+    if (!main) return;
+    const seen = cues.current;
+    autoTimer.current = setTimeout(() => {
+      if (cues.current === seen) pointAt(main.id);
+    }, main.at + AUTO_POINT_MS);
+  };
+  useEffect(() => () => clearTimeout(autoTimer.current), []);
+
   // A newly loaded deck replaces the old one (before the lesson starts, or after a regeneration).
   useEffect(() => {
     stRef.current = emptyDeck(deck?.slides ?? []);
     setSt(stRef.current);
-    setLaser(parked);
+    setAim(park);
     marksRef.current = [];
     setMarksState([]);
+    closeEx();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the deck changes
   }, [deck]);
 
   useImperativeHandle(ref, (): SlidesHandle => ({
@@ -102,6 +160,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
       const cur = stRef.current;
       const r = reply(stepTo(cur, n));
       const slide = cur.slides[cur.index];
+      if (r.ok && slide && n === cur.step + 1) autoPoint(mainObject(slide, slide.steps?.[n - 1]));
       return r.ok && slide ? { ...r, ms: reduced ? 0 : stepMs(slide, cur.step, n) } : r;
     },
     describe: () => describeDeck(stRef.current),
@@ -119,9 +178,33 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
       const out = reply(r);
       return out.ok ? { ...out, steps_added: r.newSteps.length, new_steps: r.newSteps } : out;
     },
-    explain: () => ({ ok: false, errors: ["slides.explain is not implemented yet"] }), // v3.2 WS-B
-    explainStep: () => ({ ok: false, errors: ["slides.explain_step is not implemented yet"] }), // v3.2 WS-B
-    closeExplanation: () => ({ ok: true, errors: [] }), // v3.2 WS-B
+    explain: (raw) => {
+      const errors = slideErrors(raw);
+      if (errors.length) return { ok: false, errors };
+      const cur = stRef.current;
+      const open = cur.slides[cur.index];
+      // the main slide stays as it is; only what the student circled on it is highlighted
+      const focus = [...new Set(marksRef.current.filter((m) => m.slideId === open?.id).flatMap((m) => m.items))];
+      setEx({ slide: raw as Slide, step: 0, focus, key: Date.now() });
+      setPopAim(park);
+      setLaserIn("pop");
+      clearTimeout(autoTimer.current);
+      return { ok: true, errors: [], step: 0 };
+    },
+    explainStep: (n) => {
+      const pop = exRef.current;
+      if (!pop) return { ok: false, errors: ["no explanation is open; open one with slides.explain"] };
+      const max = stepCount(pop.slide);
+      if (!Number.isInteger(n) || n < 0 || n > max) return { ok: false, errors: [`step must be 0..${max} in this explanation`] };
+      setEx({ ...pop, step: n });
+      if (n === pop.step + 1) autoPoint(mainObject(pop.slide, pop.slide.steps?.[n - 1]));
+      return { ok: true, errors: [], step: n, ms: reduced ? 0 : stepMs(pop.slide, pop.step, n) };
+    },
+    closeExplanation: () => {
+      if (exRef.current) clearTimeout(autoTimer.current);
+      closeEx();
+      return { ok: true, errors: [] };
+    },
     clearCircle: (id) => {
       if (clearedRef.current.has(id)) return { ok: true, errors: [] };
       if (!marksRef.current.some((m) => m.id === id)) return { ok: false, errors: [`no circle ${id} on the slides`] };
@@ -129,30 +212,10 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
       return { ok: true, errors: [] };
     },
     point: (id) => {
-      const cur = stRef.current;
-      const slide = cur.slides[cur.index];
-      if (!slide) return { ok: false, errors: ["no slides are loaded"] };
-      if (!slide.objects.some((o) => o.id === id)) return { ok: false, errors: [`no object ${id} on this slide`] };
-      if (!stateAt(slide, cur.step).visible.has(id)) return { ok: false, errors: [`${id} is not on screen yet; step to it first`] };
-      setLaser((l) => ({ ...l, id, nonce: l.nonce + 1 }));
-      return { ok: true, errors: [], index: cur.index + 1, step: cur.step };
+      cues.current++;
+      return pointAt(id);
     },
   }));
-
-  // Laser: glide to the object it was asked to point at and stay there (measured even while it is still entering).
-  useLayoutEffect(() => {
-    if (!laser.id) return;
-    const root = canvasRef.current?.querySelector<HTMLElement>("[data-slide-root='current']");
-    const node = root?.querySelector<HTMLElement>(`[data-obj="${laser.id}"]`);
-    if (!root || !node) return;
-    const r = root.getBoundingClientRect(), b = node.getBoundingClientRect();
-    const s = r.width / CANVAS.w || 1;
-    if (!b.width && !b.height) return;
-    // text and formulas: sit just under them (like an underline) instead of covering the words
-    const { x, y } = laserSpot({ x: (b.left - r.left) / s, y: (b.top - r.top) / s, w: b.width / s, h: b.height / s }, node.tagName === "DIV");
-    if (x !== laser.x || y !== laser.y) setLaser({ ...laser, x, y });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-aim only when asked to point again
-  }, [laser.nonce]);
 
   useEffect(() => {
     if (!leaving) return;
@@ -176,14 +239,15 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     const region = bboxOf(pts);
     if (region.w < 12 && region.h < 12) return;
     const circle_id = newCircleId();
-    setMarks([...marksRef.current, { id: circle_id, slideId: slide.id, pts }]);
+    const item_ids = hitItems(pts, objectBoxes(root));
+    setMarks([...marksRef.current, { id: circle_id, slideId: slide.id, pts, items: item_ids }]);
     let png = "";
     try {
       png = await slidePng(root, region);
     } catch {
       png = ""; // the tutor still gets the slide and the circled object ids
     }
-    onCircle?.({ source: "slide", slide_id: slide.id, item_ids: hitItems(pts, objectBoxes(root)), region, png_b64: png, circle_id });
+    onCircle?.({ source: "slide", slide_id: slide.id, item_ids, region, png_b64: png, circle_id });
   };
 
   const prev = () => reply(st.step > 0 ? stepTo(st, st.step - 1) : goTo(st, st.index)); // index is 0-based: previous slide
@@ -200,6 +264,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
         @keyframes slide-leave { to { opacity: 0; transform: scale(0.985); filter: blur(2px); } }
         @keyframes slide-enter { from { opacity: 0; transform: scale(1.01); } }
         @keyframes circle-badge { from { opacity: 0; transform: translate(-50%,-50%) scale(.4); } }
+        @keyframes explain-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
         @media (prefers-reduced-motion: reduce) { [data-slide-root] { animation: none !important; } }
       `}</style>
       <div ref={fitRef} className="relative min-h-0 flex-1">
@@ -235,7 +300,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
               className="absolute inset-0"
               style={{ animation: leaving ? `slide-enter ${FADE_MS}ms ${EASE} both` : undefined }}
             >
-              <SlideView slide={slide} step={st.step} motion={!reduced} />
+              <SlideView slide={slide} step={st.step} motion={!reduced} highlight={ex?.focus} />
             </div>
             {followup && (
               <span className="absolute flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-4 py-1.5 text-[22px] font-medium text-violet-200" style={{ right: 80, top: 52 }}>
@@ -258,15 +323,14 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
                 </div>
               );
             })}
-            <div
-              data-testid="slide-laser"
-              aria-hidden
-              className="pointer-events-none absolute left-0 top-0"
-              style={{ transform: `translate(${laser.x}px, ${laser.y}px)`, transition: reduced ? "none" : `transform 450ms ${EASE}`, opacity: 1 }}
-            >
-              {/* one small solid dot with a soft glow, ~12 px on screen whatever the canvas scale; no ring */}
-              <span className="absolute left-0 top-0 rounded-full" style={{ width: LASER_PX / k, height: LASER_PX / k, transform: "translate(-50%,-50%)", background: "#ff3131", boxShadow: `0 0 ${10 / k}px ${3 / k}px rgba(255,49,49,.45)` }} />
-            </div>
+            <LaserDot
+              testId="slide-laser"
+              aim={aim}
+              root={() => canvasRef.current?.querySelector<HTMLElement>("[data-slide-root='current']") ?? null}
+              k={k}
+              reduced={reduced}
+              hidden={!!ex && laserIn === "pop"}
+            />
             {circleMode && (
               <svg
                 data-testid="slide-lasso"
@@ -289,6 +353,15 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
           </div>
         )}
       </div>
+
+      {ex &&
+        (explanationSlot ? (
+          createPortal(<ExplanationCard ex={ex} aim={popAim} laserOn={laserIn === "pop"} reduced={reduced} rootRef={popRoot} docked />, explanationSlot)
+        ) : (
+          <div className="absolute bottom-14 right-3 z-10 w-[38%] min-w-[240px]">
+            <ExplanationCard ex={ex} aim={popAim} laserOn={laserIn === "pop"} reduced={reduced} rootRef={popRoot} />
+          </div>
+        ))}
 
       {slide && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
@@ -314,5 +387,42 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The explanation pop-up (G2): a card with its own small animated slide, scaled to fit, and its own laser. Docked in
+ * the shell's side panel it is the slot's only child and bounds its own height (the panel's tabs stay usable).
+ */
+function ExplanationCard({ ex, aim, laserOn, reduced, rootRef, docked }: { ex: Explanation; aim: Aim; laserOn: boolean; reduced: boolean; rootRef: React.RefObject<HTMLDivElement | null>; docked?: boolean }) {
+  const [fitRef, k] = useFit();
+  const steps = stepCount(ex.slide);
+  return (
+    <section
+      data-testid="explanation"
+      aria-label={`Explaining: ${ex.slide.title}`}
+      className="flex flex-col overflow-hidden rounded-xl border border-sky-400/30 bg-[#0b0d12] shadow-2xl shadow-black/60"
+      style={{ animation: reduced ? undefined : `explain-in 280ms ${EASE} both`, maxHeight: docked ? "45vh" : undefined }}
+    >
+      <header className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-100">
+        <Lightbulb className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">Explaining: {ex.slide.title}</span>
+        {steps > 0 && (
+          <span className="flex items-center gap-1" aria-label={`Step ${ex.step} of ${steps}`}>
+            {Array.from({ length: steps }, (_, i) => (
+              <span key={i} className={`h-1 rounded-full transition-[width,background-color] duration-300 ${i < ex.step ? "w-2.5 bg-sky-400" : "w-1 bg-slate-600"}`} />
+            ))}
+          </span>
+        )}
+      </header>
+      <div ref={fitRef} className="relative min-h-0 w-full" style={{ aspectRatio: "16 / 9", maxHeight: docked ? "calc(45vh - 2rem)" : undefined }}>
+        <div className="absolute left-1/2 top-1/2" style={{ width: CANVAS.w, height: CANVAS.h, transform: `translate(-50%,-50%) scale(${k})` }}>
+          <div key={ex.key} ref={rootRef} className="absolute inset-0">
+            <SlideView slide={ex.slide} step={ex.step} motion={!reduced} bare />
+          </div>
+          <LaserDot testId="explain-laser" aim={aim} root={() => rootRef.current} k={k} reduced={reduced} hidden={!laserOn} />
+        </div>
+      </div>
+    </section>
   );
 }
