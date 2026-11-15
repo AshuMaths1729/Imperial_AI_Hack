@@ -4,7 +4,7 @@ import gd from "@/tutor/slides/decks/gradient-descent.json";
 import type { Deck } from "@/tutor/slides";
 import { SidePanel } from "./SidePanel";
 
-vi.mock("./api", () => ({ getTrack: vi.fn(async () => ({ track: null, lessons: [] })), getLessonState: vi.fn(async () => null) }));
+vi.mock("./api", () => ({ getTrack: vi.fn(async () => ({ track: null, lessons: [] })), getLessonState: vi.fn(async () => null), getDeck: vi.fn(async () => ({ status: "none", source: null, deck: null, error: "", warnings: [], updated_at: null })) }));
 
 afterEach(cleanup);
 
@@ -79,6 +79,9 @@ describe("side panel", () => {
     render(<SidePanel {...base} />);
     fireEvent.click(screen.getByRole("tab", { name: "Materials" }));
     screen.getByText("Lecture 7");
+    // add a PDF here, then prepare the track's slides from it
+    screen.getByLabelText("Upload PDF");
+    screen.getByRole("button", { name: /Prepare slides/ });
     fireEvent.click(screen.getByRole("button", { name: /Review course content/ }));
     const dialog = screen.getByRole("dialog", { name: "Course content" });
     expect(dialog.textContent).toContain("Loss landscape");
