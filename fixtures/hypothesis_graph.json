@@ -93,20 +93,6 @@
       "confidence": 0.85
     },
     {
-      "id": "he3",
-      "source": "h4",
-      "target": "h1",
-      "type": "supports",
-      "condition": "Requires 4-5 MPa external clamp pressure and 60 °C operating temperature",
-      "evidence": [
-        {
-          "paper_id": "p_lee2020",
-          "quote": "Achieves 1000 Wh/L pouch cell stability using 5 µm Ag-C nanocomposite anode layer with argyrodite Li6PS5Cl"
-        }
-      ],
-      "confidence": 0.8
-    },
-    {
       "id": "he4",
       "source": "h5",
       "target": "h4",
@@ -123,6 +109,15 @@
     {
       "id": "he5",
       "source": "h3",
+      "target": "h6",
+      "type": "gap",
+      "condition": "No experiment combines grain-boundary flaw healing with low-pressure (<1 MPa) Ag-C interlayers",
+      "evidence": [],
+      "confidence": 0.6
+    },
+    {
+      "id": "he6",
+      "source": "h5",
       "target": "h6",
       "type": "gap",
       "condition": "No experiment combines grain-boundary flaw healing with low-pressure (<1 MPa) Ag-C interlayers",

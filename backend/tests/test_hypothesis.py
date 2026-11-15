@@ -1,17 +1,26 @@
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.core.errors import OfflineCacheMiss
 from app.deps import get_llm
 from app.llm.testing import FakeLLM
 from app.main import create_app
 from app.modules.hypothesis.router import get_scholarly_http
-from app.modules.hypothesis.service import build_topic_graph, quote_in_paper, topic_graph_id
+from app.modules.hypothesis.schemas import ClaimDraft, CompareDraft, GapDraft
+from app.modules.hypothesis.service import (
+    ClaimRec,
+    Cluster,
+    _gap_anchors,
+    assemble,
+    build_topic_graph,
+    quote_in_paper,
+    topic_graph_id,
+)
 from app.schemas.graph import Graph
 from app.settings import Settings
 from app.tools.scholarly import Paper
+from fastapi.testclient import TestClient
+
 from tests.scholarly_fixtures import A_ABS, B_ABS, C_ABS, D_ABS, make_http
 
 QUERY = "solid-state battery electrolytes"
@@ -205,9 +214,10 @@ async def test_golden_pipeline(settings):
     assert edge.evidence[1].quote == B_QUOTE
     assert 0 <= edge.confidence <= 1
 
-    # exactly one gap edge pointing at an "Untested: ..." node
+    # one "Untested: ..." node, linked from each paper whose claim it builds on (A and B)
     gaps = [e for e in graph.edges if e.type == "gap"]
-    assert len(gaps) == 1
+    assert len(gaps) == 2 and len({e.target for e in gaps}) == 1
+    assert {e.source for e in gaps} == {"c_s2_A1_0", "c_s2_B2_0"}
     gap_node = next(n for n in graph.nodes if n.id == gaps[0].target)
     assert gap_node.label == "Untested: humid air exposure at elevated temperature"
     assert gaps[0].condition == "humid air exposure at elevated temperature"
@@ -275,3 +285,56 @@ def test_endpoints(settings):
         assert client.get("/api/papers/s2_nope").status_code == 404
         assert client.get("/api/papers/bad.id").status_code == 404
         assert client.post("/api/topics", json={"query": "x"}).status_code == 422
+
+
+def _rec(paper_id: str, title: str, n: int = 0) -> ClaimRec:
+    paper = Paper(id=paper_id, title=title, abstract="x")
+    draft = ClaimDraft(
+        entity="e", property="p", direction="positive", value="", condition="", quote="x"
+    )
+    return ClaimRec(f"c_{paper_id}_{n}", paper, draft, "e", "p")
+
+
+def test_gap_links_every_paper_it_builds_on():
+    rp = _rec("s2_rp", "RPMem: Learning Long-Term Recurrent Parametric Memory")
+    rp2 = _rec("s2_rp", "RPMem: Learning Long-Term Recurrent Parametric Memory", 1)
+    hi = _rec("s2_hi", "HiMem: Hierarchical Long-Term Memory for LLM Agents")
+    other = _rec("s2_ot", "A survey of memory: methods and benchmarks")
+    members = [rp, rp2, hi, other]
+    # the model listed only RPMem's claims, but the gap names HiMem too
+    gap = GapDraft(
+        condition="HiMem evaluated on PERMA alongside RPMem",
+        rationale="Only RPMem reports PERMA.",
+        related_claims=[0, 1],
+    )
+    assert _gap_anchors(members, gap) == [rp, hi]  # one per paper, the survey is not named
+    # nothing listed or named: fall back to the first claim, as before
+    assert _gap_anchors(members, GapDraft(condition="x", rationale="", related_claims=[9])) == [rp]
+    # a name only matches as a whole word
+    assert _gap_anchors(
+        [rp, hi], GapDraft(condition="HiMemory", rationale="", related_claims=[0])
+    ) == [rp]
+
+
+def test_weak_relations_are_dropped():
+    a = _rec("s2_a", "Alpha: one")
+    b = _rec("s2_b", "Beta: two")
+    cluster = Cluster(("e", "p"), [a, b])
+
+    def rel(conf: float) -> dict:
+        return {
+            "claim_a": 0,
+            "claim_b": 1,
+            "relation": "supports",
+            "condition": "",
+            "quote_a": "x",
+            "quote_b": "x",
+            "confidence": conf,
+        }
+
+    weak = CompareDraft.model_validate({"relations": [rel(0.45)], "gap": None})
+    graph, stats = assemble("g", [cluster], [weak])
+    assert not graph.edges and stats.supports == 0
+    strong = CompareDraft.model_validate({"relations": [rel(0.6)], "gap": None})
+    graph, stats = assemble("g", [cluster], [strong])
+    assert len(graph.edges) == 1 and stats.supports == 1

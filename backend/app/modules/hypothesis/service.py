@@ -28,6 +28,7 @@ from app.modules.hypothesis.prompts import (
 from app.modules.hypothesis.schemas import (
     ClaimDraft,
     CompareDraft,
+    GapDraft,
     NormalizeDraft,
     PaperClaimsDraft,
     PaperOut,
@@ -46,6 +47,9 @@ MAX_CLUSTERS = 8
 MIN_TIER1_CLUSTERS = 3
 MAX_CLAIMS_PER_CLUSTER = 8
 CONCURRENCY = 6
+# Below this the compare step is guessing; a weak "supports" / "contradicts" line misleads more
+# than a missing one (the paper then sits in the unlinked row, which is honest).
+MIN_CONFIDENCE = 0.6
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 
@@ -268,6 +272,38 @@ def _verified(quote: str, paper: Paper, fallback: str) -> str:
     return _ws(quote) if quote_in_paper(quote, paper) else _ws(fallback)
 
 
+def _short_name(title: str) -> str | None:
+    """The method / system name a title leads with ("HiMem: Hierarchical ..." -> "HiMem")."""
+    head, sep, _ = title.partition(":")
+    head = head.strip()
+    if sep and 1 <= len(head.split()) <= 2 and len(head) >= 3:
+        return head
+    return None
+
+
+def _mentions(text: str, name: str) -> bool:
+    return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text, re.IGNORECASE) is not None
+
+
+def _gap_anchors(members: list[ClaimRec], gap: GapDraft) -> list[ClaimRec]:
+    """Every claim an open question builds on, one per paper: the claims the model listed, plus
+    any member paper the gap names by its short name (the model often lists only one claim
+    for a gap like "HiMem evaluated on PERMA alongside RPMem")."""
+    picked = [members[i] for i in gap.related_claims if 0 <= i < len(members)]
+    text = f"{gap.condition} {gap.rationale}"
+    for c in members:
+        name = _short_name(c.paper.title)
+        if name and _mentions(text, name):
+            picked.append(c)
+    seen: set[str] = set()
+    anchors = []
+    for c in picked or members[:1]:
+        if c.paper.id not in seen:
+            seen.add(c.paper.id)
+            anchors.append(c)
+    return anchors
+
+
 def assemble(
     graph_id: str, clusters: list[Cluster], drafts: list[CompareDraft | None]
 ) -> tuple[Graph, TopicStats]:
@@ -287,7 +323,7 @@ def assemble(
             if not (0 <= rel.claim_a < len(members) and 0 <= rel.claim_b < len(members)):
                 continue
             a, b = members[rel.claim_a], members[rel.claim_b]
-            if a.paper.id == b.paper.id:
+            if a.paper.id == b.paper.id or rel.confidence < MIN_CONFIDENCE:
                 continue
             eid = f"e_{rel.relation}_{a.node_id}_{b.node_id}"
             if eid in edges or f"e_{rel.relation}_{b.node_id}_{a.node_id}" in edges:
@@ -315,8 +351,6 @@ def assemble(
 
         gap = draft.gap
         if gap and gap.condition.strip():
-            anchors = [i for i in gap.related_claims if 0 <= i < len(members)]
-            anchor = members[anchors[0] if anchors else 0]
             gid = f"gap_{_hash(graph_id, *cluster.key, gap.condition)}"
             nodes[gid] = Node(
                 id=gid,
@@ -324,14 +358,16 @@ def assemble(
                 label=f"Untested: {gap.condition.strip()}"[:140],
                 summary=gap.rationale.strip(),
             )
-            edges[f"e_{gid}"] = Edge(
-                id=f"e_{gid}",
-                source=anchor.node_id,
-                target=gid,
-                type="gap",
-                condition=gap.condition.strip(),
-                confidence=0.5,
-            )
+            for k, anchor in enumerate(_gap_anchors(members, gap)):
+                eid = f"e_{gid}" if k == 0 else f"e_{gid}_{k}"
+                edges[eid] = Edge(
+                    id=eid,
+                    source=anchor.node_id,
+                    target=gid,
+                    type="gap",
+                    condition=gap.condition.strip(),
+                    confidence=0.5,
+                )
             n_gap += 1
 
     graph = Graph(
@@ -427,5 +463,5 @@ def _stats_of(graph: Graph) -> TopicStats:
         clusters=0,
         supports=kinds.count("supports"),
         contradicts=kinds.count("contradicts"),
-        gaps=kinds.count("gap"),
+        gaps=sum(1 for n in graph.nodes if n.id.startswith("gap_")),
     )
