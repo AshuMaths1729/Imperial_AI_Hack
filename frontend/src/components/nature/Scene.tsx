@@ -39,31 +39,51 @@ export function SceneProvider({ children }: { children: React.ReactNode }) {
 
 const GLASS = ".apple-card, .apple-glass, .apple-glass-elevated, .apple-sheet, .glass-lens";
 
-/** Moves each glass surface's specular spot (--mx / --my) toward the pointer. */
+/**
+ * Moves a small specular spot (--mx / --my, in px) to the pointer on the glass surface under it,
+ * and removes it from a surface as soon as the pointer leaves that surface (or the window).
+ */
 function GlassLight() {
   useEffect(() => {
     let frame = 0;
     let last: PointerEvent | null = null;
+    let lit: HTMLElement | null = null;
+    const clear = () => {
+      lit?.style.removeProperty("--mx");
+      lit?.style.removeProperty("--my");
+      lit = null;
+    };
     const apply = () => {
       frame = 0;
       const e = last;
-      if (!e || !(e.target instanceof Element)) return;
-      const el = e.target.closest<HTMLElement>(GLASS);
-      if (!el) return;
+      const el = e && e.target instanceof Element ? e.target.closest<HTMLElement>(GLASS) : null;
+      if (el !== lit) clear();
+      if (!e || !el) return;
       const r = el.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      el.style.setProperty("--mx", `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
-      el.style.setProperty("--my", `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+      lit = el;
+      el.style.setProperty("--mx", `${Math.round(e.clientX - r.left)}px`);
+      el.style.setProperty("--my", `${Math.round(e.clientY - r.top)}px`);
     };
     const onMove = (e: PointerEvent) => {
       if (e.pointerType !== "mouse") return; // touch has no hover light
       last = e;
       if (!frame) frame = requestAnimationFrame(apply);
     };
+    const onOut = (e: PointerEvent) => {
+      if (!e.relatedTarget) {
+        // left the window
+        last = null;
+        clear();
+      }
+    };
     document.addEventListener("pointermove", onMove, { passive: true });
+    document.addEventListener("pointerout", onOut, { passive: true });
     return () => {
       document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerout", onOut);
       if (frame) cancelAnimationFrame(frame);
+      clear();
     };
   }, []);
   return null;

@@ -357,22 +357,12 @@ html {
   pointer-events: none;
 }
 
-/* Light sheen sweeping across cards on hover */
+/* Retired: the sheen used to sweep a band of light across the whole card or button on hover.
+   Hover light is now the small pointer spot on glass (see "Pointer light"), which stays local.
+   The class is kept as a no-op so existing markup needs no change. */
 .st-sheen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  width: 40%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--accent) 9%, transparent),
-    transparent
-  );
-  transform: translateX(-120%) skewX(-20deg);
-  pointer-events: none;
+  content: none;
 }
-.st-sheen:hover::after { animation: st-sheen 0.9s ease-out; }
 
 /* SVG motion: draw a path in (needs pathLength="1"), marching dashes, node pop-in, ping ring. */
 @keyframes st-draw {
@@ -465,15 +455,21 @@ body {
 }
 
 /* ---------- Pointer light ----------
- * Every glass surface carries a soft specular spot that follows the cursor. GlassLight
- * (components/nature/Scene.tsx) writes --mx / --my on the glass element under the pointer;
- * at rest the spot sits top-left. A background layer, so no pseudo-element or position change. */
+ * A small specular spot that follows the cursor across glass. GlassLight
+ * (components/nature/Scene.tsx) writes --mx / --my (px) on the glass element under the pointer
+ * and clears them when the pointer leaves, so at rest there is no spot (the static diagonal sheen
+ * remains). The spot has a fixed radius, so it stays a local highlight on a small button and on a
+ * large card alike. A background layer, so no pseudo-element or position change. */
 .apple-card,
 .apple-glass,
 .apple-glass-elevated,
 .apple-sheet,
 .glass-lens {
-  --glass-light: radial-gradient(120% 70% at var(--mx, 18%) var(--my, 0%), var(--glass-specular), transparent 48%);
+  --glass-light: radial-gradient(
+    circle var(--glass-light-size, 44px) at var(--mx, -999px) var(--my, -999px),
+    var(--glass-specular),
+    transparent 100%
+  );
 }
 
 /* ---------- The lens rim (opt-in) ----------
