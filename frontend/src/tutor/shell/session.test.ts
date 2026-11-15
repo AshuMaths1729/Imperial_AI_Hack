@@ -64,7 +64,8 @@ describe("session", () => {
 
     expect([...room.rpcs.keys()].sort()).toEqual([
       "board.apply", "board.describe", "board.snapshot",
-      "slides.describe", "slides.edit", "slides.go", "slides.point", "slides.push", "slides.step", "ui.clear_circle", "ui.show_tab",
+      "slides.describe", "slides.edit", "slides.explain", "slides.explain_close", "slides.explain_step",
+      "slides.go", "slides.point", "slides.push", "slides.step", "ui.clear_circle", "ui.show_tab",
     ]);
     expect(JSON.parse(await room.rpcs.get("ui.show_tab")!({ payload: '{"tab":"slides"}' })).ok).toBe(true);
     expect(showTab).toHaveBeenCalledWith("slides");

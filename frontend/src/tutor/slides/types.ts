@@ -72,6 +72,12 @@ export type SlidesHandle = {
   edit(patch: { objects?: unknown[]; steps?: unknown[] }): SlidesReply;
   /** Removes the student's persistent circle mark (it stays until the tutor has answered). */
   clearCircle(circleId: string): SlidesReply;
+  /** Opens the explanation pop-up with its own small animated slide (the main slide stays as it is). */
+  explain(slide: unknown): SlidesReply;
+  /** Plays step n of the open explanation (reply carries `ms`). */
+  explainStep(step: number): SlidesReply;
+  /** Closes the explanation pop-up (the student has understood). */
+  closeExplanation(): SlidesReply;
 };
 
 /**

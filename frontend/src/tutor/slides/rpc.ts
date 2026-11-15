@@ -10,6 +10,9 @@ export type StageHandle = {
 export type SlidesRpcMethod =
   | "ui.show_tab"
   | "ui.clear_circle"
+  | "slides.explain"
+  | "slides.explain_step"
+  | "slides.explain_close"
   | "slides.go"
   | "slides.step"
   | "slides.point"
@@ -60,6 +63,10 @@ export function makeSlidesRpcHandlers(getStage: () => StageHandle | null): Recor
     "slides.step": drive((s, p) => s.step(Number(p.step))),
     "slides.point": drive((s, p) => s.point(String(p.id ?? ""), typeof p.hold_ms === "number" ? p.hold_ms : undefined)),
     "slides.push": drive((s, p) => s.push(p.slide)),
+    // v3.2 WS-B: the explanation pop-up
+    "slides.explain": drive((s, p) => s.explain(p.slide)),
+    "slides.explain_step": drive((s, p) => s.explainStep(Number(p.step))),
+    "slides.explain_close": drive((s) => s.closeExplanation()),
     "slides.edit": drive((s, p) => s.edit({ objects: p.objects as unknown[] | undefined, steps: p.steps as unknown[] | undefined })),
     "slides.describe": wrap((stage, p) => {
       if (!stage.slides) return { ok: false, errors: ["no slides are loaded for this lesson"] };

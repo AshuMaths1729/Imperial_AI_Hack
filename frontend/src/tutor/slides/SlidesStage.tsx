@@ -53,6 +53,8 @@ type Props = {
   circleMode?: boolean;
   onCircle?: (e: CircleEvent) => void;
   ref?: Ref<SlidesHandle | null>;
+  /** Where the explanation pop-up renders: an element in the side panel, or null for the stage's bottom-right corner. */
+  explanationSlot?: HTMLElement | null;
 };
 
 export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }: Props) {
@@ -117,6 +119,9 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
       const out = reply(r);
       return out.ok ? { ...out, steps_added: r.newSteps.length, new_steps: r.newSteps } : out;
     },
+    explain: () => ({ ok: false, errors: ["slides.explain is not implemented yet"] }), // v3.2 WS-B
+    explainStep: () => ({ ok: false, errors: ["slides.explain_step is not implemented yet"] }), // v3.2 WS-B
+    closeExplanation: () => ({ ok: true, errors: [] }), // v3.2 WS-B
     clearCircle: (id) => {
       if (clearedRef.current.has(id)) return { ok: true, errors: [] };
       if (!marksRef.current.some((m) => m.id === id)) return { ok: false, errors: [`no circle ${id} on the slides`] };

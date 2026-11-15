@@ -265,6 +265,9 @@ describe("slides rpc", () => {
       push: vi.fn(() => ({ ok: true, errors: [] })),
       edit: vi.fn(() => ({ ok: true, errors: [] })),
       clearCircle: vi.fn(() => ({ ok: true, errors: [] })),
+      explain: vi.fn(() => ({ ok: true, errors: [] })),
+      explainStep: vi.fn(() => ({ ok: true, errors: [] })),
+      closeExplanation: vi.fn(() => ({ ok: true, errors: [] })),
       current: vi.fn(() => tiny),
       ...slides,
     };
