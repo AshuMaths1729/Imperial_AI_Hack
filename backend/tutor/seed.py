@@ -8,15 +8,16 @@ TUTOR_AVATARS = {"kenji-visual": KENJI, "kenji-socratic": KENJI, "kenji-examples
 
 PROFILE = LearnerProfile(user_id="demo", name="Demo Student", style="visual", level="undergrad")
 
+# Voices: Eric (smooth, trustworthy), Chris (charming, down-to-earth), Bill (wise, mature): calm, friendly tutors.
 TUTORS = [
     Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=TUTOR_AVATARS["kenji-visual"],
-          voice_id="JBFqnCBsd6RMkjVDRZzb",
+          voice_id="cjVigY5qzO86Huf0OWal",
           style_prompt="visual explainer: draws first, then explains"),
     Tutor(tutor_id="kenji-socratic", name="Kenji — Socratic coach", avatar_id=TUTOR_AVATARS["kenji-socratic"],
-          voice_id="pNInz6obpgDQGcFmaJgB",
+          voice_id="iP95p4xoKVk53GoZ742B",
           style_prompt="Socratic coach: asks guiding questions before explaining"),
     Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=TUTOR_AVATARS["kenji-examples"],
-          voice_id="nPczCjzI2devNBz1zQrb",
+          voice_id="pqHfZKP75CvOlQylNhV4",
           style_prompt="worked examples: solves a similar problem step by step, then lets you try"),
 ]
 
