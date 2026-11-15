@@ -104,22 +104,6 @@ export function HomeHub({
           >
             Learn a topic with a live tutor, play with the maths inside a paper, and see where the research agrees.
           </p>
-          <div className="st-fade-up mt-7 flex flex-wrap justify-center gap-2.5" style={{ animationDelay: "160ms" }}>
-            <Link
-              href={LESSON_ROUTE}
-              className="st-sheen apple-press apple-focus relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[var(--text-primary)] px-[18px] py-[11px] text-[14.5px] font-medium leading-none text-[var(--bg-canvas)] shadow-[var(--shadow-card)]"
-            >
-              Start a lesson
-              <ArrowRight aria-hidden className="h-[17px] w-[17px]" />
-            </Link>
-            <button
-              type="button"
-              onClick={() => onSelectMode("hypothesis")}
-              className="apple-glass glass-lens apple-press apple-focus on-scene relative inline-flex items-center gap-2 rounded-full border px-[18px] py-[11px] text-[14.5px] font-medium leading-none"
-            >
-              Ask a research question
-            </button>
-          </div>
         </section>
 
         <ul aria-label="Modules" className="grid grid-cols-1 gap-4 md:grid-cols-3">

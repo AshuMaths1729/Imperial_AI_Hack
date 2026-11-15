@@ -7,20 +7,14 @@ vi.mock("../tutor/shell/api", () => ({ listTracks: vi.fn(async () => []) }));
 afterEach(cleanup);
 
 describe("Home", () => {
-  it("leads with the wordmark, the plain tagline and the two actions", () => {
+  it("leads with the wordmark and the plain tagline, with no hero buttons (the module cards are the way in)", () => {
     render(<HomeHub onSelectMode={vi.fn()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Athena" })).toBeTruthy();
     expect(
       screen.getByText("Learn a topic with a live tutor, play with the maths inside a paper, and see where the research agrees.")
     ).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Start a lesson/ }).getAttribute("href")).toBe("/lecture/lesson");
-  });
-
-  it("asks a research question in the Evidence Map", () => {
-    const onSelectMode = vi.fn();
-    render(<HomeHub onSelectMode={onSelectMode} />);
-    fireEvent.click(screen.getByRole("button", { name: "Ask a research question" }));
-    expect(onSelectMode).toHaveBeenCalledWith("hypothesis");
+    expect(screen.queryByRole("link", { name: /Start a lesson/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ask a research question" })).toBeNull();
   });
 
   it("shows the three modules by their plain names, each with a drawing", () => {
