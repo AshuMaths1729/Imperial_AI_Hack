@@ -111,6 +111,13 @@ class Store:
     def save_deck(self, track_id: str, doc: dict) -> None:
         self.b.put("decks", track_id, doc)
 
+    def get_material_text(self, track_id: str, material: str) -> Optional[dict]:
+        """Full text of an uploaded material (tutor/pdf.py): {track_id, material, filename, pages: [str]}."""
+        return self.b.get("material_texts", f"{track_id}:{material}")
+
+    def save_material_text(self, track_id: str, material: str, doc: dict) -> None:
+        self.b.put("material_texts", f"{track_id}:{material}", doc)
+
     def recent_lessons(self, track_id: str, n: int = 3) -> List[Lesson]:
         done = [l for l in (Lesson.model_validate(d) for d in self.b.all("lessons"))
                 if l.track_id == track_id and l.ended_at]
