@@ -11,12 +11,12 @@ import {
   PALETTE,
   STAGGER,
   axesMap,
-  colorOf,
   dotPoint,
   dotXAt,
   entranceMs,
   evalExpr,
   functionPath,
+  objColor,
   paramsOf,
   place,
   slow,
@@ -36,9 +36,10 @@ const MUTED = "#7d8494";
 const INK = PALETTE.white;
 const SERIF = "KaTeX_Main, 'Latin Modern Roman', 'Times New Roman', serif";
 const MASK = "linear-gradient(90deg, #000 42%, transparent 58%)";
-const HAND = "cubic-bezier(.35,.05,.6,1)"; // starts gently and keeps going, like writing
-// Written left to right (no pen icon): the clip's right edge runs from -5% to 105% of the box.
-const WRITE_CLIP = ["inset(-30% 105% -30% -5%)", "inset(-30% -5% -30% -5%)"];
+// v3.2: text and formulas appear with a quick left-to-right fade-wipe (writing by hand is the whiteboard's job).
+const WIPE = ["inset(-30% 60% -30% -5%)", "inset(-30% -5% -30% -5%)"];
+/** The soft glow on what the student circled while the explanation pop-up is open. */
+const FOCUS = `drop-shadow(0 0 10px ${PALETTE.yellow}) brightness(1.2)`;
 
 type CurveY = (curveId: string, x: number) => number;
 
@@ -97,14 +98,14 @@ function ArrowHead({ id, color }: { id: string; color: string }) {
   );
 }
 
-function Html({ slide, o, children, visible }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean }) {
+function Html({ slide, o, children, visible, focus }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean; focus?: boolean }) {
   const p = place(slide, o);
   return (
     <div
       data-obj={o.id}
       aria-hidden={!visible}
       className="absolute whitespace-nowrap"
-      style={{ left: p.x, top: p.y, transform: o.align === "left" ? "translate(0,-50%)" : "translate(-50%,-50%)", opacity: visible ? 1 : 0 }}
+      style={{ left: p.x, top: p.y, transform: o.align === "left" ? "translate(0,-50%)" : "translate(-50%,-50%)", opacity: visible ? 1 : 0, filter: focus ? FOCUS : undefined }}
     >
       <div data-inner style={{ transformOrigin: "center" }}>{children}</div>
     </div>
@@ -176,9 +177,13 @@ type Props = {
   step: number;
   /** false renders the state with no motion (reduced motion, or a jump the student shouldn't sit through). */
   motion: boolean;
+  /** Objects to keep softly highlighted (what the student circled, while the explanation pop-up is open). */
+  highlight?: string[];
+  /** No title block (the explanation pop-up shows the title in its own bar). */
+  bare?: boolean;
 };
 
-export function SlideView({ slide, step, motion }: Props) {
+export function SlideView({ slide, step, motion, highlight, bare }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const [userParams, setParams] = useState<Params>({});
   // defaults come from the slide, so sliders added by an edit work too
@@ -222,8 +227,7 @@ export function SlideView({ slide, step, motion }: Props) {
       if (!o || !node) return;
       const dur = entranceMs(o);
       if (o.kind === "text" || o.kind === "math") {
-        // written in left to right at speaking pace
-        play(node.querySelector("[data-inner]"), [{ clipPath: WRITE_CLIP[0] }, { clipPath: WRITE_CLIP[1] }], at, dur, HAND);
+        play(node.querySelector("[data-inner]"), [{ opacity: 0, clipPath: WIPE[0] }, { opacity: 1, clipPath: WIPE[1] }], at, dur, "ease-out");
       } else if (o.kind === "slider") {
         const inner = node.querySelector("[data-inner]");
         const m = { maskImage: MASK, WebkitMaskImage: MASK, maskSize: "260% 100%", WebkitMaskSize: "260% 100%" };
@@ -350,8 +354,10 @@ export function SlideView({ slide, step, motion }: Props) {
   }, [slide, step, motion]);
 
   const vis = (id: string) => state.visible.has(id);
+  const focused = new Set(highlight ?? []);
   const gStyle = (id: string): React.CSSProperties => ({
     opacity: vis(id) ? 1 : 0,
+    filter: focused.has(id) ? FOCUS : undefined,
     transformBox: "fill-box",
     transformOrigin: "center",
   });
@@ -361,7 +367,7 @@ export function SlideView({ slide, step, motion }: Props) {
   const svg: React.ReactNode[] = [];
   const html: React.ReactNode[] = [];
   for (const o of slide.objects) {
-    const c = colorOf(o, o.kind === "curve" ? "blue" : o.kind === "dot" ? "gold" : o.kind === "tangent" ? "yellow" : "white");
+    const c = objColor(o);
     const clip = "axes" in o && o.axes ? `url(#clip-${slide.id}-${o.axes})` : undefined;
     const head = `head-${(o.color ?? "white")}`;
     switch (o.kind) {
@@ -423,7 +429,7 @@ export function SlideView({ slide, step, motion }: Props) {
         const a = place(slide, { x: o.start[0], y: o.start[1], axes: o.axes });
         const b = place(slide, { x: o.end[0], y: o.end[1], axes: o.axes });
         svg.push(
-          <g key={o.id} data-obj={o.id} style={{ opacity: vis(o.id) ? 1 : 0 }}>
+          <g key={o.id} data-obj={o.id} style={{ opacity: vis(o.id) ? 1 : 0, filter: focused.has(o.id) ? FOCUS : undefined }}>
             <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c} strokeWidth={4.5} strokeLinecap="round" markerEnd={`url(#${head})`} />
             {o.label && (
               <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 16} textAnchor="middle" fill={c} fontFamily={SERIF} fontSize={26}>{o.label}</text>
@@ -448,21 +454,21 @@ export function SlideView({ slide, step, motion }: Props) {
       }
       case "text":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} focus={focused.has(o.id)}>
             <span style={{ fontFamily: SERIF, fontSize: o.size ?? 32, color: c, whiteSpace: "pre" }}>{o.text}</span>
           </Html>
         );
         break;
       case "math":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} focus={focused.has(o.id)}>
             <span style={{ fontSize: o.size ?? 40, color: c }} dangerouslySetInnerHTML={{ __html: katexHtml(state.latex[o.id] ?? o.latex) }} />
           </Html>
         );
         break;
       case "slider":
         html.push(
-          <Html key={o.id} slide={slide} o={{ ...o, align: "left" }} visible={vis(o.id)}>
+          <Html key={o.id} slide={slide} o={{ ...o, align: "left" }} visible={vis(o.id)} focus={focused.has(o.id)}>
             <label className="flex items-center gap-4" style={{ fontFamily: SERIF, fontSize: 26, color: c, width: o.w ?? 360 }}>
               <span>{o.label || o.param}</span>
               <input
@@ -486,10 +492,12 @@ export function SlideView({ slide, step, motion }: Props) {
 
   return (
     <div ref={root} className="absolute inset-0" style={{ width: CANVAS.w, height: CANVAS.h }}>
-      <div data-title className="absolute" style={{ left: 80, top: 44 }}>
-        <div data-inner style={{ fontFamily: SERIF, fontSize: 46, color: INK, letterSpacing: 0.2 }}>{slide.title}</div>
-        <div data-title-rule style={{ marginTop: 10, height: 2, width: 120, transformOrigin: "left", background: `linear-gradient(90deg, ${PALETTE.blue}, transparent)` }} />
-      </div>
+      {!bare && (
+        <div data-title className="absolute" style={{ left: 80, top: 44 }}>
+          <div data-inner style={{ fontFamily: SERIF, fontSize: 46, color: INK, letterSpacing: 0.2 }}>{slide.title}</div>
+          <div data-title-rule style={{ marginTop: 10, height: 2, width: 120, transformOrigin: "left", background: `linear-gradient(90deg, ${PALETTE.blue}, transparent)` }} />
+        </div>
+      )}
       <svg viewBox={`0 0 ${CANVAS.w} ${CANVAS.h}`} width={CANVAS.w} height={CANVAS.h} className="absolute inset-0 overflow-visible">
         <defs>
           {slide.objects.filter((o): o is AxesObj => o.kind === "axes").map((ax) => (

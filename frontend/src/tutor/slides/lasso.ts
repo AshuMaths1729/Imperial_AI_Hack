@@ -1,6 +1,7 @@
 // Marks on a slide: what a student's circle encloses (and a PNG of it for the tutor), and where the laser sits.
 import type { Box } from "@/tutor/contracts/types";
 import { CANVAS } from "./scene";
+import type { SlideObject } from "./types";
 
 type Pt = { x: number; y: number };
 
@@ -9,6 +10,50 @@ export const LASER_PARK = { x: 54, y: 74 };
 
 /** Laser spot for an object's box: just under text and formulas (like an underline), else its centre. */
 export const laserSpot = (b: Box, isText: boolean) => ({ x: b.x + b.w / 2, y: isText ? b.y + b.h + 14 : b.y + b.h / 2 });
+
+/** point(id) on these kinds traces the laser along their drawn line (the SVG parts this selects); others glide to a spot. */
+export const TRACE: Partial<Record<SlideObject["kind"], string>> = {
+  curve: "[data-part=curve]",
+  tangent: "[data-part=line]",
+  step_arrow: "[data-part=line]",
+  polyline: "[data-draw]",
+  shape: "[data-draw]",
+  vector: "line",
+  axes: "[data-draw]",
+};
+
+/** The longest stretch of points inside the box (a curve is clipped to its axes: the laser stays on what is drawn). */
+export function insideRun(pts: Pt[], b: Box): Pt[] {
+  let best: Pt[] = [], run: Pt[] = [];
+  for (const p of pts) {
+    if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) run.push(p);
+    else run = [];
+    if (run.length > best.length) best = run;
+  }
+  return [...best];
+}
+
+export const GLIDE_MS = 450;
+const EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
+
+/**
+ * The laser's moves as WAAPI keyframes (canvas units): glide from `from` to the path's start, then travel along the
+ * path at an even speed (0.8-1.2 s); it rests at the path's end. A one-point path is a plain glide.
+ */
+export function laserFrames(from: Pt, path: Pt[]): { frames: Keyframe[]; ms: number } {
+  const tf = (p: Pt) => `translate(${p.x}px, ${p.y}px)`;
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y));
+  const len = cum[cum.length - 1] ?? 0;
+  const glide = Math.hypot(path[0].x - from.x, path[0].y - from.y) < 4 ? 0 : GLIDE_MS;
+  const trace = len > 0 ? Math.max(800, Math.min(1200, 500 + 0.6 * len)) : 0;
+  const ms = glide + trace;
+  if (!ms) return { frames: [], ms: 0 };
+  const frames: Keyframe[] = [{ transform: tf(from), offset: 0, easing: glide ? EASE : "linear" }];
+  path.forEach((p, i) => frames.push({ transform: tf(p), offset: (glide + (len ? (trace * cum[i]) / len : 0)) / ms, easing: "linear" }));
+  frames[frames.length - 1].offset = 1;
+  return { frames, ms };
+}
 
 export function pointInPolygon(p: Pt, poly: Pt[]): boolean {
   let inside = false;

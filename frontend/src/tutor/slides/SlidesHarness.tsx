@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import type { CircleEvent } from "@/tutor/contracts/types";
+import diff from "./decks/differentiation.json";
 import gd from "./decks/gradient-descent.json";
 import { makeSlidesRpcHandlers, type SlidesRpcMethod } from "./rpc";
 import { SlidesStage } from "./SlidesStage";
 import type { Deck, Slide, SlidesHandle } from "./types";
 
-const deck = gd as unknown as Deck;
+const DECKS = { gd: gd as unknown as Deck, diff: diff as unknown as Deck };
 
 // What slide_animate might push: the learning-rate picture with a slider for eta.
 const FOLLOWUP: Slide = {
@@ -41,6 +42,24 @@ const editPatch = (n: number) => ({
   ],
 });
 
+// What slides.explain might open: a small rise-over-run picture (ids are new on the main slide).
+const EXPLAIN: Slide = {
+  id: "why_rise_run",
+  title: "Why gradient = rise ÷ run",
+  objects: [
+    { kind: "axes", id: "w_ax", x: 160, y: 120, w: 760, h: 640, x_range: [0, 4], y_range: [0, 8], x_label: "x", y_label: "y" },
+    { kind: "curve", id: "w_line", axes: "w_ax", expr: "2*x", color: "blue", label: "y = 2x" },
+    { kind: "polyline", id: "w_run", axes: "w_ax", points: [[1, 2], [3, 2]], color: "green" },
+    { kind: "polyline", id: "w_rise", axes: "w_ax", points: [[3, 2], [3, 6]], color: "purple" },
+    { kind: "math", id: "w_eq", latex: "\\frac{\\textcolor{#B08CD9}{\\text{rise}}}{\\textcolor{#83C167}{\\text{run}}} = \\frac{4}{2} = 2", x: 1250, y: 420, size: 64 },
+  ],
+  steps: [
+    { narration: "Go along: that is the run.", actions: [{ do: "show", ids: ["w_run"] }] },
+    { narration: "Then up: that is the rise.", actions: [{ do: "show", ids: ["w_rise"] }] },
+    { narration: "Rise over run gives the gradient.", actions: [{ do: "show", ids: ["w_eq"] }] },
+  ],
+};
+
 /** Dev-only: the fallback deck in the Slides tab, driven through the same RPC handlers the agent uses. */
 export function SlidesHarness() {
   const handle = useRef<SlidesHandle | null>(null);
@@ -49,6 +68,10 @@ export function SlidesHarness() {
   const [crop, setCrop] = useState<string>();
   const [circles, setCircles] = useState<string[]>([]);
   const edits = useRef(0);
+  const [which, setWhich] = useState<keyof typeof DECKS>("gd");
+  const deck = DECKS[which];
+  const [docked, setDocked] = useState(false);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
   const call = async (method: SlidesRpcMethod, payload: object) => {
     const rpc = makeSlidesRpcHandlers(() => ({ showTab: () => {}, slides: handle.current, clearCircle: (id) => handle.current?.clearCircle(id) }));
     const reply = await rpc[method](JSON.stringify(payload));
@@ -65,16 +88,21 @@ export function SlidesHarness() {
   return (
     <div className="flex h-screen gap-3 bg-slate-950 p-3 text-slate-100">
       <div className="relative min-w-0 flex-1 overflow-hidden rounded-xl border border-slate-800">
-        <SlidesStage ref={handle} deck={deck} circleMode={circle} onCircle={onCircle} />
+        <SlidesStage ref={handle} deck={deck} circleMode={circle} onCircle={onCircle} explanationSlot={docked ? slot : null} />
       </div>
       <aside className="flex w-80 shrink-0 flex-col gap-2 overflow-y-auto text-xs">
+        <div className="flex flex-wrap gap-1">
+          {(Object.keys(DECKS) as (keyof typeof DECKS)[]).map((k) => (
+            <button key={k} className={`${btn} ${which === k ? "border-sky-500" : ""}`} onClick={() => setWhich(k)}>deck: {k}</button>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-1">
           {deck.slides.map((s, i) => (
             <button key={s.id} className={btn} onClick={() => call("slides.go", { index: i + 1 })}>{i + 1}</button>
           ))}
         </div>
         <div className="flex flex-wrap gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button key={n} className={btn} onClick={() => call("slides.step", { step: n })}>step {n}</button>
           ))}
         </div>
@@ -95,6 +123,15 @@ export function SlidesHarness() {
           <button className={btn} onClick={() => call("slides.edit", editPatch(++edits.current))}>edit (insert 2 steps)</button>
           <button className={`${btn} ${circle ? "border-red-400" : ""}`} onClick={() => setCircle((c) => !c)}>circle</button>
         </div>
+        <div className="flex flex-wrap gap-1">
+          <button className={btn} onClick={() => call("slides.explain", { slide: EXPLAIN })}>explain</button>
+          {[1, 2, 3].map((n) => (
+            <button key={n} className={btn} onClick={() => call("slides.explain_step", { step: n })}>ex step {n}</button>
+          ))}
+          <button className={btn} onClick={() => call("slides.explain_close", {})}>close</button>
+          <button className={`${btn} ${docked ? "border-sky-500" : ""}`} onClick={() => setDocked((d) => !d)}>dock in slot</button>
+        </div>
+        {docked && <div ref={setSlot} data-testid="explain-slot" className="rounded-lg border border-dashed border-sky-700 empty:hidden" />}
         <div className="flex flex-wrap gap-1">
           {circles.map((id) => (
             <button
