@@ -1,191 +1,140 @@
 "use client";
 
 import React from "react";
-import { Activity, ArrowRight, GitCompare, GraduationCap, Sparkles, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { WorkspaceMode } from "../types/scholartwin";
+import { MODULES, MODULE_ORDER, type ModuleInfo } from "../modules";
 import { AppHeader } from "./AppHeader";
+import type { LibraryTopic } from "./LibraryView";
+import { ModuleArt } from "./home/ModuleArt";
+import { RecentList } from "./home/RecentList";
+
+const LESSON_ROUTE = "/lecture/lesson";
 
 interface HomeHubProps {
   onSelectMode: (mode: WorkspaceMode) => void;
+  /** Paper Simulator library, for "Pick up where you left off". */
+  papers?: LibraryTopic[];
+  onOpenPaper?: (topic: LibraryTopic) => void;
+  onDeletePaper?: (id: string) => void;
+  onOpenEvidence?: (topicId: string) => void;
 }
 
-const OPTIONS: {
-  mode: WorkspaceMode;
-  title: string;
-  tagline: string;
-  description: string;
-  icon: LucideIcon;
-  accentVar: string;
-  softVar: string;
-  borderVar: string;
-}[] = [
-  {
-    mode: "lecture",
-    title: "LectureUnderstanding",
-    tagline: "Live Lesson with an Avatar Tutor",
-    description:
-      "Pick a tutor and a learning track, or upload a lecture PDF, for a face-to-face lesson with animated slides and a shared whiteboard you can circle to ask about.",
-    icon: GraduationCap,
-    accentVar: "var(--accent)",
-    softVar: "var(--accent-soft)",
-    borderVar: "var(--accent-border)",
-  },
-  {
-    mode: "paper2sim",
-    title: "PaperSim",
-    tagline: "Multi-Tab Interactive Visualisations",
-    description:
-      "Open saved paper simulations or ingest a paper PDF/URL to generate tabbed interactive plots, concept maps, and runnable equation models.",
-    icon: Activity,
-    accentVar: "var(--status-support)",
-    softVar: "var(--status-support-soft)",
-    borderVar: "var(--status-support-border)",
-  },
-  {
-    mode: "hypothesis",
-    title: "HypothesisGraph",
-    tagline: "Grounded Multi-Paper Research Chatbot",
-    description:
-      "Ask a research question by text or voice to search arXiv, bioRxiv, and PubMed and map supporting evidence, contradictions, and research gaps.",
-    icon: GitCompare,
-    accentVar: "var(--status-gap)",
-    softVar: "var(--status-gap-soft)",
-    borderVar: "var(--status-gap-border)",
-  },
-];
+const NO_PAPERS: LibraryTopic[] = [];
+const noop = () => {};
 
-/* apple-card (unlayered CSS) only transitions `transform`; Tailwind's hover lift and press
-   use the separate `translate` / `scale` properties, so the card states its own transition. */
-const CARD_TRANSITION =
-  "translate 300ms cubic-bezier(0.22, 1, 0.36, 1), scale 150ms ease-out, box-shadow 220ms ease, border-color 220ms ease";
+/* apple-card (unlayered CSS) transitions translate itself; the lift is a Tailwind translate. */
+const CARD =
+  "apple-card glass-lens apple-focus relative flex h-full w-full flex-col rounded-[26px] border text-left text-[var(--text-primary)] hover:-translate-y-1 focus-visible:-translate-y-1";
 
-export function HomeHub({ onSelectMode }: HomeHubProps) {
+function ModuleCard({ mod, onSelect, delay }: { mod: ModuleInfo; onSelect: () => void; delay: number }) {
+  const inner = (
+    // The sheen sweeps across this inner layer: glass-lens owns the card's ::after.
+    <span className="st-sheen relative flex h-full flex-col gap-3.5 overflow-hidden rounded-[inherit] p-2.5">
+      <span
+        className="relative block h-40 overflow-hidden rounded-[18px] shadow-[inset_0_1px_0_var(--glass-highlight),inset_0_0_0_1px_var(--border-subtle)]"
+        style={{
+          background: `radial-gradient(90% 120% at 85% 0%, color-mix(in srgb, ${mod.hue} 26%, transparent), transparent 70%), linear-gradient(160deg, color-mix(in srgb, ${mod.hue} 12%, var(--bg-surface-solid)), var(--bg-surface-solid))`,
+        }}
+      >
+        <ModuleArt module={mod.id} />
+      </span>
+      <span className="flex flex-1 flex-col gap-1.5 px-2 pb-2.5 pt-0.5">
+        <span
+          className="font-mono text-[11.5px] font-medium uppercase leading-none tracking-[0.12em]"
+          style={{ color: `color-mix(in srgb, ${mod.hue} 82%, var(--text-primary))` }}
+        >
+          {mod.verb}
+        </span>
+        <span id={`module-${mod.id}-name`} className="text-[22px] leading-tight tracking-[-0.025em]">
+          {mod.name}
+        </span>
+        <span id={`module-${mod.id}-desc`} className="text-[14.5px] leading-relaxed text-[var(--text-secondary)]">
+          {mod.description}
+        </span>
+        <span
+          className="mt-auto flex items-center justify-between pt-2 text-[14px] font-medium"
+          style={{ color: `color-mix(in srgb, ${mod.hue} 82%, var(--text-primary))` }}
+        >
+          {mod.cta}
+          <ArrowRight aria-hidden className="h-[17px] w-[17px]" />
+        </span>
+      </span>
+    </span>
+  );
+  const style = { animationDelay: `${delay}ms` };
+  // Named by the module, described by its sentence (the drawing and the CTA stay visual).
+  const a11y = { "aria-labelledby": `module-${mod.id}-name`, "aria-describedby": `module-${mod.id}-desc` };
   return (
-    // Transparent root so the body's colour field shows. overflow-x-clip (not overflow-hidden)
-    // keeps the wide aurora blobs from causing a sideways scroll without turning the root into
-    // a scroll container, so the sticky header keeps sticking to the viewport.
-    <div className="relative flex min-h-screen flex-col overflow-x-clip text-[var(--text-primary)]">
-      {/* Ambient animated backdrop, one glow per workspace hue (soft tints over the colour field) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="apple-hero-glow absolute inset-x-0 top-0 h-[560px]" />
-        <div className="st-aurora absolute -top-48 left-[calc(50%-440px)] h-[560px] w-[880px] rounded-full bg-[var(--accent-soft)] blur-3xl" />
-        <div className="st-aurora-slow absolute top-72 -left-40 h-[400px] w-[400px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
-        <div className="st-aurora-slow absolute top-80 -right-36 h-[380px] w-[380px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
-        <div className="st-grid absolute inset-0 opacity-[0.22]" />
-      </div>
+    <li className="st-fade-up min-w-0" style={style}>
+      {mod.id === "lecture" ? (
+        <Link href={LESSON_ROUTE} className={CARD} {...a11y}>
+          {inner}
+        </Link>
+      ) : (
+        <button type="button" onClick={onSelect} className={CARD} {...a11y}>
+          {inner}
+        </button>
+      )}
+    </li>
+  );
+}
 
-      {/* The bar keeps only the global controls: the name lives in the hero below. */}
+export function HomeHub({
+  onSelectMode,
+  papers = NO_PAPERS,
+  onOpenPaper = noop,
+  onDeletePaper = noop,
+  onOpenEvidence = noop,
+}: HomeHubProps) {
+  return (
+    // Transparent root so the landscape (components/nature/Scene) shows through.
+    <div className="relative flex min-h-screen flex-col overflow-x-clip text-[var(--text-primary)]">
       <AppHeader sticky />
 
-      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-12 pt-10 sm:px-6 sm:pt-12">
-        <div className="my-auto">
-          {/* Hero: the product name, front and centre */}
-          <section className="mb-10 text-center sm:mb-12">
-            <div className="st-fade-up mx-auto mb-5 flex w-fit items-center justify-center" style={{ animationDelay: "40ms" }}>
-              <span className="apple-sheet st-float relative flex h-16 w-16 items-center justify-center rounded-2xl">
-                <span
-                  aria-hidden
-                  className="absolute inset-0 rounded-2xl opacity-60 blur-xl"
-                  style={{
-                    background:
-                      "conic-gradient(from 180deg, var(--accent), var(--status-support), var(--status-gap), var(--accent))",
-                  }}
-                />
-                <span className="relative flex h-full w-full items-center justify-center rounded-[21px] bg-[var(--bg-glass-elevated)] shadow-[inset_0_1px_0_var(--glass-highlight)]">
-                  <Sparkles className="st-twinkle h-7 w-7 text-[var(--accent)]" />
-                </span>
-              </span>
-            </div>
-
-            {/* Two elements: st-fade-up and st-pan each set `animation`, so they can't share one. */}
-            <div className="st-fade-up" style={{ animationDelay: "120ms" }}>
-              <h1
-                className="apple-display st-pan bg-clip-text pb-2 text-5xl font-bold !leading-[1.15] tracking-tight text-transparent sm:text-7xl"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(90deg, var(--accent), var(--status-support), var(--status-gap), var(--accent))",
-                }}
-              >
-                Athena
-              </h1>
-            </div>
-            <p
-              className="st-fade-up mx-auto mt-3 max-w-2xl text-base text-[var(--text-secondary)] sm:text-lg"
-              style={{ animationDelay: "200ms" }}
+      <main className="relative mx-auto w-full max-w-[1180px] flex-1 px-4 pb-16 sm:px-6">
+        <section className="pb-[clamp(36px,7vh,76px)] pt-[clamp(56px,13vh,140px)] text-center">
+          <h1 className="st-display on-scene st-fade-up text-[clamp(64px,11vw,132px)] !leading-[0.95] !tracking-[-0.05em]">
+            Athena
+          </h1>
+          <p
+            className="on-scene st-fade-up mx-auto mt-4 max-w-[560px] text-[clamp(16px,2vw,19px)] font-[450] leading-normal"
+            style={{ animationDelay: "80ms" }}
+          >
+            Learn a topic with a live tutor, play with the maths inside a paper, and see where the research agrees.
+          </p>
+          <div className="st-fade-up mt-7 flex flex-wrap justify-center gap-2.5" style={{ animationDelay: "160ms" }}>
+            <Link
+              href={LESSON_ROUTE}
+              className="st-sheen apple-press apple-focus relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[var(--text-primary)] px-[18px] py-[11px] text-[14.5px] font-medium leading-none text-[var(--bg-canvas)] shadow-[var(--shadow-card)]"
             >
-              Your spatial AI workspace for research and learning: understand lectures, run a paper&apos;s
-              equations, and map what the literature agrees and disagrees on.
-            </p>
-          </section>
-
-          <div className="st-fade-up mb-5 flex items-center gap-3" style={{ animationDelay: "280ms" }}>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[var(--border-strong)]" />
-            <h2 className="apple-sheet apple-label shrink-0 rounded-full px-3.5 py-1 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
-              Choose a workspace
-            </h2>
-            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[var(--border-strong)]" />
+              Start a lesson
+              <ArrowRight aria-hidden className="h-[17px] w-[17px]" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => onSelectMode("hypothesis")}
+              className="apple-glass glass-lens apple-press apple-focus on-scene relative inline-flex items-center gap-2 rounded-full border px-[18px] py-[11px] text-[14.5px] font-medium leading-none"
+            >
+              Ask a research question
+            </button>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-            {OPTIONS.map((opt, i) => {
-              const Icon = opt.icon;
-              const last = i === OPTIONS.length - 1;
-              return (
-                <button
-                  key={opt.mode}
-                  type="button"
-                  onClick={() => onSelectMode(opt.mode)}
-                  style={
-                    {
-                      animationDelay: `${340 + i * 90}ms`,
-                      transition: CARD_TRANSITION,
-                      "--card-c": opt.accentVar,
-                      "--card-b": opt.borderVar,
-                    } as React.CSSProperties
-                  }
-                  className={`apple-card apple-focus st-fade-up st-sheen group relative flex min-w-0 flex-col justify-between overflow-hidden rounded-3xl border p-6 text-left hover:-translate-y-1 hover:border-[var(--card-b)]! focus-visible:-translate-y-1 active:scale-[0.98] ${
-                    last ? "sm:col-span-2 lg:col-span-1" : ""
-                  }`}
-                >
-                  {/* Hue wash across the top of the glass (replaces the old solid strip) */}
-                  <div
-                    aria-hidden
-                    style={{
-                      background: `linear-gradient(to bottom, color-mix(in srgb, ${opt.accentVar} 16%, transparent), transparent)`,
-                    }}
-                    className="pointer-events-none absolute inset-x-0 top-0 h-28 opacity-80 transition-opacity duration-300 group-hover:opacity-100"
-                  />
-                  <div className="relative min-w-0">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span
-                        style={{ backgroundColor: opt.softVar, color: opt.accentVar, borderColor: opt.borderVar }}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-[inset_0_1px_0_var(--glass-highlight)] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--card-c)]" />
-                    </div>
-                    <h3 className="apple-heading text-lg font-semibold text-[var(--text-primary)] transition-colors [overflow-wrap:anywhere] group-hover:text-[var(--card-c)]">
-                      {opt.title}
-                    </h3>
-                    <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">{opt.tagline}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{opt.description}</p>
-                  </div>
+        <ul aria-label="Modules" className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {MODULE_ORDER.map((id, i) => (
+            <ModuleCard key={id} mod={MODULES[id]} onSelect={() => onSelectMode(id)} delay={220 + i * 80} />
+          ))}
+        </ul>
 
-                  <div
-                    style={{ color: opt.accentVar, backgroundColor: opt.softVar, borderColor: opt.borderVar }}
-                    className="relative mt-6 inline-flex max-w-full items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-semibold"
-                  >
-                    <span className="min-w-0 truncate">Open {opt.title}</span>
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <RecentList
+          papers={papers}
+          onOpenPaper={onOpenPaper}
+          onDeletePaper={onDeletePaper}
+          onOpenEvidence={onOpenEvidence}
+        />
       </main>
-
     </div>
   );
 }

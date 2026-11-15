@@ -13,10 +13,13 @@ import { LibraryTopic, LibraryView } from "../components/LibraryView";
 import { HomeHub } from "../components/HomeHub";
 import { PaperSimTabsView } from "../components/PaperSimTabsView";
 import { HypothesisChatView } from "../components/HypothesisChatView";
+import { useScene } from "../components/nature/Scene";
+import { MODULES } from "../modules";
+import { dedupeTopics, paperKey } from "../lib/recent";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const LIBRARY_STORAGE_KEY = "scholartwin.library.v1";
-/** LectureUnderstanding is the live lesson (tutor, slides, whiteboard) on its own route. */
+/** Live Lessons (tutor, slides, whiteboard) is its own route. */
 const LECTURE_ROUTE = "/lecture/lesson";
 
 const DEFAULT_LIBRARY_TOPICS: LibraryTopic[] = [
@@ -25,14 +28,14 @@ const DEFAULT_LIBRARY_TOPICS: LibraryTopic[] = [
     title: "Heavy-Ball Momentum Dynamics",
     subtitle: "Interactive ODE parameter sweep for step size and momentum β",
     mode: "paper2sim",
-    sourceLabel: "Paper2Sim Preset",
+    sourceLabel: "Built-in example",
     sourceType: "preset",
     updatedAt: "2026-11-14T16:00:00Z",
     lastReply: "Compared under-damped oscillations at β = 0.9 vs critical damping.",
   },
 ];
 
-/** The PaperSim workspace no longer receives tutor annotations; one stable empty list. */
+/** The Paper Simulator workspace no longer receives tutor annotations; one stable empty list. */
 const NO_ANNOTATIONS: UIAnnotation[] = [];
 
 let cachedLibraryRaw: string | null = null;
@@ -60,7 +63,8 @@ function getLibrarySnapshot(): LibraryTopic[] {
     const parsed = JSON.parse(raw) as LibraryTopic[];
     if (Array.isArray(parsed) && parsed.length > 0) {
       cachedLibraryRaw = raw;
-      cachedLibraryTopics = parsed;
+      // Older saves can hold the same paper more than once: list each paper once (newest first).
+      cachedLibraryTopics = dedupeTopics(parsed.filter((t) => t && typeof t.id === "string"));
       return cachedLibraryTopics;
     }
   } catch {
@@ -78,6 +82,14 @@ type Screen = "home" | "library" | "papersim-workspace" | "hypothesis-chat";
 export default function AthenaWorkspace() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("home");
+  /** The saved Evidence Map topic to open (from Home's recent list); null starts a new question. */
+  const [evidenceTopicId, setEvidenceTopicId] = useState<string | null>(null);
+  // The landscape behind each screen: meadow at home, hills for papers, a lake for evidence.
+  useScene(screen === "home" ? "meadow" : screen === "hypothesis-chat" ? "lake" : "hills", screen !== "home");
+  // Each screen opens at its top (they share the window's scroll position otherwise).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
   const libraryTopics = useSyncExternalStore(
     subscribeLibrary,
     getLibrarySnapshot,
@@ -108,8 +120,15 @@ export default function AthenaWorkspace() {
     setUploadOpen(false);
     setUploadError(null);
     if (selected === "lecture") router.push(LECTURE_ROUTE);
-    else if (selected === "hypothesis") setScreen("hypothesis-chat");
-    else setScreen("library");
+    else if (selected === "hypothesis") {
+      setEvidenceTopicId(null);
+      setScreen("hypothesis-chat");
+    } else setScreen("library");
+  };
+
+  const openEvidenceTopic = (topicId: string) => {
+    setEvidenceTopicId(topicId);
+    setScreen("hypothesis-chat");
   };
 
   const openTopic = (topic: LibraryTopic) => {
@@ -231,7 +250,9 @@ export default function AthenaWorkspace() {
       dataset: data,
     };
     setActiveTopicId(newTopic.id);
-    persistLibrary([newTopic, ...libraryTopics]);
+    // The same paper loaded again replaces its old entry and moves to the top.
+    const key = paperKey(newTopic);
+    persistLibrary([newTopic, ...libraryTopics.filter((t) => paperKey(t) !== key)]);
     setScreen("papersim-workspace");
   };
 
@@ -267,7 +288,13 @@ export default function AthenaWorkspace() {
   };
 
   if (screen === "hypothesis-chat") {
-    return <HypothesisChatView onBackHome={() => setScreen("home")} />;
+    return (
+      <HypothesisChatView
+        key={evidenceTopicId ?? "new"}
+        initialTopicId={evidenceTopicId ?? undefined}
+        onBackHome={() => setScreen("home")}
+      />
+    );
   }
 
   if (screen === "library") {
@@ -306,6 +333,7 @@ export default function AthenaWorkspace() {
           open={uploadOpen}
           loading={uploadLoading}
           error={uploadError}
+          tint={MODULES.paper2sim.hue}
           onClose={() => setUploadOpen(false)}
           onUploadPdf={handleUploadPdf}
           onIngestUrl={handleIngestUrl}
@@ -314,5 +342,13 @@ export default function AthenaWorkspace() {
     );
   }
 
-  return <HomeHub onSelectMode={handleSelectHomeMode} />;
+  return (
+    <HomeHub
+      onSelectMode={handleSelectHomeMode}
+      papers={libraryTopics}
+      onOpenPaper={openTopic}
+      onDeletePaper={deleteTopic}
+      onOpenEvidence={openEvidenceTopic}
+    />
+  );
 }
