@@ -1,5 +1,6 @@
 import copy
 import json
+import re
 
 import pytest
 from fastapi import FastAPI
@@ -7,16 +8,18 @@ from fastapi.testclient import TestClient
 
 from tutor import deck as decks
 from tutor.router import get_deck_llm, get_store, tutor_router
-from tutor.seed import demo_track
-from tutor.store import make_store
+from tutor import seed
+from tutor.seed import demo_track, differentiation_track
+from tutor.store import JsonBackend, make_store
 
 FALLBACK = decks.fallback_deck("gradient-descent")
 GD_KPS = ["gd1", "gd2", "gd3", "gd4"]
+DIFF_KPS = [k.kp_id for k in differentiation_track().knowledge_points]
 
 
 def tiny_deck(kp_ids=("gd1", "gd2", "gd3", "gd4")):
     return {"title": "T", "slides": [{
-        "id": "s1", "title": "Slope", "kp_ids": list(kp_ids),
+        "id": "s1", "title": "Slope", "kp_ids": list(kp_ids), "idea": "Slope", "check": "Which way is down?",
         "objects": [
             {"kind": "axes", "id": "ax", "x": 100, "y": 150, "w": 800, "h": 500, "x_range": [-3, 3], "y_range": [0, 6]},
             {"kind": "curve", "id": "c", "axes": "ax", "expr": "0.4*(x-0.5)^2+0.5"},
@@ -53,6 +56,47 @@ def test_fallback_deck_is_valid_and_covers_demo_kps():
     assert errs == [] and missing == []
     assert 5 <= len(deck.slides) <= 8
     assert all(s.steps for s in deck.slides)
+
+
+def check_chain(deck):
+    """The lesson plan contract: every slide has an idea and a check, and builds on the slide before it."""
+    prev = None
+    for s in deck.slides:
+        assert s.idea and s.check, s.id
+        assert s.builds_on == prev, s.id
+        prev = s.id
+
+
+def test_fallback_decks_follow_the_lesson_chain():
+    for tid in ("gradient-descent", "differentiation"):
+        deck, _, _ = decks.parse_deck(decks.fallback_deck(tid))
+        check_chain(deck)
+
+
+def test_differentiation_deck_is_valid_covers_kps_and_teaches_slowly():
+    deck, errs, missing = decks.parse_deck(decks.fallback_deck("differentiation"), DIFF_KPS)
+    assert errs == [] and missing == []
+    assert len(deck.slides) == 6 and all(s.steps for s in deck.slides)
+    assert [s.kp_ids for s in deck.slides[:5]] == [[k] for k in DIFF_KPS]  # one new idea per slide, in order
+    for s in deck.slides:
+        for st in s.steps:
+            assert len(re.findall(r"[.?!](?:\s|$)", st.narration)) <= 2, st.narration  # spoken hint: at most 2 sentences
+        for o in s.objects:  # colour means something across the whole deck
+            if isinstance(o, decks.Curve) and o.expr == "x^2":
+                assert o.color == "blue", (s.id, o.id)
+            if isinstance(o, decks.Tangent):
+                assert o.color == "red", (s.id, o.id)
+
+
+def test_missing_plan_fields_are_errors_so_generation_retries():
+    d = tiny_deck()
+    d["slides"].append({**copy.deepcopy(d["slides"][0]), "id": "s2"})  # builds_on missing
+    del d["slides"][0]["check"]
+    d["slides"][0]["builds_on"] = "s9"
+    _, errs, _ = decks.parse_deck(d)
+    text = "\n".join(errs)
+    for needle in ["slide s1: needs a check", "slide s1: builds_on must be empty", "slide s2: builds_on must be s1"]:
+        assert needle in text, needle
 
 
 def test_fallback_rejects_path_tricks():
@@ -92,6 +136,12 @@ def test_unknown_kps_dropped_and_missing_reported():
     assert errs == [] and deck.slides[0].kp_ids == ["gd1"] and missing == ["gd2", "gd3", "gd4"]
 
 
+def test_prompt_carries_the_teaching_contract():
+    assert "A-level" in decks.SYSTEM and "builds_on" in decks.SYSTEM and "check" in decks.SYSTEM
+    p = decks.build_prompt(differentiation_track())
+    assert "d5" in p and "first principles" in p.lower()
+
+
 def test_generate_retries_with_errors_then_succeeds():
     bad = tiny_deck()
     bad["slides"][0]["objects"][1]["axes"] = "nope"
@@ -119,6 +169,36 @@ def test_generate_raises_when_never_valid():
 def test_materials_text_resolves_demo_dataset():
     text = decks.materials_text(demo_track())
     assert "COMP70050" in text and "quiz:" in text
+
+
+def test_differentiation_material_is_a_workspace_dataset():
+    from schemas import WorkspaceDataset
+    tr = differentiation_track()
+    ds = WorkspaceDataset.model_validate_json((decks.DEMO_DIR / f"{tr.materials[0].ref}.json").read_text())
+    assert ds.nodes and "gradient" in decks.materials_text(tr).lower()
+
+
+# --- seed -----------------------------------------------------------------
+
+def test_seed_apply_adds_missing_docs_and_keeps_live_ones(tmp_path):
+    b = JsonBackend(tmp_path)
+    seed.apply(b)
+    assert [t["track_id"] for t in b.all("tracks")] == ["differentiation", "gradient-descent"]  # lobby order
+    assert decks.fallback_deck("differentiation") is not None
+    # an existing store (older seed, a live lesson, an edited track) gains the new track and loses nothing
+    old = JsonBackend(tmp_path / "old")
+    gd = demo_track().model_dump()
+    gd["knowledge_points"][0]["status"] = "understood"
+    old.put("tracks", "gradient-descent", gd)
+    old.put("lessons", "l1", {"lesson_id": "l1"})
+    for t in seed.TUTORS:
+        old.put("tutors", t.tutor_id, t.model_dump())
+    seed.apply(old)
+    seed.apply(old)
+    assert {t["track_id"] for t in old.all("tracks")} == {"gradient-descent", "differentiation"}
+    assert old.get("tracks", "gradient-descent")["knowledge_points"][0]["status"] == "understood"
+    assert old.get("lessons", "l1") == {"lesson_id": "l1"} and len(old.all("tutors")) == len(seed.TUTORS)
+    assert old.get("profiles", "demo")
 
 
 # --- router ---------------------------------------------------------------

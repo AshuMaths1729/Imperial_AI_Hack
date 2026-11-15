@@ -21,6 +21,28 @@ TUTORS = [
 ]
 
 
+def differentiation_track() -> Track:
+    """The A-level showcase. One KP per slide of frontend/src/tutor/slides/decks/differentiation.json."""
+    kps = [
+        KP(kp_id="d1", title="Speed as a gradient",
+           summary="Speed is how steep a distance-time graph is; between two times we can find the average speed."),
+        KP(kp_id="d2", title="Gradient of a straight line", summary="Gradient = rise / run, the same anywhere on the line.",
+           prereq_ids=["d1"]),
+        KP(kp_id="d3", title="Gradient of a chord",
+           summary="A chord joins two points on a curve; its gradient is the average gradient between them.",
+           prereq_ids=["d2"]),
+        KP(kp_id="d4", title="Tangent as the limit of chords",
+           summary="As the second point slides onto the first (h -> 0), the chord becomes the tangent.",
+           prereq_ids=["d3"]),
+        KP(kp_id="d5", title="Differentiation from first principles",
+           summary="((x+h)^2 - x^2)/h = 2x + h -> 2x, so the gradient of y = x^2 is dy/dx = 2x.", prereq_ids=["d4"]),
+    ]
+    return Track(track_id="differentiation", user_id="demo", title="Differentiation — the gradient of a curve",
+                 materials=[Material(kind="demo", ref="differentiation_demo",
+                                     dataset_title="A-level Maths: Differentiation from first principles")],
+                 knowledge_points=kps, created_at=datetime.now(timezone.utc).isoformat())
+
+
 def demo_track() -> Track:
     kps = [
         KP(kp_id="gd1", title="Loss function", summary="A number that measures how wrong the model is."),
@@ -31,3 +53,16 @@ def demo_track() -> Track:
     return Track(track_id="gradient-descent", user_id="demo", title="Gradient Descent",
                  materials=[Material(kind="demo", ref="lecture_demo", dataset_title="Gradient Descent")],
                  knowledge_points=kps, created_at=datetime.now(timezone.utc).isoformat())
+
+
+def demo_tracks() -> list:
+    return [differentiation_track(), demo_track()]  # lobby order: the first is the showcase
+
+
+def apply(backend) -> None:
+    """Idempotent seeding: adds seed docs that are missing, never overwrites one (live progress, edited tracks)."""
+    docs = [("tutors", t.tutor_id, t) for t in TUTORS] + [("profiles", PROFILE.user_id, PROFILE)]
+    docs += [("tracks", t.track_id, t) for t in demo_tracks()]
+    for coll, key, model in docs:
+        if backend.get(coll, key) is None:
+            backend.put(coll, key, model.model_dump())
