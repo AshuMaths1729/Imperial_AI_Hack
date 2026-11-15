@@ -48,6 +48,7 @@ VOICE_MAX_TOKENS = 2000
 MAX_TOOL_STEPS = 12
 SPEECH_SPEED = 0.9  # 3Blue1Brown pace; ElevenLabs allows 0.8-1.2
 CHECKPOINT_EVERY_S = 60
+CONTINUE_AFTER_S = 2.0  # silence after a mid-slide stop before the agent nudges the tutor on
 
 
 class RoomTutorIO:
@@ -151,7 +152,7 @@ def track_turns(session: AgentSession, rolling: RollingSummary, after_tutor_turn
         if item.type == "message" and item.role in ("user", "assistant"):
             rolling.add_turn(item.role, item.text_content or "")
             if item.role == "assistant":
-                after_tutor_turn()
+                after_tutor_turn(item.text_content or "")
 
 
 def prewarm(proc: JobProcess) -> None:
@@ -211,15 +212,27 @@ async def entrypoint(ctx: JobContext) -> None:
             preemptive_generation={"enabled": True},
         ),
     )
-    lesson = LessonState(lesson_id, io.post, resume=tctx.get("resume"))  # picks up the last lesson's understanding
+    lesson = LessonState(lesson_id, io.post, resume=tctx.get("resume"))
+    deck = slides.SlideTools(io, lesson_id, lesson=lesson)  # picks up the last lesson's understanding
     agent = Agent(
         instructions=build_instructions(tctx),
-        tools=tools.function_tools() + slides.slide_tools(io, lesson_id, lesson) + lesson.function_tools(),
+        tools=tools.function_tools() + deck.function_tools() + lesson.function_tools(),
     )
 
-    def after_tutor_turn() -> None:
+    async def keep_teaching(said: str) -> None:
+        # code owns the pace: a mid-slide stop with no question asked must not leave the student in silence
+        if not (nudge := deck.continue_instruction(said)):
+            return
+        step = deck.step
+        await asyncio.sleep(CONTINUE_AFTER_S)
+        if session.agent_state == "listening" and session.user_state != "speaking" and deck.step == step:
+            logger.info("tutor stopped mid-slide; nudging on to step %s", (step or 0) + 1)
+            session.generate_reply(instructions=nudge)
+
+    def after_tutor_turn(said: str) -> None:
         spawn(fold())
         spawn(lesson.checkpoint(agent))
+        spawn(keep_teaching(said))
 
     track_turns(session, rolling, after_tutor_turn)
     log_session(session)

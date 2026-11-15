@@ -159,6 +159,7 @@ class SlideTools:
         self.lesson = lesson  # lesson_state.LessonState (or None): told whenever the open slide/step changes
         self.narration: list[str] = []  # step hints of the open slide, from the last describe
         self.index: int | None = None
+        self.step: int | None = None  # last step shown on the open slide (None until the page tells us)
         self.idea = self.check = ""  # the open slide's lesson plan, from the last describe
         self._tasks: set[asyncio.Task] = set()
 
@@ -174,8 +175,8 @@ class SlideTools:
             cur = d.get("current") or {}
             self.narration = cur.get("narration") or []
             self.idea, self.check = cur.get("idea") or "", cur.get("check") or ""
-            self.index = d.get("index")
-            self._note_slide(self.index, d.get("step", 0))
+            self.index, self.step = d.get("index"), d.get("step", 0)
+            self._note_slide(self.index, self.step)
         return outline_text(d)
 
     def _note_slide(self, index: int | None, step: int) -> None:
@@ -210,6 +211,7 @@ class SlideTools:
         if isinstance(ms, (int, float)) and ms > 0:
             await asyncio.sleep(min(ms / 1000, STEP_WAIT_MAX_S))
         index = reply.get("index") or self.index
+        self.step = step
         self._note_slide(index, step)
         total = len(self.narration)
         if step < total:
@@ -218,6 +220,14 @@ class SlideTools:
             q = f'its check question "{self.check}"' if self.check else "a short check question on its idea"
             nxt = f" That was the last step of this slide: ask {q} and wait for the answer before slide_go."
         return f"ok: slide {index}, step {step} of {total or '?'}.{nxt}"
+
+    def continue_instruction(self, said: str) -> str | None:
+        """The voice model sometimes ends its turn mid-slide; the nudge to go on (None when it just asked the student
+        something, or the slide is finished and its check question comes next)."""
+        if self.step is None or said.rstrip().endswith("?") or self.step >= len(self.narration):
+            return None
+        n = self.step + 1
+        return f"Continue the slide: 2-3 short sentences for step {n} ({self.narration[n - 1]}), then slide_step({n})."
 
     async def slide_point(self, object_id: str) -> str:
         return self._failed(await self._rpc("slides.point", {"id": object_id})) or f"ok: pointing at {object_id}"
@@ -419,4 +429,4 @@ class SlideTools:
 def slide_tools(io, lesson_id: str, lesson=None) -> list[llm.FunctionTool | llm.RawFunctionTool]:
     """Function tools for the deck and the stage tabs (show_tab, slide navigation, slide pointer, in-place edits,
     follow-up animation, clearing the student's circle). `lesson` (lesson_state.LessonState) is told about slide/step changes."""
-    return SlideTools(io, lesson_id, lesson=lesson).function_tools()
+    return SlideTools(io, lesson_id, lesson=lesson).function_tools()  # agent.py builds SlideTools itself (needs the instance)

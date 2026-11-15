@@ -408,3 +408,15 @@ def test_edit_without_slide_json_uses_the_outline_ids_and_step_count():
     asyncio.run(run())
     assert "unique on this slide: p" in client.calls[1]["messages"][-1]["content"][0]["content"]
     assert "new steps 4-5" in ctx.notes[0]  # 3 narration hints in the outline
+
+
+def test_continue_nudge_only_mid_slide_and_never_after_a_question():
+    # live: Haiku ended its turn after step 8 of 11 and the lesson sat silent; the agent nudges it on
+    t = SlideTools(FakeIO({"slides.step": {"ok": True, "errors": [], "index": 1}}), "L1")
+    t.narration = ["a", "b", "c"]
+    assert t.continue_instruction("Here is the curve.") is None  # no step played yet on this slide
+    asyncio.run(t.slide_step(1))
+    assert "slide_step(2)" in t.continue_instruction("This is the curve.")
+    assert t.continue_instruction("What do you think happens next?") is None  # waiting for the student
+    asyncio.run(t.slide_step(3))
+    assert t.continue_instruction("And that is the gradient.") is None  # slide finished: the check question is next

@@ -19,7 +19,7 @@ def _session_with_turns(summarize):
     session = AgentSession()
     rolling = RollingSummary(summarize)
     folds = []
-    track_turns(session, rolling, lambda: folds.append(1))
+    track_turns(session, rolling, lambda said: folds.append(said))
     session._conversation_item_added(llm.ChatMessage(role="user", content=["What is a gradient?"]))
     session._conversation_item_added(llm.ChatMessage(role="assistant", content=["The slope of the loss."]))
     session._conversation_item_added(llm.ChatMessage(role="system", content=["Visual ready: x"]))
