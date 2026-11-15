@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import TutorPage from "@/app/tutor/page";
+import TutorPage from "@/app/lecture/lesson/page";
 import gd from "@/tutor/slides/decks/gradient-descent.json";
 import * as api from "./api";
 import { makeSlidesRpcHandlers } from "@/tutor/slides";

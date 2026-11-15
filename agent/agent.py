@@ -201,7 +201,7 @@ async def entrypoint(ctx: JobContext) -> None:
     http = httpx.AsyncClient(base_url=os.environ.get("TUTOR_API_BASE", "http://localhost:8000"), timeout=10)
 
     async def fetch_context() -> dict:
-        r = await http.get(f"/api/tutor/context/{lesson_id}")
+        r = await http.get(f"/api/lesson/context/{lesson_id}")
         r.raise_for_status()
         return r.json()
 

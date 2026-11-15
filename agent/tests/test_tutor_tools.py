@@ -103,7 +103,7 @@ async def test_mark_progress_posts_and_records_covered():
     tools = TutorTools(io, "L1")
     assert (await tools.mark_progress("m0:n1", "understood", "explained it back")).startswith("ok")
     assert io.posts == [
-        ("/api/tutor/lessons/L1/progress",
+        ("/api/lesson/lessons/L1/progress",
          {"kp_updates": [{"kp_id": "m0:n1", "status": "understood", "evidence": "explained it back"}]})
     ]
     assert tools.covered == ["m0:n1"]

@@ -137,7 +137,7 @@ class TutorTools:
     async def _progress(self, body: dict, kp_id: str) -> str | None:
         """Returns an error string, or None on success."""
         try:
-            await self.io.post(f"/api/tutor/lessons/{self.lesson_id}/progress", body)
+            await self.io.post(f"/api/lesson/lessons/{self.lesson_id}/progress", body)
             return None
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:

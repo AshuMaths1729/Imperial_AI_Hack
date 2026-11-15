@@ -14,7 +14,7 @@ describe("tutor api", () => {
 
     expect(s).toEqual({ url: "wss://x", token: "t", room: "r", lesson_id: "L1" });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("http://127.0.0.1:8000/api/tutor/session");
+    expect(url).toBe("http://127.0.0.1:8000/api/lesson/session");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body as string)).toEqual({ track_id: "tr1", tutor_id: "kenji-visual" });
   });
@@ -32,7 +32,7 @@ describe("tutor api", () => {
 
     expect(t.track_id).toBe("tr 1");
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("http://127.0.0.1:8000/api/tutor/tracks/tr%201/materials/pdf");
+    expect(url).toBe("http://127.0.0.1:8000/api/lesson/tracks/tr%201/materials/pdf");
     expect(init.method).toBe("POST");
     expect(((init.body as FormData).get("file") as File).name).toBe("a.pdf");
   });

@@ -1,4 +1,4 @@
-"""Posts /api/tutor/lessons/{id}/end exactly once, however many times the lesson is ended."""
+"""Posts /api/lesson/lessons/{id}/end exactly once, however many times the lesson is ended."""
 
 import asyncio
 import logging
@@ -16,7 +16,7 @@ class LessonEnder:
     async def end(self, summary: str, covered_kp_ids: list[str]) -> None:
         if self._task is None:
             body = {"summary": summary, "covered_kp_ids": covered_kp_ids}
-            self._task = asyncio.ensure_future(self._post(f"/api/tutor/lessons/{self._lesson_id}/end", body))
+            self._task = asyncio.ensure_future(self._post(f"/api/lesson/lessons/{self._lesson_id}/end", body))
         await self._task
 
 

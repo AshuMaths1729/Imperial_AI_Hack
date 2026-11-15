@@ -1,4 +1,4 @@
-"""System prompt and greeting for the live tutor, built from GET /api/tutor/context/{lesson_id}."""
+"""System prompt and greeting for the live tutor, built from GET /api/lesson/context/{lesson_id}."""
 
 import lesson_state
 import slides

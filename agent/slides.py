@@ -1,6 +1,6 @@
 """Presentations: the tutor teaches through a pre-generated animated deck (tools drive the Slides tab). Built in WS-C.
 
-The deck lives on the student's page (loaded from GET /api/tutor/tracks/{id}/deck); every tool here is an RPC to
+The deck lives on the student's page (loaded from GET /api/lesson/tracks/{id}/deck); every tool here is an RPC to
 it (frontend/src/tutor/slides/rpc.ts), so the agent always sees the deck the student sees, including follow-up
 slides pushed during the lesson. Indexes are 1-based, as the page reports them.
 """

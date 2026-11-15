@@ -34,7 +34,7 @@ export type Lesson = {
   worked: { kp_id: string; explanation_style: string }[];
   board_snapshot_ref: string | null;
 };
-/** GET /api/tutor/lessons/{id}/state: the agent's latest checkpoint (null until the first one). */
+/** GET /api/lesson/lessons/{id}/state: the agent's latest checkpoint (null until the first one). */
 export type LessonState = {
   slide: number;
   step: number;
@@ -60,25 +60,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-export const listTutors = () => request<Tutor[]>("/api/tutor/tutors");
-export const listTracks = () => request<Track[]>("/api/tutor/tracks");
-export const createTrack = (title: string) => post<Track>("/api/tutor/tracks", { title });
+export const listTutors = () => request<Tutor[]>("/api/lesson/tutors");
+export const listTracks = () => request<Track[]>("/api/lesson/tracks");
+export const createTrack = (title: string) => post<Track>("/api/lesson/tracks", { title });
 export const getTrack = (id: string) =>
-  request<{ track: Track; lessons: Lesson[] }>(`/api/tutor/tracks/${encodeURIComponent(id)}`);
+  request<{ track: Track; lessons: Lesson[] }>(`/api/lesson/tracks/${encodeURIComponent(id)}`);
 export const addMaterial = (trackId: string, m: { kind: Material["kind"]; ref: string; dataset: WorkspaceDataset }) =>
-  post<Track>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/materials`, m);
-export const getDeck = (trackId: string) => request<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`);
+  post<Track>(`/api/lesson/tracks/${encodeURIComponent(trackId)}/materials`, m);
+export const getDeck = (trackId: string) => request<DeckView>(`/api/lesson/tracks/${encodeURIComponent(trackId)}/deck`);
 /** Starts (re)generating the track's slides in the background; poll getDeck for the status. */
-export const prepareDeck = (trackId: string) => post<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`, {});
+export const prepareDeck = (trackId: string) => post<DeckView>(`/api/lesson/tracks/${encodeURIComponent(trackId)}/deck`, {});
 export const getLessonState = (lessonId: string) =>
-  request<LessonState | null>(`/api/tutor/lessons/${encodeURIComponent(lessonId)}/state`);
+  request<LessonState | null>(`/api/lesson/lessons/${encodeURIComponent(lessonId)}/state`);
 export const startSession = (trackId: string, tutorId: string) =>
-  post<SessionInfo>("/api/tutor/session", { track_id: trackId, tutor_id: tutorId });
+  post<SessionInfo>("/api/lesson/session", { track_id: trackId, tutor_id: tutorId });
 
 /** Full-text PDF ingest: the backend extracts the text, builds knowledge points and stores it for the deck. */
 export function uploadPdf(trackId: string, file: File) {
   const form = new FormData();
   form.append("file", file);
-  return request<Track>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/materials/pdf`, { method: "POST", body: form });
+  return request<Track>(`/api/lesson/tracks/${encodeURIComponent(trackId)}/materials/pdf`, { method: "POST", body: form });
 }
 export const ingestUrl = (url: string, mode = "lecture") => post<WorkspaceDataset>("/api/ingest/url", { url, mode });

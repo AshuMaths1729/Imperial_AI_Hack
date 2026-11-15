@@ -43,7 +43,7 @@ export type Slide = {
 };
 export type Deck = { title: string; slides: Slide[] };
 
-/** GET/POST /api/tutor/tracks/{id}/deck */
+/** GET/POST /api/lesson/tracks/{id}/deck */
 export type DeckView = {
   status: "none" | "generating" | "ready" | "failed";
   source: "generated" | "fallback" | null;

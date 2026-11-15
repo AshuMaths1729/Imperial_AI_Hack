@@ -25,7 +25,7 @@ async def test_end_payload_has_summary_and_kps():
     post = SlowPost()
     await LessonEnder(post, "L1").end("Covered gradients.", ["m0:n1", "m0:n2"])
     assert post.calls == [
-        ("/api/tutor/lessons/L1/end", {"summary": "Covered gradients.", "covered_kp_ids": ["m0:n1", "m0:n2"]})
+        ("/api/lesson/lessons/L1/end", {"summary": "Covered gradients.", "covered_kp_ids": ["m0:n1", "m0:n2"]})
     ]
 
 

@@ -166,7 +166,7 @@ async def test_checkpoint_puts_one_state_message_after_the_instructions_and_post
     assert items[0].id == "instructions" and items[1].id == STATE_ID
     assert len(state_items(agent)) == 1 and "step 2" in items[1].text_content
     path, body = post.calls[-1]
-    assert path == "/api/tutor/lessons/L1/state"
+    assert path == "/api/lesson/lessons/L1/state"
     assert body["slide"] == 2 and body["step"] == 2 and body["text"] == s.context_text()
 
 

@@ -208,7 +208,7 @@ class LessonState:
             if snap == self._saved:
                 return
             try:
-                await self.post(f"/api/tutor/lessons/{self.lesson_id}/state", snap)
+                await self.post(f"/api/lesson/lessons/{self.lesson_id}/state", snap)
                 self._saved = snap
             except Exception as e:
                 logger.warning("lesson state: checkpoint not saved (%r)", e)
