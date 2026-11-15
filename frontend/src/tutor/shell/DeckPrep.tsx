@@ -52,9 +52,9 @@ export function DeckPrep({ trackId }: { trackId: string }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 pt-2">
-      <Presentation className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
-      <p role="status" className={`min-w-0 flex-1 text-[11px] ${err || view?.status === "failed" ? "text-rose-300" : "text-slate-400"}`}>
+    <div className="flex flex-wrap items-center gap-2 border-t border-[var(--st-line)] pt-2">
+      <Presentation className="h-3.5 w-3.5 shrink-0 text-[var(--st-muted)]" aria-hidden />
+      <p role="status" className={`min-w-0 flex-1 text-[11px] ${err || view?.status === "failed" ? "text-[var(--st-danger)]" : "text-[var(--st-muted)]"}`}>
         {generating && <Loader2 className="mr-1 inline h-3 w-3 animate-spin align-[-2px]" aria-hidden />}
         {statusLine(view, err)}
       </p>
@@ -62,7 +62,7 @@ export function DeckPrep({ trackId }: { trackId: string }) {
         <button
           type="button"
           onClick={() => setPreview(true)}
-          className="flex items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition-colors hover:border-sky-500"
+          className="flex items-center gap-1 rounded-xl border border-[var(--st-line-strong)] px-2.5 py-1 text-[11px] font-medium text-[var(--st-text-2)] transition-colors hover:border-[var(--st-accent)]"
         >
           <Play className="h-3 w-3" aria-hidden /> Preview
         </button>
@@ -71,7 +71,7 @@ export function DeckPrep({ trackId }: { trackId: string }) {
         type="button"
         onClick={prepare}
         disabled={generating || !view}
-        className="flex items-center gap-1 rounded-lg border border-slate-700 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition-colors hover:border-sky-500 disabled:opacity-40"
+        className="flex items-center gap-1 rounded-xl border border-[var(--st-line-strong)] px-2.5 py-1 text-[11px] font-medium text-[var(--st-text-2)] transition-colors hover:border-[var(--st-accent)] disabled:opacity-40"
       >
         <RefreshCw className="h-3 w-3" aria-hidden /> {view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
       </button>

@@ -34,6 +34,15 @@ export type Lesson = {
   worked: { kp_id: string; explanation_style: string }[];
   board_snapshot_ref: string | null;
 };
+/** GET /api/tutor/lessons/{id}/state: the agent's latest checkpoint (null until the first one). */
+export type LessonState = {
+  slide: number;
+  step: number;
+  idea: string;
+  detours: { topic: string; why: string; from_slide: number; from_step: number; from_idea: string }[];
+  concepts: { concept: string; level: "not_yet" | "shaky" | "got_it" | null; evidence: string; anchor: string; tries: number }[];
+  saved_at?: string | null;
+};
 export type SessionInfo = { url: string; token: string; room: string; lesson_id: string };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -60,6 +69,8 @@ export const addMaterial = (trackId: string, m: { kind: Material["kind"]; ref: s
 export const getDeck = (trackId: string) => request<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`);
 /** Starts (re)generating the track's slides in the background; poll getDeck for the status. */
 export const prepareDeck = (trackId: string) => post<DeckView>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/deck`, {});
+export const getLessonState = (lessonId: string) =>
+  request<LessonState | null>(`/api/tutor/lessons/${encodeURIComponent(lessonId)}/state`);
 export const startSession = (trackId: string, tutorId: string) =>
   post<SessionInfo>("/api/tutor/session", { track_id: trackId, tutor_id: tutorId });
 

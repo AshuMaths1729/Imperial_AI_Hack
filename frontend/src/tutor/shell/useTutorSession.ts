@@ -13,17 +13,19 @@ import {
   type RemoteVideoTrack,
 } from "livekit-client";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
-import type { StageHandle } from "@/tutor/slides";
 import { startSession } from "./api";
 import {
   AVATAR_IDENTITY,
   joinLesson,
+  makeCueScheduler,
   mergeCaption,
   micErrorMessage,
   onCaptions,
+  pointOnStage,
   sendCircle as sendCircleOn,
   sendLost as sendLostOn,
   type Caption,
+  type ShellStage,
 } from "./session";
 
 export type SessionStatus = "idle" | "connecting" | "live" | "error";
@@ -31,7 +33,7 @@ export type SessionStatus = "idle" | "connecting" | "live" | "error";
 export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
   const roomRef = useRef<Room | null>(null);
   const joinAbort = useRef<AbortController | null>(null); // aborted by Leave/unmount while still joining
-  const stageRef = useRef<StageHandle | null>(null); // set by CallView via setStage
+  const stageRef = useRef<ShellStage | null>(null); // set by CallView via setStage
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [error, setError] = useState<string>();
   const [lessonId, setLessonId] = useState<string>();
@@ -108,13 +110,18 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
           setError("The lesson connection closed.");
           setStatus("error");
         });
-      onCaptions(room, (c) => setCaptions((l) => mergeCaption(l, c)));
+      // F1: the laser follows the tutor's words (captions are word-synced to the audio).
+      const cues = makeCueScheduler((id) => pointOnStage(stageRef.current, boardRef.current, id));
+      onCaptions(room, (c) => {
+        cues.onCaption(c);
+        setCaptions((l) => mergeCaption(l, c));
+      });
 
       try {
         // joinLesson disconnects the room itself when aborted or failing
         const live = await joinLesson(
           room, () => startSession(trackId, tutorId), () => boardRef.current, ac.signal, setLessonId, () => stageRef.current,
-          (e) => setMicError(micErrorMessage(e))
+          (e) => setMicError(micErrorMessage(e)), cues
         );
         if (live) setStatus("live");
       } catch (e) {
@@ -145,7 +152,7 @@ export function useTutorSession(boardRef: RefObject<BoardHandle | null>) {
 
   return {
     /** CallView hands in tab switching + the Slides tab here, for the agent's RPCs. */
-    setStage: useCallback((h: StageHandle | null) => {
+    setStage: useCallback((h: ShellStage | null) => {
       stageRef.current = h;
     }, []),
     status,
