@@ -145,6 +145,7 @@ class SpeechCues:
             await asyncio.sleep(0)  # the request goes out before the first caption word
 
     async def _point(self, cues: list[dict]) -> None:
+        logger.info("laser cues: %s", cues)
         try:
             await self.rpc("ui.point_cues", {"cues": cues})
         except Exception as e:
