@@ -24,6 +24,8 @@ type Props = {
   deck?: Deck | null;
   deckLoading?: boolean;
   slidesRef?: Ref<SlidesHandle | null>;
+  /** The side panel's slot for the explanation pop-up, or null for the stage's bottom-right corner. */
+  explanationSlot?: HTMLElement | null;
   children?: ReactNode; // a strip under the stage (captions)
 };
 
@@ -40,7 +42,7 @@ const MOVING: Record<StageTab, string> = {
 };
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, children }: Props) {
+export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, explanationSlot = null, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   // `leaving` is the tab still fading out; derived during render so the old pane never blinks out before fading.
   const [fade, setFade] = useState<{ tab: StageTab; leaving: StageTab | null }>({ tab, leaving: null });
@@ -81,7 +83,7 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
         </div>
         {/* Mounted for the whole lesson too: the agent drives the deck over RPC even before the tab is shown. */}
         <div className={`absolute inset-0 ${pane("slides")}`}>
-          <SlidesStage ref={slidesRef} deck={deck} loading={deckLoading} circleMode={circleMode && tab === "slides"} onCircle={onCircle} />
+          <SlidesStage ref={slidesRef} deck={deck} loading={deckLoading} circleMode={circleMode && tab === "slides"} onCircle={onCircle} explanationSlot={explanationSlot} />
         </div>
         <div className={`absolute inset-0 bg-slate-950 ${pane("screen")}`}>
           {screenTrack ? (

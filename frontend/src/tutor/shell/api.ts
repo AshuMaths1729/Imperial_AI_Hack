@@ -50,8 +50,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const detail = body?.detail;
-    // FastAPI validation errors put a list in `detail`
-    throw new Error(typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : `HTTP ${res.status}`);
+    // FastAPI validation errors put a list in `detail`; `status` lets callers explain e.g. a 413
+    const msg = typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : `HTTP ${res.status}`;
+    throw Object.assign(new Error(msg), { status: res.status });
   }
   return res.json() as Promise<T>;
 }
@@ -74,10 +75,10 @@ export const getLessonState = (lessonId: string) =>
 export const startSession = (trackId: string, tutorId: string) =>
   post<SessionInfo>("/api/tutor/session", { track_id: trackId, tutor_id: tutorId });
 
-export function ingestPdf(file: File, mode = "lecture") {
+/** Full-text PDF ingest: the backend extracts the text, builds knowledge points and stores it for the deck. */
+export function uploadPdf(trackId: string, file: File) {
   const form = new FormData();
   form.append("file", file);
-  form.append("mode", mode);
-  return request<WorkspaceDataset>("/api/ingest/pdf", { method: "POST", body: form });
+  return request<Track>(`/api/tutor/tracks/${encodeURIComponent(trackId)}/materials/pdf`, { method: "POST", body: form });
 }
 export const ingestUrl = (url: string, mode = "lecture") => post<WorkspaceDataset>("/api/ingest/url", { url, mode });

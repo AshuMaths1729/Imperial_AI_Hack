@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Mic, Plus, Video } from "lucide-react";
 import { createTrack, type Track, type Tutor } from "./api";
 import { AddMaterial } from "./AddMaterial";
-import { DeckPrep } from "./DeckPrep";
 import { initials } from "./VideoTiles";
 
 /** Pre-join mic/camera check. Started by a click (no surprise permission prompt) and released on unmount so LiveKit can take the devices. */
@@ -205,10 +204,10 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
                 {track.knowledge_points.length} knowledge points · {track.materials.length} materials
               </p>
               <AddMaterial
+                key={track.track_id}
                 trackId={track.track_id}
                 onAdded={(t) => onTracksChange(tracks.map((x) => (x.track_id === t.track_id ? t : x)))}
               />
-              <DeckPrep key={track.track_id} trackId={track.track_id} />
             </div>
           )}
         </section>

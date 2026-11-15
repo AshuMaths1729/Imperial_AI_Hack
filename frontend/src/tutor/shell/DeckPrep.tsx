@@ -18,11 +18,15 @@ function statusLine(v: DeckView | null, err?: string): string {
   return `${failed}No slides yet.`;
 }
 
-/** Lobby: prepare (or regenerate) the track's animated deck before the lesson, and preview it. Key it by track. */
-export function DeckPrep({ trackId }: { trackId: string }) {
+/**
+ * Prepare (or regenerate) the track's animated deck, and preview it. Key it by track.
+ * `offer`: a PDF was just added, so invite building the slides from it (until the student does).
+ */
+export function DeckPrep({ trackId, offer: offered = false }: { trackId: string; offer?: boolean }) {
   const [view, setView] = useState<DeckView | null>(null);
   const [err, setErr] = useState<string>();
   const [preview, setPreview] = useState(false);
+  const [offer, setOffer] = useState(offered);
   const generating = view?.status === "generating";
 
   useEffect(() => {
@@ -44,6 +48,7 @@ export function DeckPrep({ trackId }: { trackId: string }) {
 
   const prepare = async () => {
     setErr(undefined);
+    setOffer(false);
     try {
       setView(await prepareDeck(trackId));
     } catch (e) {
@@ -56,7 +61,7 @@ export function DeckPrep({ trackId }: { trackId: string }) {
       <Presentation className="h-3.5 w-3.5 shrink-0 text-[var(--st-muted)]" aria-hidden />
       <p role="status" className={`min-w-0 flex-1 text-[11px] ${err || view?.status === "failed" ? "text-[var(--st-danger)]" : "text-[var(--st-muted)]"}`}>
         {generating && <Loader2 className="mr-1 inline h-3 w-3 animate-spin align-[-2px]" aria-hidden />}
-        {statusLine(view, err)}
+        {offer && view && !generating && !err ? "Your PDF is in. Prepare slides to build the lesson from it." : statusLine(view, err)}
       </p>
       {view?.deck && (
         <button
@@ -71,9 +76,13 @@ export function DeckPrep({ trackId }: { trackId: string }) {
         type="button"
         onClick={prepare}
         disabled={generating || !view}
-        className="flex items-center gap-1 rounded-xl border border-[var(--st-line-strong)] px-2.5 py-1 text-[11px] font-medium text-[var(--st-text-2)] transition-colors hover:border-[var(--st-accent)] disabled:opacity-40"
+        className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 ${
+          offer
+            ? "border-[var(--st-accent)] bg-[var(--st-accent)] text-[var(--st-accent-fg)] hover:bg-[var(--st-accent-hover)]"
+            : "border-[var(--st-line-strong)] text-[var(--st-text-2)] hover:border-[var(--st-accent)]"
+        }`}
       >
-        <RefreshCw className="h-3 w-3" aria-hidden /> {view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
+        <RefreshCw className="h-3 w-3" aria-hidden /> {!offer && view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
       </button>
 
       {preview && view?.deck && (

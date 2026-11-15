@@ -26,7 +26,7 @@ vi.mock("./api", () => ({
   addMaterial: vi.fn(async () => ({
     track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [], knowledge_points: [], created_at: "",
   })),
-  ingestPdf: vi.fn(),
+  uploadPdf: vi.fn(),
   getDeck: vi.fn(async () => deckView()),
   getLessonState: vi.fn(async () => ({
     slide: 1, step: 0, idea: "", detours: [],
