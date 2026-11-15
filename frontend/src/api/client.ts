@@ -1,7 +1,13 @@
 /** Tiny typed fetch wrapper: JSON / multipart / blob, one `ApiError`, AbortSignal. No deps. */
 import type { ErrorEnvelope } from "./types";
 
-export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(
+// NEXT_PUBLIC_API_URL is the app-wide setting (page.tsx, tutor/shell/api.ts); NEXT_PUBLIC_API_BASE is kept
+// as an alias so one variable points every client at the same backend.
+export const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  "http://127.0.0.1:8000"
+).replace(
   /\/+$/,
   "",
 );
