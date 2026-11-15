@@ -29,6 +29,8 @@ export type HypothesisTopicRun = TopicRun;
 
 interface HypothesisChatViewProps {
   onBackHome: () => void;
+  /** Open this saved topic (a history entry id) on arrival, e.g. from Home's recent list. */
+  initialTopicId?: string;
 }
 
 const HISTORY_STORAGE_KEY = "scholartwin.hypothesis.history.v1";

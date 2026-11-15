@@ -708,37 +708,50 @@ body {
   outline-offset: 2px;
 }
 
-/* Custom Apple-style range slider */
+/* Liquid-glass range slider: a recessed track, filled in the slider's hue up to the thumb
+   (set --fill: 0–100% and optionally --tint on the input), and a glass capsule thumb. */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
   border-radius: 9999px;
-  background: var(--bg-surface-muted);
+  background: linear-gradient(
+    90deg,
+    var(--tint, var(--accent)) var(--fill, 0%),
+    var(--bg-surface-muted) var(--fill, 0%)
+  );
   border: 1px solid var(--border-subtle);
   cursor: pointer;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 18px;
   border-radius: 9999px;
-  background: var(--accent);
-  border: 2px solid var(--bg-surface-solid);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--border-strong);
+  box-shadow: inset 0 1px 0 #fff, 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 3px 8px rgba(0, 0, 0, 0.2);
   transition: transform 100ms ease-out;
 }
 input[type="range"]::-webkit-slider-thumb:active {
   transform: scale(1.12);
 }
 input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 18px;
   border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.7));
+  border: 1px solid var(--border-strong);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+[data-theme="contrast"] input[type="range"]::-webkit-slider-thumb {
   background: var(--accent);
   border: 2px solid var(--bg-surface-solid);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+[data-theme="contrast"] input[type="range"]::-moz-range-thumb {
+  background: var(--accent);
+  border: 2px solid var(--bg-surface-solid);
 }
 input[type="range"]:focus-visible {
   outline: 2px solid var(--accent);
