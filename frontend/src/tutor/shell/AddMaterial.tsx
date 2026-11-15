@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link2, Loader2, Upload } from "lucide-react";
-import { addMaterial, ingestUrl, uploadPdf, type Track } from "./api";
+import { addMaterial, getTrack, ingestUrl, uploadPdf, type Track } from "./api";
 import { DeckPrep } from "./DeckPrep";
 
 /** Quiet pill buttons; disabled keeps legible muted ink instead of fading out. */
@@ -22,6 +22,10 @@ function pdfError(e: unknown): string {
   return `The server failed while reading the PDF (${text}). Try again.`;
 }
 
+/** The upload answers at once with quick heading key points; the model's arrive a few seconds later. */
+const KP_REFRESH_MS = 1500;
+const KP_REFRESH_TRIES = 16;
+
 /**
  * URL → team ingest → add to track; PDF → the track's full-text PDF endpoint. Then the deck can be prepared from the
  * new material (DeckPrep, re-read after each PDF).
@@ -32,6 +36,28 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
   const [msg, setMsg] = useState<{ ok: boolean; text: string }>();
   const [pdfs, setPdfs] = useState(0); // PDFs added here: remounts DeckPrep with the offer (key this by track)
   const fileRef = useRef<HTMLInputElement>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  /** Swap in the model's key points once the backend has written them (background, ~5 s after an upload). */
+  const refreshKps = async (before: Track) => {
+    const was = JSON.stringify(before.knowledge_points);
+    for (let i = 0; i < KP_REFRESH_TRIES && alive.current; i++) {
+      await new Promise((r) => setTimeout(r, KP_REFRESH_MS));
+      const latest = await getTrack(trackId).then((d) => d.track, () => null);
+      if (!alive.current) return;
+      if (latest && JSON.stringify(latest.knowledge_points) !== was) {
+        onAdded(latest);
+        setMsg({ ok: true, text: `Key points ready: the track now has ${latest.knowledge_points.length}.` });
+        return;
+      }
+    }
+  };
 
   const run = async (kind: "url" | "pdf", work: () => Promise<string>, fail: (e: unknown) => string) => {
     setBusy(kind);
@@ -73,8 +99,8 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
         const t = await uploadPdf(trackId, f);
         onAdded(t);
         setPdfs((n) => n + 1);
-        const n = t.knowledge_points.length;
-        return `Added ${f.name}. The track now has ${n} knowledge point${n === 1 ? "" : "s"}.`;
+        void refreshKps(t);
+        return `Added ${f.name}. Writing its key points now; they appear here in a few seconds.`;
       },
       pdfError
     );
@@ -118,7 +144,7 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
           <span aria-hidden className="relative h-1 w-10 overflow-hidden rounded-full bg-[var(--accent-soft)]">
             <span className="st-progress absolute inset-y-0 left-0 w-1/3 rounded-full bg-[var(--accent)]" />
           </span>
-          {busy === "pdf" ? "Reading the PDF… building knowledge points" : "Reading material…"}
+          {busy === "pdf" ? "Reading the PDF…" : "Reading material…"}
         </p>
       )}
       {msg && (

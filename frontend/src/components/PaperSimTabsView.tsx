@@ -13,7 +13,6 @@ import type { PaperSimTabProps } from "./papersim/types";
 import { normalizeSimulation } from "./papersim/normalize";
 import { prettyMath } from "./math/autoMath";
 import { MODULES } from "../modules";
-import { AskTutorButton, type AskTutorTopic } from "../tutor/AskTutorButton";
 
 type PaperSimTab = "plot" | "concepts" | "series" | "code";
 
@@ -49,16 +48,6 @@ const TABS: {
 const tabId = (id: PaperSimTab) => `ps-tab-${id}`;
 const panelId = (id: PaperSimTab) => `ps-panel-${id}`;
 
-/** arXiv ids look like 2504.15965(v2) or hep-th/9901001; simulation ids ("sim_…") are not sources. */
-const ARXIV_ID = /^(\d{4}\.\d{4,5}(v\d+)?|[a-z-]+(\.[A-Z]{2})?\/\d{7}(v\d+)?)$/i;
-
-/** Where the paper came from, when the dataset says (only an arXiv id survives into it). */
-function sourceOf(dataset: WorkspaceDataset): AskTutorTopic["source"] {
-  const id = dataset.simulation?.arxiv_id?.trim();
-  if (id && ARXIV_ID.test(id)) return { kind: "url", ref: `https://arxiv.org/abs/${id}` };
-  return undefined;
-}
-
 export function PaperSimTabsView({
   dataset,
   paramValues,
@@ -82,11 +71,6 @@ export function PaperSimTabsView({
     [dataset, simulation]
   );
   const paperTitle = dataset?.title ? prettyMath(dataset.title) : undefined;
-  const topic = useMemo<AskTutorTopic | null>(() => {
-    if (!dataset) return null;
-    const source = sourceOf(dataset);
-    return { title: paperTitle ?? MODULE.name, dataset, ...(source ? { source } : {}) };
-  }, [dataset, paperTitle]);
 
   const pick = (id: PaperSimTab) => {
     if (id !== activeTab) scrollRef.current?.scrollTo({ top: 0 });
@@ -138,7 +122,6 @@ export function PaperSimTabsView({
             ...(id === activeTab ? { "aria-controls": panelId(id) } : {}),
           })}
         />
-        {topic && <AskTutorButton topic={topic} className="ml-auto" />}
       </div>
 
       {statusMsg && (

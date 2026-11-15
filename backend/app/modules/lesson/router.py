@@ -1,4 +1,5 @@
 import functools
+import logging
 import os
 import threading
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ tutor_router = APIRouter(prefix="/lesson", tags=["lesson"])  # mounted under /ap
 _store: Optional[Store] = None
 # Sync endpoints run in a threadpool; read-modify-write endpoints hold this for their whole body.
 # shortcut: one global lock, fine for one process; use per-document locks or Mongo atomic updates to scale.
+log = logging.getLogger(__name__)
 _write_lock = threading.Lock()
 
 
@@ -160,36 +162,88 @@ def get_deck_llm() -> decks.LLM:
     return decks.anthropic_llm
 
 
+# Key points still being written for a track's PDF uploads: deck generation waits for them (it builds from the KPs).
+_pending_kps: dict[str, list[threading.Event]] = {}
+_pending_lock = threading.Lock()
+KP_WAIT_S = 60.0
+
+
+def _prefix(kps: List[KP], prefix: str) -> List[KP]:
+    for k in kps:  # built with the placeholder prefix "_"
+        k.kp_id = prefix + k.kp_id[1:]
+        k.prereq_ids = [prefix + p[1:] for p in k.prereq_ids]
+    return kps
+
+
+def _refine_kps(store: Store, track_id: str, prefix: str, pages: List[str], name: str, llm, done: threading.Event) -> None:
+    """Background: replace an upload's quick heading KPs with the model's KPs (and its title), then release waiters."""
+    try:
+        title, kps = pdf.build_kps(pages, name, "_", llm, decks.MODEL)
+        with _write_lock:
+            track = _lookup(store.get_track, track_id)
+            mine = f"{prefix}:"
+            old = {k.kp_id: k for k in track.knowledge_points if k.kp_id.startswith(mine)}
+            fresh = _prefix(kps, prefix)
+            for k in fresh:  # a lesson may already have marked a heading KP with the same id: keep its progress
+                if k.kp_id in old:
+                    k.status, k.evidence = old[k.kp_id].status, old[k.kp_id].evidence
+            track.knowledge_points = [k for k in track.knowledge_points if not k.kp_id.startswith(mine)] + fresh
+            for m in track.materials:
+                if m.kind == "pdf" and m.ref == name and m.dataset_title == name and title:
+                    m.dataset_title = title
+            store.save_track(track)
+    except Exception:  # never lose the upload over this; the heading KPs stay
+        log.exception("background key points failed for %s", name)
+    finally:
+        done.set()
+        with _pending_lock:
+            waiting = _pending_kps.get(track_id, [])
+            if done in waiting:
+                waiting.remove(done)
+
+
+def wait_for_kps(track_id: str, timeout: float = KP_WAIT_S) -> None:
+    with _pending_lock:
+        events = list(_pending_kps.get(track_id, []))
+    for e in events:
+        e.wait(timeout)
+
+
 @tutor_router.post("/tracks/{track_id}/materials/pdf")
-def add_pdf(track_id: str, file: UploadFile = File(...), store: Store = Depends(get_store),
+def add_pdf(track_id: str, background: BackgroundTasks, file: UploadFile = File(...), store: Store = Depends(get_store),
             llm: decks.LLM = Depends(get_deck_llm)) -> Track:
-    """Full text of the PDF is stored; KPs are built from it (Sonnet, else headings). Returns the updated Track."""
+    """Full text of the PDF is stored and the Track comes back at once with quick heading KPs; the model's KPs
+    (Sonnet) replace them a few seconds later in the background (the upload no longer waits ~5 s for them)."""
     _lookup(store.get_track, track_id)
     try:
         pages = pdf.extract_pages(file.file.read(pdf.MAX_BYTES + 1))
     except pdf.PdfError as e:
         raise HTTPException(e.status, str(e))
     name = file.filename or "upload.pdf"
-    # The model call runs outside the write lock (it can take tens of seconds); KP ids get their prefix under it.
-    title, kps = pdf.build_kps(pages, name, "_", llm, decks.MODEL)  # "_" = placeholder prefix, swapped below
     with _write_lock:
         track = _lookup(store.get_track, track_id)
         prefix = f"m{len(track.materials)}"
-        for k in kps:
-            k.kp_id = prefix + k.kp_id[1:]
-            k.prereq_ids = [prefix + p[1:] for p in k.prereq_ids]
         store.save_material_text(track_id, prefix, {"track_id": track_id, "material": prefix, "filename": name,
                                                     "pages": pages})
-        track.materials.append(Material(kind="pdf", ref=name, dataset_title=title or name))
-        track.knowledge_points += kps
+        track.materials.append(Material(kind="pdf", ref=name, dataset_title=name))
+        track.knowledge_points += _prefix(pdf.heading_kps(pages, "_"), prefix)
         store.save_track(track)
-        return track
+    done = threading.Event()
+    with _pending_lock:
+        _pending_kps.setdefault(track_id, []).append(done)
+    background.add_task(_refine_kps, store, track_id, prefix, pages, name, llm, done)
+    return track
 
 
 @tutor_router.get("/tracks/{track_id}/deck")
 def get_deck(track_id: str, store: Store = Depends(get_store)):
     _lookup(store.get_track, track_id)
     return decks.deck_view(track_id, store.get_deck(track_id))
+
+
+def _generate_after_kps(store: Store, track_id: str, llm) -> None:
+    wait_for_kps(track_id)  # slides are built from the KPs: never from an upload's placeholder headings
+    decks.run_generation(store, track_id, llm)
 
 
 @tutor_router.post("/tracks/{track_id}/deck")
@@ -202,7 +256,7 @@ def generate_deck(track_id: str, background: BackgroundTasks, store: Store = Dep
     if doc.get("status") != "generating" or decks.is_stale(doc):
         doc = {**doc, "status": "generating", "error": "", "updated_at": decks.now()}
         store.save_deck(track_id, doc)
-        background.add_task(decks.run_generation, store, track_id, llm)
+        background.add_task(_generate_after_kps, store, track_id, llm)
     return decks.deck_view(track_id, doc)
 
 

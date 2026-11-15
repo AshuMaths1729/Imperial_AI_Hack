@@ -12,7 +12,6 @@ import { SearchProgress, StarterTopics } from "./hypothesis/EvidenceHero";
 import { buildHypothesisModel } from "./hypothesis/model";
 import { EdgeDetails, NodeDetails, QuestionDetails, type DetailVariant } from "./hypothesis/Details";
 import { PaperList } from "./hypothesis/PaperList";
-import { AskTutorButton } from "../tutor/AskTutorButton";
 import { MODULES } from "../modules";
 
 export type HypothesisTopicRun = TopicRun;
@@ -578,14 +577,12 @@ export function HypothesisChatView({ onBackHome, initialTopicId }: HypothesisCha
                   {!wide && detail}
                 </div>
 
-                {/* A footer lane under the map holds the hint and the tutor button, so the button
-                    never sits on a node, the zoom controls or the details. */}
+                {/* A footer lane under the map holds the hint, clear of the nodes and zoom controls. */}
                 <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--border-subtle)] py-2.5 pl-4 pr-2.5 sm:pl-5">
                   <p className="flex min-w-[12rem] flex-1 items-center gap-1.5 text-[12px] leading-snug text-[var(--text-secondary)]">
                     <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-[var(--status-gap)]" aria-hidden />
                     <span>Click a paper to see its claims and links · click a line to see why</span>
                   </p>
-                  <AskTutorButton topic={{ title: dataset.title, dataset }} className="ml-auto shrink-0" />
                 </div>
               </section>
 

@@ -55,16 +55,18 @@ def save_spec(settings: Settings, spec: SimSpec) -> None:
     os.replace(tmp, target)
 
 
-async def load_spec(settings: Settings, sim_id: str) -> SimSpec:
+async def load_spec(settings: Settings, sim_id: str, *, bundled: bool = False) -> SimSpec:
+    """A generated simulation by id. `bundled=True` (re-runs only) also serves the frontend's built-in sample
+    simulations from the repo fixtures; GET /sim/{id} keeps 404ing for them (the demo routes are retired)."""
     if not _ID_RE.match(sim_id):
         raise NotFound(f"unknown simulation {sim_id!r}")
     path = sims_dir(settings) / f"{sim_id}.json"
     if not path.is_file():
         # Built-in samples (the frontend's "Built-in example" papers) ship as repo fixtures, never generated
         # here; serve them so their sliders, scenarios and sweeps re-run like any other simulation.
-        bundled = settings.fixtures_dir / f"{sim_id}.json"
-        if sim_id.startswith("sim_") and bundled.is_file():
-            data = json.loads(bundled.read_text(encoding="utf-8"))
+        fixture = settings.fixtures_dir / f"{sim_id}.json"
+        if bundled and sim_id.startswith("sim_") and fixture.is_file():
+            data = json.loads(fixture.read_text(encoding="utf-8"))
             return SimSpec.model_validate({
                 "title": data.get("paper_title") or sim_id,
                 "validation": {"status": "passed"},  # a curated sample, checked when it was written

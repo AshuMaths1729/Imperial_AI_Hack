@@ -1,6 +1,6 @@
 # Athena — System & UI Design
 
-Athena is a multimodal AI research and learning workspace. It has three modules, **Live Lessons**, **Paper Simulator** and **Evidence Map**. Live Lessons is a live **Synthesia + LiveKit** avatar tutor with slides, a whiteboard and Circle-to-Ask. The other two modules hand off to it with **Ask a tutor about this**.
+Athena is a multimodal AI research and learning workspace. It has three modules, **Live Lessons**, **Paper Simulator** and **Evidence Map**. Live Lessons is a live **Synthesia + LiveKit** avatar tutor with slides, a whiteboard and Circle-to-Ask. The tutor lives only in Live Lessons.
 
 The names people see come from [modules.ts](frontend/src/modules.ts), together with each module's verb, description, call to action, icon, hue and landscape. The internal ids stay `lecture`, `paper2sim` and `hypothesis` (routes, storage keys, API modes). Never show an id as text; read the name from `MODULES`.
 
@@ -37,8 +37,6 @@ flowchart LR
   PS -->|POST /api/sim/run| Ingest
   EM -->|POST /api/topics| Ingest
   EM -->|mic → POST /api/stt| Voice
-  PS -->|Ask a tutor about this| LessonAPI
-  EM -->|Ask a tutor about this| LessonAPI
   PS -->|"/lecture/lesson?track=id"| Lessons
   EM -->|"/lecture/lesson?track=id"| Lessons
   Lessons -->|Track, material, deck, mint token| LessonAPI
@@ -58,10 +56,7 @@ The visual system is **Meadow Glass**, defined in [globals.css](frontend/src/app
 - **Liquid glass over nature.** Every screen sits on a painted landscape ([Scene](frontend/src/components/nature/Scene.tsx)). Content and controls float above it as translucent glass layers. Each layer has a bright rim, an inner top highlight and a static diagonal sheen. Some also carry the opt-in lens rim (`glass-lens`). The header is a floating capsule, panes are floating sheets inset with ~10 px gaps, and single-line controls are capsules. Screen roots stay transparent so the landscape shows through.
 - **No pointer-following light.** Glass does not react to the cursor position. It was removed on purpose; do not add it back. Hover feedback is the `st-sheen` sweep, a raised shadow or a small lift.
 - **Calm surfaces, expressive entrances.** The expression comes from motion: things fade up in a stagger, graphs draw themselves, cards lift on hover, the segmented control's drop slides. The landscape stays still apart from slowly drifting pollen.
-- **Ask a tutor about this.** The tutor is not in the header.
-  - **Where the button appears:** only in the two inner workspaces. In the Paper Simulator it sits in the workspace bar next to the tabs. In the Evidence Map it sits in the footer lane under the map. In both places it never covers content.
-  - **Where it does not:** Home, the Paper Simulator start screen and the Evidence Map start screen. Live Lessons is the lesson itself (`/lecture/lesson`).
-  - **Click:** [AskTutorButton](frontend/src/tutor/AskTutorButton.tsx) and [askTutor.ts](frontend/src/tutor/askTutor.ts) reuse the learning track already made for that paper or map (same title and material ref), or create one with it as the material. A paper sends its concepts (else its model, equations and parameters); a map sends its claims with their supports / contradicts / open-question links written into each node's summary. Then it opens the lesson lobby on that track (`/lecture/lesson?track=<id>`), where the student picks a tutor and joins. While it works the capsule reads "Setting up your lesson…"; a failure shows a short reason under it.
+- **The tutor lives only in Live Lessons.** The Paper Simulator and Evidence Map have no tutor button (it was removed on purpose); start a lesson from the Live Lessons card or Home's recent list.
 - **Show the paper's meaning, not the plumbing.**
   - Math always renders, as KaTeX or Unicode.
   - Graph links say how things relate ("Agrees with", "Builds on", "Leaves open"), never a generic "governs".
@@ -168,7 +163,7 @@ Edge colours and dashes live in one place, `EDGE_PALETTE` in [GraphCanvas.tsx](f
 
 - **Back button:** always first. Its label hides below `sm` (icon plus tooltip remain). It hovers in the module hue.
 - **Actions:** screen actions use `HeaderAction`, whose labels collapse to icons below `lg`; an active action is `apple-tint` in the module hue. Theme labels hide below `xl`.
-- **The tutor is not in the header.** It is the **Ask a tutor about this** button inside each workspace (§2.1).
+- **The tutor is not in the header.** It lives only in Live Lessons (§2.1).
 - **Overflow:** the bar must never overflow, down to 390 px.
 - **Home:** the header carries only the global controls. The **Athena** wordmark sits centre stage instead.
 
@@ -241,9 +236,9 @@ The aurora, grid, glow-border, pan, pop and twinkle keyframes still sit in `glob
     - **Details** ([Details.tsx](frontend/src/components/hypothesis/Details.tsx)): one component for whatever is selected. `NodeDetails` shows a paper (citation and "Open paper", its claims and what each links to: "Agrees with / Contradicts <paper> — <their claim>" with a "Why" button, or "Leaves open <question>") or an open question. `EdgeDetails` shows the claim pairs behind a line, the explanation and the quotes; "Back" returns to the paper. With nothing selected, `QuestionDetails` shows the topic's question.
     - On wide screens the details sit at the top of the side panel. On narrower screens they are a glass bubble docked to the bottom of the map. The header (tag, title, citation, list label) stays put; only the list scrolls. The zoom controls are top-left (`GraphCanvas` `controlsPosition`), so the details never cover them.
     - Below the details, [PaperList](frontend/src/components/hypothesis/PaperList.tsx) has three `Segmented` tabs, **Papers**, **Claims** and **Questions**, as flat lists. Clicking a row selects it on the map and shows its details; a claim shows its paper's details with that claim marked.
-    - A footer lane under the map holds the hint and **Ask a tutor about this**.
+    - A footer lane under the map holds the hint.
     - Esc or clicking empty canvas clears the selection. Focus zooms leave room for the details.
-- **Paper Simulator workspace** ([PaperSimTabsView.tsx](frontend/src/components/PaperSimTabsView.tsx), [papersim/](frontend/src/components/papersim)): the header shows the paper title with the module name as subtitle, and an **Open a paper** action. Below it, a workspace bar holds the `Segmented` tabs (thick glass with `glass-lens`, so the names stay legible over the landscape) and **Ask a tutor about this**.
+- **Paper Simulator workspace** ([PaperSimTabsView.tsx](frontend/src/components/PaperSimTabsView.tsx), [papersim/](frontend/src/components/papersim)): the header shows the paper title with the module name as subtitle, and an **Open a paper** action. Below it, a workspace bar holds the `Segmented` tabs (thick glass with `glass-lens`, so the names stay legible over the landscape).
   - **Simulate:** parameter cards with sliders, presets with "what to look for", a sweep panel, and one legend table per chart ([SeriesLegend.tsx](frontend/src/components/papersim/simulation/SeriesLegend.tsx)). Each series is named once with its swatch (colour and dash), and its key numbers (final or cursor value, min and max with where they occur, change against the latest pin) sit on the same row. Click a name to show or hide the series; hover a row to spotlight its curve.
   - **Concepts:**
     - Layered dagre layout; wide ranks wrap into rows of four.
@@ -286,7 +281,7 @@ type Screen = "home" | "library" | "papersim-workspace" | "hypothesis-chat"
 2. **Paper Simulator start screen** (`library`, [LibraryView.tsx](frontend/src/components/LibraryView.tsx)): **Open a paper** and **Your papers**. Papers are kept in `localStorage` under `scholartwin.library.v1` via `useSyncExternalStore` to avoid hydration mismatches. Hills.
 3. **Paper Simulator workspace** ([PaperSimTabsView.tsx](frontend/src/components/PaperSimTabsView.tsx)): four tabs (§2.8). Slider changes re-run the simulation through `POST /api/sim/run`; the latest request wins, and older saves recover their `sim_id` from the code hash. Hills.
 4. **Evidence Map** ([HypothesisChatView.tsx](frontend/src/components/HypothesisChatView.tsx)): the saved-topics sidebar (topics stored under `scholartwin.hypothesis.history.v1`, including `lastNodeId`), the map and the details panel. `initialTopicId` opens a saved topic directly (from Home's recent list). Lake.
-5. **Live Lessons** is its own route, `/lecture/lesson` ([lecture/lesson/page.tsx](frontend/src/app/lecture/lesson/page.tsx), components in `frontend/src/tutor/shell/`): the lobby, then the live call with slides, whiteboard and captions, then the recap. `?track=<id>` opens the lobby on that track (used by Home's recent list and **Ask a tutor about this**). Meadow.
+5. **Live Lessons** is its own route, `/lecture/lesson` ([lecture/lesson/page.tsx](frontend/src/app/lecture/lesson/page.tsx), components in `frontend/src/tutor/shell/`): the lobby, then the live call with slides, whiteboard and captions, then the recap. `?track=<id>` opens the lobby on that track (used by Home's recent list). Meadow.
 
 ### 3.2 API client and data adapters
 

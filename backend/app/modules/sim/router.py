@@ -229,7 +229,7 @@ async def generate_from_pdf(
 
 @router.post("/run", response_model=RunResponse)
 async def run(req: RunRequest, settings: Settings = Depends(get_settings)) -> RunResponse:
-    spec = await load_spec(settings, req.sim_id)
+    spec = await load_spec(settings, req.sim_id, bundled=True)  # built-in samples re-run too
     code = spec.python_code or ""
     clamped = {
         name: min(max(req.params.get(name, ps.default), ps.min), ps.max)

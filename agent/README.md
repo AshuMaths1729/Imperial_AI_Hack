@@ -17,9 +17,7 @@ Browser (Next.js)                         FastAPI backend                      T
 - **Tutors**: Kenji, Jenny and Mei, defined once in `backend/app/modules/lesson/seed.py` (avatar id,
   ElevenLabs voice id, personality). The agent reads its tutor, the learning track and the student's
   progress from the lesson context, so you only edit tutors there.
-- **Where it shows up**: the Live Lesson page `/lecture/lesson` (LectureUnderstanding), and the
-  **Ask a tutor about this** button in the Paper Simulator and Evidence Map screens, which turns the
-  paper or map on screen into a learning track and opens the lesson lobby on it.
+- **Where it shows up**: only the Live Lessons page, `/lecture/lesson`.
 
 ## 1. What you need
 
@@ -117,7 +115,6 @@ the deployed agent's calls (or each other's).
 | `backend/app/modules/lesson/` | `/api/lesson/*`: tutors, learning tracks, materials, slide decks, `POST /api/lesson/session` (LiveKit token + agent dispatch), lesson context, progress and recap |
 | `frontend/src/app/lecture/lesson/page.tsx` | `/lecture/lesson`: lobby, live call and recap |
 | `frontend/src/tutor/shell/` | Lobby, call view, LiveKit session hook and the lesson API client |
-| `frontend/src/tutor/AskTutorButton.tsx` | **Ask a tutor about this**: makes a track from the paper or evidence map on screen and opens the lobby on it |
 | `frontend/public/tutors/` | Tutor portraits (frames from the live avatars) and ElevenLabs voice samples |
 
 Tests: `cd agent && uv run pytest`, and `cd backend && uv run pytest tests/lesson`.

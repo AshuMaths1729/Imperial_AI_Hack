@@ -55,9 +55,13 @@ def test_upload_stores_text_material_and_llm_kps(env):
     llm.replies.append(kp_reply())
     r = upload(client, tid, make_pdf())
     assert r.status_code == 200
+    # The upload answers at once with quick heading KPs; the model's KPs replace them in the background.
     t = r.json()
-    assert t["materials"] == [{"kind": "pdf", "ref": "notes.pdf", "dataset_title": "Differentiation"}]
-    kps = t["knowledge_points"]
+    assert t["materials"] == [{"kind": "pdf", "ref": "notes.pdf", "dataset_title": "notes.pdf"}]
+    assert [k["title"] for k in t["knowledge_points"]] == ["Differentiation notes", "Chords on a curve", "First principles"]
+    track = store.get_track(tid)  # TestClient has run the background task by now
+    assert track.materials[0].dataset_title == "Differentiation"
+    kps = [k.model_dump() for k in track.knowledge_points]
     assert [k["kp_id"] for k in kps] == [f"m0:k{i}" for i in range(1, 6)]
     assert kps[1]["prereq_ids"] == ["m0:k1"]  # unknown prereqs dropped
     doc = store.get_material_text(tid, "m0")
@@ -72,8 +76,9 @@ def test_second_upload_gets_next_prefix(env):
     client, store, llm, tid = env
     llm.replies += [kp_reply(), kp_reply(6)]
     upload(client, tid, make_pdf())
-    t = upload(client, tid, make_pdf(), "b.pdf").json()
-    assert len(t["materials"]) == 2 and t["knowledge_points"][-1]["kp_id"] == "m1:k6"
+    upload(client, tid, make_pdf(), "b.pdf")
+    t = store.get_track(tid)
+    assert len(t.materials) == 2 and t.knowledge_points[-1].kp_id == "m1:k6"
     assert store.get_material_text(tid, "m1")["filename"] == "b.pdf"
 
 
@@ -124,3 +129,20 @@ def test_pdf_excerpt_keeps_kp_pages_in_order():
     assert "[page 2]" in out and "[page 4]" in out and "[page 1]" not in out
     assert out.index("[page 2]") < out.index("[page 4]")
     assert decks.pdf_excerpt(["short"], []) == "[page 1]\nshort"
+
+
+def test_deck_generation_waits_for_pending_key_points():
+    import threading
+    import time
+
+    import importlib
+
+    lesson_router = importlib.import_module("app.modules.lesson.router")  # the package exports an APIRouter named router
+
+    done = threading.Event()
+    lesson_router._pending_kps["t-wait"] = [done]
+    threading.Timer(0.2, done.set).start()
+    t0 = time.monotonic()
+    lesson_router.wait_for_kps("t-wait", timeout=5)
+    assert 0.15 <= time.monotonic() - t0 < 2
+    lesson_router._pending_kps.pop("t-wait", None)

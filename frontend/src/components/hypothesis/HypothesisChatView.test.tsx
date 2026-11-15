@@ -23,9 +23,6 @@ vi.mock("../GraphCanvas", () => ({
     </div>
   ),
 }));
-vi.mock("../../tutor/AskTutorButton", () => ({
-  AskTutorButton: ({ topic }: { topic: { title: string } }) => <a href="#tutor">Ask a tutor about this: {topic.title}</a>,
-}));
 vi.mock("../ThemeProvider", () => ({ ThemeToggle: () => null }));
 const createTopicGraph = vi.fn();
 vi.mock("../../api/endpoints", () => ({
@@ -124,9 +121,9 @@ describe("Evidence Map", () => {
     expect(screen.getByText(/What does the research say\?/)).toBeTruthy();
   });
 
-  it("shows a paper's claims, quote and links in the side panel, and the tutor button", () => {
+  it("shows a paper's claims, quote and links in the side panel, with no tutor button outside Live Lessons", () => {
     render(<HypothesisChatView onBackHome={() => {}} initialTopicId="hyp-1" />);
-    expect(screen.getByRole("link", { name: /Ask a tutor about this: Chinchilla vs Kaplan/ })).toBeTruthy();
+    expect(screen.queryByText(/Ask a tutor/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "node:Training Compute-Optimal LLMs" }));
     const details = screen.getByRole("region", { name: "Paper details" });
     expect(within(details).getByText("Scale tokens with parameters")).toBeTruthy();

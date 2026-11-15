@@ -26,6 +26,7 @@ from livekit.agents import (
     llm,
     room_io,
 )
+from livekit.agents import metrics as lk_metrics
 from livekit.agents.utils import images
 from livekit.plugins import anthropic, elevenlabs, noise_cancellation, silero, synthesia
 
@@ -59,6 +60,7 @@ CHECKPOINT_EVERY_S = 60
 # badly; Sonnet 5.5 without thinking ~1.2 s and follows them.
 VOICE_MODEL = "claude-sonnet-5-5"
 LLM_TIMEOUT_S = 25  # the first, cache-writing call takes 5-9 s; the 10 s default made it time out and retry
+ENDPOINTING = {"mode": "dynamic", "min_delay": 0.4, "max_delay": 2.0}
 CONTINUE_AFTER_S = 2.0  # silence after a mid-slide stop before the agent nudges the tutor on
 
 
@@ -251,8 +253,16 @@ async def entrypoint(ctx: JobContext) -> None:
         turn_handling=TurnHandlingOptions(
             interruption={"enabled": True, "min_duration": 0.5, "min_words": 2},  # a cough or stray "No." keeps talking
             preemptive_generation={"enabled": True},
+            # Dynamic endpointing learns the student's own pauses instead of always waiting 0.5-3 s after they stop;
+            # the 2 s ceiling still lets them think mid-sentence without being cut off.
+            endpointing=ENDPOINTING,
         ),
     )
+
+    # Per-turn latency (end-of-turn delay, LLM time to first token, TTS time to first byte) in the agent log.
+    @session.on("metrics_collected")
+    def _log_latency(ev) -> None:
+        lk_metrics.log_metrics(ev.metrics)
     lesson = LessonState(lesson_id, io.post, resume=tctx.get("resume"))
     deck = slides.SlideTools(io, lesson_id, lesson=lesson, circle=circle)  # picks up the last lesson's understanding
     agent = TutorAgent(

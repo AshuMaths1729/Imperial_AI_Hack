@@ -154,6 +154,16 @@ def outline_text(d: dict) -> str:
 
 SPEAK_WAIT_S = 20.0  # how long a ready follow-up waits for the tutor to finish their sentence
 STEP_WAIT_MAX_S = 6.0  # slide_step waits for its animation (reply "ms") so speech and picture stay together
+# The next reply needs ~1.2 s to its first token and ~0.3 s more to its first audio, so the wait ends that much before
+# the animation does: the voice then starts as the drawing finishes instead of 1.5 s after it.
+REPLY_LEAD_S = 1.5
+
+
+def animation_wait(ms) -> float:
+    """Seconds a step tool waits after the page started an animation of `ms` milliseconds."""
+    if not isinstance(ms, (int, float)) or ms <= 0:
+        return 0.0
+    return max(0.0, min(ms / 1000, STEP_WAIT_MAX_S) - REPLY_LEAD_S)
 
 
 async def _note(ctx: RunContext | None, text: str, speak: str | None = None) -> None:
@@ -239,9 +249,8 @@ class SlideTools:
         reply = await self._rpc("slides.step", {"step": step})
         if err := self._failed(reply):
             return err
-        ms = reply.get("ms")
-        if isinstance(ms, (int, float)) and ms > 0:
-            await asyncio.sleep(min(ms / 1000, STEP_WAIT_MAX_S))
+        if wait := animation_wait(reply.get("ms")):
+            await asyncio.sleep(wait)
         index = reply.get("index") or self.index
         self.step = step
         self._note_slide(index, step)
@@ -306,9 +315,8 @@ class SlideTools:
         reply = await self._rpc("slides.explain_step", {"step": step})
         if err := self._failed(reply):
             return err
-        ms = reply.get("ms")
-        if isinstance(ms, (int, float)) and ms > 0:
-            await asyncio.sleep(min(ms / 1000, STEP_WAIT_MAX_S))
+        if wait := animation_wait(reply.get("ms")):
+            await asyncio.sleep(wait)
         self.explain_at = step
         steps = (self.explanation or {}).get("steps") or []
         if step < len(steps):

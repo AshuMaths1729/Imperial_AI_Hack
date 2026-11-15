@@ -171,7 +171,15 @@ def test_go_and_step_tell_the_lesson_state_and_end_on_the_check_question():
     assert asyncio.run(SlideTools(io, "L1", lesson=FakeLesson(fail=True)).slide_step(1)).startswith("ok")
 
 
+def test_step_wait_ends_before_the_animation_so_the_next_reply_overlaps_it():
+    assert slides.animation_wait(4000) == 4.0 - slides.REPLY_LEAD_S
+    assert slides.animation_wait(1000) == 0.0  # short steps: no wait at all
+    assert slides.animation_wait(60000) == slides.STEP_WAIT_MAX_S - slides.REPLY_LEAD_S
+    assert slides.animation_wait(None) == 0.0 and slides.animation_wait(-5) == 0.0
+
+
 def test_step_waits_for_its_animation_capped(monkeypatch):
+    monkeypatch.setattr(slides, "REPLY_LEAD_S", 0.0)
     io = FakeIO({"slides.step": lambda p: {"ok": True, "errors": [], "index": 3, "ms": p["step"]}})
     t = SlideTools(io, "L1")
     t0 = time.monotonic()
@@ -441,6 +449,7 @@ def test_explain_steps_wait_list_their_objects_and_close_back_to_the_slide(monke
     t.narration, t.step = ["a", "b", "c"], 1
     t.explanation = EXPLANATION
     monkeypatch.setattr(slides.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(slides, "REPLY_LEAD_S", 0.0)  # this test checks the wait itself, not the overlap
     out = asyncio.run(t.explain_step(1))
     assert io.rpcs[-1] == ("slides.explain_step", {"step": 1}) and waits == [0.4]
     assert out.startswith("ok: explanation step 1 of 2.") and "ex_ax (axes), ex_run (line)" in out

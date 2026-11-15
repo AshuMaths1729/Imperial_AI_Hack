@@ -68,8 +68,7 @@ function Recap({ trackId, lessonId, onBack }: RecapProps) {
   );
 }
 
-/** The lesson screens: lobby → call → recap. `?track=<track_id>` preselects a topic (Home's recent list, "Ask a tutor
-    about this"); an id the backend doesn't know is ignored. */
+/** The lesson screens: lobby → call → recap. `?track=<track_id>` preselects a topic (Home's recent list); an id the backend doesn't know is ignored. */
 function LessonScreens() {
   useScene(LESSONS.scene, true);
   const boardRef = useRef<BoardHandle | null>(null);
