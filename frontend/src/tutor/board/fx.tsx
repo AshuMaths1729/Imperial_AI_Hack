@@ -4,13 +4,22 @@ import { atom, b64Vecs, EASINGS, useEditor, useValue, type Editor, type TLShapeI
 import type { Box } from "../contracts/types";
 import { cameraFor, followPaused } from "./camera";
 import { schedule, writeKeyframes } from "./pen";
+import { along, pathLength, travelMs, type Path } from "./trace";
 
-type Laser = { x: number; y: number };
+/** `travel`: moving along a path frame by frame (no CSS glide). */
+type Laser = { x: number; y: number; travel?: boolean };
+/** A soft marker stroke over the pointed item (page units), swept in step with the laser; never stored on the board. */
+export type Mark = { path: Path; width: number };
+type Glow = Mark & { ms: number; key: number };
 
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const HIDDEN = "clip-path: polygon(0 0, 0 0, 0 0)";
 const sel = (id: string) => `.tl-shape[data-shape-id="${id}"]`;
 const FOLLOW_MS = 650;
+/** The laser's CSS glide to a new spot (see .tw-laser) before it travels. */
+export const GLIDE_MS = 450;
+/** How long the highlight stays: it sweeps with the laser, holds a moment, then fades (~1.5–2 s). */
+export const glowMs = (travel: number) => Math.max(1500, travel + 600);
 
 /**
  * Per-board effects that are not stored on the board: pen writing reveal (no pen icon), stroke drawing, the laser dot
@@ -18,6 +27,8 @@ const FOLLOW_MS = 650;
  */
 export class BoardFx {
   readonly laser = atom<Laser | null>("laser", null);
+  readonly glow = atom<Glow | null>("glow", null);
+  private pointKey = 0; // bumps on every point/trace: an older travel or glow stops touching the laser
   private penFreeAt = 0;
   private lastUserAt: number | undefined;
   private rules = new Map<string, string>(); // shape id → CSS rules while it is being written
@@ -40,6 +51,7 @@ export class BoardFx {
   }
 
   dispose() {
+    this.pointKey++;
     this.offEvent();
     this.timers.forEach(clearTimeout);
     this.style.remove();
@@ -169,7 +181,36 @@ export class BoardFx {
 
   /** Laser dot at a page point; it never fades, it stays parked there until the next point. */
   point(x: number, y: number) {
+    this.pointKey++;
     this.laser.set({ x, y });
+  }
+
+  /**
+   * Point along an item: the laser glides to the path's start, then travels it (~1–1.5 s, as if reading it out) and
+   * stays parked at its end; `mark` glows over the item meanwhile. Reduced motion: the laser jumps there, no glow.
+   */
+  trace(path: Path, mark?: Mark) {
+    const start = path.flat()[0];
+    if (!start) return;
+    this.point(start.x, start.y);
+    if (reducedMotion()) return;
+    const key = this.pointKey, length = pathLength(path), ms = travelMs(length);
+    this.later(GLIDE_MS, () => {
+      if (key !== this.pointKey) return;
+      if (mark) {
+        this.glow.set({ ...mark, ms, key });
+        this.later(glowMs(ms), () => this.glow.get()?.key === key && this.glow.set(null));
+      }
+      if (!length) return;
+      const t0 = performance.now();
+      const tick = () => {
+        if (key !== this.pointKey) return;
+        const k = Math.min(1, (performance.now() - t0) / ms);
+        this.laser.set({ ...along(path, k), travel: k < 1 });
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      tick();
+    });
   }
 }
 
@@ -188,12 +229,17 @@ export const disposeFx = (editor: Editor) => {
 const CSS = `
 .tw-laser { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none;
   transition: transform 450ms cubic-bezier(.2,.8,.2,1); }
+.tw-laser.travel { transition: none; }
+.tw-glow { position: absolute; left: 0; top: 0; overflow: visible; fill: none; stroke: rgba(250,204,21,.32); stroke-linecap: round;
+  stroke-linejoin: round; stroke-dasharray: 1; }
+@keyframes tw-sweep { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes tw-glow-out { to { opacity: 0 } }
 .tw-laser > i { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%;
   background: #ff3b30; box-shadow: 0 0 8px 2px rgba(255,59,48,.45); }
 .tw-ask { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: #7c3aed;
   color: #fff; font: 700 15px/24px system-ui, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(15,23,42,.3); }
 @keyframes tw-fade { from { opacity: 0 } to { opacity: 1 } }
-@media (prefers-reduced-motion: reduce) { .tw-laser { transition: none } }
+@media (prefers-reduced-motion: reduce) { .tw-laser { transition: none } .tw-glow { display: none } }
 `;
 
 /** Rendered by tldraw inside the camera-transformed layer (`OnTheCanvas`), so positions are page units. */
@@ -201,6 +247,7 @@ export function BoardFxLayer() {
   const editor = useEditor();
   const fx = fxFor(editor);
   const laser = useValue("laser", () => fx.laser.get(), [fx]);
+  const glow = useValue("glow", () => fx.glow.get(), [fx]);
   const zoom = useValue("zoom", () => editor.getZoomLevel(), [editor]); // the dot stays ~12 screen px at any zoom
   // The student's open questions: a "?" on each persistent Circle-to-Ask mark.
   const circles = useValue("circles", () => editor.getCurrentPageShapes().flatMap((s) => {
@@ -211,7 +258,25 @@ export function BoardFxLayer() {
     <div style={{ position: "absolute", left: 0, top: 0, zIndex: 100000, pointerEvents: "none" }} aria-hidden>
       <style>{CSS}</style>
       {circles.map((c) => <span key={c.id} className="tw-ask" style={{ left: c.x, top: c.y }}>?</span>)}
-      {laser && <div className="tw-laser" style={{ transform: `translate(${laser.x}px, ${laser.y}px)` }}><i style={{ transform: `scale(${1 / zoom})` }} /></div>}
+      {glow && <GlowMark key={glow.key} glow={glow} />}
+      {laser && <div className={laser.travel ? "tw-laser travel" : "tw-laser"} style={{ transform: `translate(${laser.x}px, ${laser.y}px)` }}><i style={{ transform: `scale(${1 / zoom})` }} /></div>}
     </div>
+  );
+}
+
+/** The marker over a pointed item: each stroke sweeps in as the laser passes along it (same timing), then all fade. */
+function GlowMark({ glow }: { glow: Glow }) {
+  const total = pathLength(glow.path) || 1;
+  let at = 0;
+  return (
+    <svg className="tw-glow" width={1} height={1} strokeWidth={glow.width}
+      style={{ animation: `tw-glow-out 400ms ease-in ${glowMs(glow.ms) - 400}ms forwards` }}>
+      {glow.path.map((s, i) => {
+        const ms = (pathLength([s]) / total) * glow.ms, delay = at;
+        at += ms;
+        return <polyline key={i} pathLength={1} points={s.map((p) => `${p.x},${p.y}`).join(" ")}
+          style={{ animation: `tw-sweep ${Math.max(1, Math.round(ms))}ms linear ${Math.round(delay)}ms both` }} />;
+      })}
+    </svg>
   );
 }

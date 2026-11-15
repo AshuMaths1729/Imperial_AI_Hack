@@ -5,7 +5,7 @@ import type {} from "../toShapes"; // custom shape type augmentation
 export type PlotShape = TLShape<"plot">;
 type PlotProps = PlotShape["props"];
 
-const evalAt = (expr: string, x: number): number => functionPlot.$eval.builtIn({ fn: expr }, "fn", { x });
+export const evalAt = (expr: string, x: number): number => functionPlot.$eval.builtIn({ fn: expr }, "fn", { x });
 
 /** y-range of the data with 10% padding. Throws if `expr` cannot be evaluated (used to reject bad plot ops). */
 export function plotYDomain(p: Pick<PlotProps, "expr" | "points" | "xMin" | "xMax">): [number, number] {

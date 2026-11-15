@@ -7,15 +7,16 @@ import "katex/dist/katex.min.css";
 import type { ApplyResult, BoardDescription, BoardHandle, BoardItem, BoardOp, BoardPlugin, Box, CircleEvent } from "../contracts/types";
 import { downscaleDims, itemsInRegion, lassoRegion } from "./circle";
 import { annotateStrokes } from "./annotate";
-import { fitBoardCamera } from "./camera";
+import { fitBoardCamera, inClearView } from "./camera";
 import { boardIdOf, describeShapes, plain, union } from "./describe";
-import { BoardFxLayer, disposeFx, fxFor, type BoardFx } from "./fx";
+import { BoardFxLayer, disposeFx, fxFor, type BoardFx, type Mark } from "./fx";
 import { contentRegion, resolvePlace } from "./layout";
 import { validateOp } from "./ops";
 import { latexChars, writeMs } from "./pen";
 import { BOARD_SCALE as S, createShapeId, generateId, imageAsset, imageAssetId, naturalSize, opToShapePartials, tutorShapeId } from "./toShapes";
 import { MathShapeUtil, measureMath, preloadMathFonts } from "./shapes/MathShape";
-import { PlotShapeUtil, plotYDomain } from "./shapes/PlotShape";
+import { evalAt, PlotShapeUtil, plotYDomain, type PlotShape } from "./shapes/PlotShape";
+import { linePath, plotPath, type Path } from "./trace";
 
 const shapeUtils = [MathShapeUtil, PlotShapeUtil];
 // No page menu (one page; it sat over the first line of working). The always-open style panel covered the right
@@ -46,6 +47,28 @@ function followItem(editor: Editor, fx: BoardFx, id: string) {
   const mates = group ? editor.getCurrentPageShapes().filter((s) => s.meta.group === group && s.opacity > 0) : [];
   const region = boundsOf(editor, mates);
   fx.follow(region ? union(region, anchor) : anchor, anchor);
+}
+
+/**
+ * Where the laser travels over item `id` (bbox `b`, page units) and what glows meanwhile: a written line is read
+ * left → right under each row with a marker over it; a plot's curve, a line, an arrow or a shape's outline is traced.
+ */
+function laserPath(editor: Editor, id: string, b: Box): { path: Path; mark: Mark } {
+  const main = shapesOf(editor, id).find((s) => !s.meta.part);
+  if (!main || WRITTEN.has(main.type)) {
+    const rows = main?.type === "text" ? Math.max(1, Math.round(b.h / TEXT_LINE)) : 1;
+    return { path: linePath(b, rows), mark: { path: linePath(b, rows, 0.5), width: (b.h / rows) * 0.9 } };
+  }
+  let path: Path;
+  if (main.type === "plot") {
+    const p = (main as PlotShape).props;
+    path = plotPath({ ...p, x: main.x, y: main.y }, plotYDomain(p), (x) => evalAt(p.expr, x));
+  } else {
+    const g = editor.getShapeGeometry(main);
+    const pts = editor.getShapePageTransform(main).applyToPoints(g.vertices);
+    path = [g.isClosed && pts.length ? [...pts, pts[0]] : pts];
+  }
+  return { path, mark: { path, width: 14 } };
 }
 
 /** Hand the pen a text/math shape that is about to become visible: it is written in, and the camera follows. */
@@ -126,10 +149,12 @@ function applyOne(editor: Editor, fx: BoardFx, op: BoardOp): string | undefined 
       return;
     }
     case "point_at": {
-      const b = items.get(op.target_id)!.bbox;
+      const b = scaled(items.get(op.target_id)!.bbox);
       fx.after(() => {
-        fx.point((b.x + b.w / 2) * S, (b.y + b.h / 2) * S); // hold_ms is ignored: the laser stays parked (v3)
-        if (!editor.getViewportPageBounds().contains(new PageBox(b.x * S, b.y * S, b.w * S, b.h * S))) fx.follow(scaled(b));
+        // Keep it in view (a gentle pan; skipped while the student is moving around), then travel along it.
+        if (!inClearView(editor.getViewportPageBounds(), editor.getZoomLevel(), b)) fx.follow(b);
+        const { path, mark } = laserPath(editor, op.target_id, b);
+        fx.trace(path, mark); // hold_ms is ignored: the laser stays parked at the end (v3)
       });
       return;
     }
