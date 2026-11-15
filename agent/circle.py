@@ -11,19 +11,18 @@ logger = logging.getLogger("tutor.circle")
 # v3: a circle never triggers an instant lecture. The turn only asks what is unclear; the explanation comes after
 # the student answers, in place (same slide / same board). v3.1: the mark clears as the explanation starts.
 EXPLAIN = {
-    "board": "write the whole working first with board_write next to what I circled (say one short sentence like "
-             "\"let me write it out\" while it writes), then explain it line by line, tagging each line and the circled "
-             "items as you reach them ({tags})",
+    "board": "work it out next to what I circled one line at a time: board_write one line (say one short sentence "
+             "first), explain it tagging that line and the circled items ({tags}), then write the next line",
     # slide_animate opens a new slide, which loses my context: only for ideas that are not on this slide
-    "slide": "explain it on this same slide: call slide_edit(brief=..., object_ids=[{items}]) and walk me through the "
-             "new steps it reports with slide_step. Only if what I ask about is not on this slide at all, use "
-             "slide_animate for a new slide",
+    "slide": "explain it in a pop-up beside this slide: call slide_explain(brief=..., object_ids=[{items}]), walk me "
+             "through its steps with explain_step, tagging its parts as you talk, and once I say it helped call "
+             "close_explanation(). Only if what I ask about is not on this slide at all, use slide_animate for a new slide",
     "screen": "re-explain it in a different way than what's already shown",
 }
 
 
 class PendingCircle:
-    """The student's open circle. Code clears it when the explanation starts (slide_edit / board_write), so it never
+    """The student's open circle. Code clears it when the explanation starts (slide_explain / board_write), so it never
     lingers while the student is answering or listening."""
 
     def __init__(self, io):

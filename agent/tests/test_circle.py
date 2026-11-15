@@ -18,9 +18,9 @@ def test_circle_turn_asks_first_and_explains_only_after_the_answer():
     text = circle_message({**PAYLOAD, "circle_id": "c7"}, "").content[0]
     ask, after = text.split("After I answer", 1)
     assert "Don't explain yet" in ask and "what about it is unclear" in ask and "wait for my answer" in ask
-    assert "board_write" not in ask and "slide_edit" not in ask  # no tool before the student has answered
+    assert "board_write" not in ask and "slide_explain" not in ask  # no tool before the student has answered
     assert "board_write" in after and "[[eq1]]" in after  # board circles: explain next to the circled items, laser on them
-    assert "write the whole working first" in after and "line by line" in after  # v3.1 F6: write, then explain
+    assert "one line at a time" in after and "then write the next line" in after  # v3.2 G6: a line, then its explanation
     # v3.1 F2: the circle clears by itself as the explanation starts; still ask if it helped, no clear_circle then
     assert "helped" in after and "clears by itself" in after and 'clear_circle("c7")' not in after
 
@@ -35,12 +35,13 @@ def test_circle_message_names_screen_source():
     assert circle_message({**PAYLOAD, "source": "screen"}, "").content[0].startswith("[circled on screen]")
 
 
-def test_slide_circle_explains_on_the_same_slide():
+def test_slide_circle_explains_in_a_pop_up_beside_the_slide():
     text = circle_message({**PAYLOAD, "source": "slide", "slide_id": "s3", "item_ids": ["curve"], "circle_id": "k1"},
                           "").content[0]
     assert text.startswith('[circled on slide s3] circle_id=k1 items=curve said="why minus?"')
     after = text.split("After I answer", 1)[1]
-    assert "slide_edit(brief=..., object_ids=['curve'])" in after  # edit in place, from the circled objects
+    assert "slide_explain(brief=..., object_ids=['curve'])" in after  # v3.2 G2: a pop-up, the slide stays as it is
+    assert "explain_step" in after and "close_explanation()" in after and "helped" in after
     assert "slide_animate" in after and "not on this slide" in after  # a new slide only for ideas not on the page
     assert "clears by itself" in after and 'clear_circle("k1")' not in after
     assert "point_at" not in text and 'show_tab("board")' not in text  # stay on the slide
