@@ -47,9 +47,9 @@ export function PresetBar({ params, presets, values, onApply }: PresetBarProps) 
   const described = describeIdx !== null ? presets[describeIdx] : null;
 
   return (
-    <div className="st-fade-up rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-[var(--shadow-card)]">
+    <div className="apple-sheet st-fade-up rounded-[22px] px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="apple-label mr-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
+        <span className="apple-label mr-1 flex items-center gap-1.5 pl-1 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
           <Sparkle className="h-3 w-3" />
           Scenarios
         </span>
@@ -57,10 +57,10 @@ export function PresetBar({ params, presets, values, onApply }: PresetBarProps) 
           type="button"
           onClick={() => onApply(defaults)}
           aria-pressed={atDefaults}
-          className={`apple-press apple-focus flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+          className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium ${
             atDefaults
               ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]"
-              : "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-muted)]"
+              : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           }`}
         >
           {atDefaults ? <Check className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
@@ -79,13 +79,13 @@ export function PresetBar({ params, presets, values, onApply }: PresetBarProps) 
               onBlur={() => setHovered(null)}
               aria-pressed={active}
               title={preset.description}
-              className={`apple-press apple-focus flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+              className={`apple-press apple-focus flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-left text-xs ${
                 active
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
-                  : "border-[var(--border-subtle)] text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--text-primary)]"
+                  ? "apple-seg-on border-[var(--accent-border)] font-semibold text-[var(--accent)]"
+                  : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--text-primary)]"
               }`}
             >
-              {active && <Check className="h-3 w-3" />}
+              {active && <Check className="h-3 w-3 shrink-0" />}
               {preset.name}
             </button>
           );

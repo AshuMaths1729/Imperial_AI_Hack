@@ -68,9 +68,9 @@ export function DataTable({
   };
 
   return (
-    <section className="st-fade-up apple-card rounded-2xl border border-[var(--border-subtle)] p-4" style={stagger(0, 0, 260)} aria-labelledby="data-heading">
+    <section className="st-fade-up apple-card min-w-0 rounded-2xl border p-4" style={stagger(0, 0, 260)} aria-labelledby="data-heading">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="mr-auto">
+        <div className="mr-auto min-w-0">
           <h2 id="data-heading" className="apple-heading flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
             <Table2 className="h-4 w-4 text-[var(--accent)]" /> Data table
           </h2>
@@ -84,28 +84,31 @@ export function DataTable({
           type="button"
           onClick={() => setShowAll((s) => !s)}
           aria-pressed={showAll}
-          className="apple-press apple-focus rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
+          className="apple-press apple-focus whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
         >
           {showAll ? "Show sample" : `Show all ${x.length}`}
         </button>
         <CopyButton label="Copy CSV" text={() => buildCsv(xLabel, x, views)} title="Copy every sample as CSV" />
+        {/* The view's one tinted primary action (PaperSim hue). */}
         <button
           type="button"
           onClick={download}
-          className="apple-press apple-focus inline-flex items-center gap-1.5 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)] hover:opacity-90"
+          style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
+          className="apple-tint apple-press apple-focus inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1 text-[11px] font-semibold"
         >
           <Download className="h-3.5 w-3.5" /> Export CSV
         </button>
       </div>
 
-      <div className="mt-3 max-h-[26rem] overflow-auto rounded-xl border border-[var(--border-subtle)]">
+      {/* Solid surface: crisp rows, and the sticky header hides rows scrolling beneath it. */}
+      <div className="mt-3 max-h-[26rem] overflow-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-solid)]">
         <table className="w-full border-collapse text-left text-[11px]" style={{ fontVariantNumeric: "tabular-nums" }}>
-          <thead className="sticky top-0 z-[1] bg-[var(--bg-surface-muted)]">
+          <thead className="sticky top-0 z-[1] bg-[var(--bg-surface-solid)] shadow-[inset_0_-1px_0_var(--border-subtle)]">
             <tr>
               <th scope="col" className="px-3 py-2 font-semibold text-[var(--text-muted)]">#</th>
-              <th scope="col" className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{xLabel || "x"}</th>
+              <th scope="col" className="whitespace-nowrap px-3 py-2 font-semibold text-[var(--text-secondary)]">{xLabel || "x"}</th>
               {views.map((v) => (
-                <th key={v.name} scope="col" className="px-3 py-2 text-right font-semibold text-[var(--text-secondary)]">
+                <th key={v.name} scope="col" className="whitespace-nowrap px-3 py-2 text-right font-semibold text-[var(--text-secondary)]">
                   <span className="inline-flex items-center justify-end gap-1.5">
                     <SeriesSwatch color={v.color} dash={v.dash} width={16} />
                     <RichText text={v.name} />
@@ -120,14 +123,14 @@ export function DataTable({
               return (
                 <tr key={i} className="border-t border-[var(--border-subtle)] hover:bg-[var(--accent-soft)]">
                   <td className="px-3 py-1.5 font-mono text-[var(--text-muted)]">{i}</td>
-                  <td className="px-3 py-1.5 font-mono text-[var(--text-primary)]">{fmtNum(x[i], 4)}</td>
+                  <td className="whitespace-nowrap px-3 py-1.5 font-mono text-[var(--text-primary)]">{fmtNum(x[i], 4)}</td>
                   {views.map((v) => {
                     const isMax = ext?.max.includes(v.name);
                     const isMin = ext?.min.includes(v.name);
                     return (
                       <td
                         key={v.name}
-                        className={`px-3 py-1.5 text-right font-mono ${
+                        className={`whitespace-nowrap px-3 py-1.5 text-right font-mono ${
                           isMax || isMin ? "font-semibold text-[var(--text-primary)]" : "text-[var(--text-secondary)]"
                         }`}
                       >

@@ -36,7 +36,7 @@ export function Readouts({ frame, exact, names, hidden, xLabel, hoverX, pin, onE
   const xName = xLabel.replace(/\s*\([^)]*\)\s*$/, "") || "x";
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] gap-2.5">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(13.5rem,100%),1fr))] gap-2.5">
       {shown.map(({ n, i }, k) => {
         const st = seriesStats(frame.x, frame.ys[i] ?? []);
         const pinSeries = pin?.series.find((s) => s.name === n);
@@ -49,17 +49,17 @@ export function Readouts({ frame, exact, names, hidden, xLabel, hoverX, pin, onE
             onMouseEnter={() => onEmphasis(n)}
             onMouseLeave={() => onEmphasis(null)}
             style={{ animationDelay: `${120 + k * 50}ms` }}
-            className="st-fade-up rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-[var(--shadow-card)]"
+            className="apple-card st-fade-up min-w-0 rounded-2xl border p-3"
           >
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]">
+            <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]" title={n}>
               <Swatch idx={i} />
-              <RichText className="truncate" text={n} />
+              <RichText className="min-w-0 truncate" text={n} />
             </p>
-            <div className="mt-1.5 flex items-baseline justify-between gap-2">
+            <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2">
               <span className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">
                 {atHover !== undefined ? "At cursor" : "Final"}
               </span>
-              <span className="font-mono text-xl font-semibold tabular-nums tracking-tight text-[var(--text-primary)]">
+              <span className="min-w-0 break-all font-mono text-xl font-semibold tabular-nums tracking-tight text-[var(--text-primary)]">
                 {formatValue(atHover !== undefined ? atHover : st.final)}
               </span>
             </div>

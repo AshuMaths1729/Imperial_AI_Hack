@@ -127,24 +127,27 @@ export function SweepPanel({
   return (
     <div
       style={style}
-      className="st-fade-up rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 shadow-[var(--shadow-card)]"
+      className="apple-card st-fade-up rounded-2xl border p-3.5"
     >
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-[13px] font-semibold text-[var(--text-primary)]">Sweep a parameter</p>
           <p className="text-[11px] leading-snug text-[var(--text-muted)]">
             Re-runs the model across the full range
             {reducedMotion ? " (slowed for reduced motion)" : ""}.
           </p>
         </div>
+        {/* The view's one tinted primary action (PaperSim hue). */}
         <button
           type="button"
           onClick={() => (sweep.running ? sweep.stop() : sweep.start(p))}
           aria-label={sweep.running ? "Stop sweep" : `Sweep ${paramLabel(p)}`}
-          className={`apple-press apple-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+          title={sweep.running ? "Stop sweep" : `Sweep ${paramLabel(p)}`}
+          style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
+          className={`apple-press apple-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
             sweep.running
-              ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent-border)]"
-              : "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]"
+              ? "border border-[var(--status-support-border)] bg-[var(--status-support-soft)] text-[var(--status-support)]"
+              : "apple-tint"
           }`}
         >
           {sweep.running ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
@@ -160,10 +163,10 @@ export function SweepPanel({
           value={p.key}
           disabled={sweep.running}
           onChange={(e) => onSelect(e.target.value)}
-          className="apple-focus min-w-0 flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-1.5 text-xs text-[var(--text-primary)] disabled:opacity-60"
+          className="apple-focus min-w-0 flex-1 cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {params.map((pp) => (
-            <option key={pp.key} value={pp.key}>
+            <option key={pp.key} value={pp.key} className="bg-[var(--bg-surface-solid)] text-[var(--text-primary)]">
               {paramLabel(pp)}
             </option>
           ))}
@@ -208,7 +211,7 @@ export function SweepPanel({
           <button
             type="button"
             onClick={onClearTrace}
-            className="apple-press apple-focus flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
+            className="apple-press apple-focus flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           >
             <Eraser className="h-3 w-3" />
             Clear {traceCount}

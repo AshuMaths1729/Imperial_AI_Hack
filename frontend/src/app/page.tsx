@@ -563,7 +563,8 @@ export default function ScholarTwinWorkspace() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+    // Transparent root: the body's colour field shows through the floating glass sheets.
+    <div className="flex h-screen flex-col text-[var(--text-primary)]">
       {/* Top Workspace Bar */}
       <AppHeader
         tone="accent"
@@ -592,9 +593,11 @@ export default function ScholarTwinWorkspace() {
         }
       />
 
-      {/* Main 2-Pane Workspace: Avatar & Canvas */}
-      {/* Below lg the panes stack and this area scrolls; the canvas keeps a usable height. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[310px_1fr] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
+      {/* Main 2-Pane Workspace: Avatar & Canvas, as floating glass sheets inset from the window. */}
+      {/* Below lg the panes stack and this area scrolls; the canvas keeps a usable height.
+          At lg the row is height-bounded and each pane scrolls itself, so the grid can stay
+          overflow-visible and the sheets' shadows are never cut off. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto px-2 pb-2 pt-2.5 sm:px-3 sm:pb-3 lg:grid-cols-[310px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:overflow-visible">
         {/* Left Pane: Avatar & Voice */}
         <AvatarDock
           avatarState={avatarState}
@@ -606,37 +609,40 @@ export default function ScholarTwinWorkspace() {
             setTtsEnabled((v) => !v);
           }}
           onAsk={(text) => handleAsk(text)}
-          avatar={<LiveAvatarTile call={call} onTutorChange={setTutor} />}
           onUploadClick={() => {
             setUploadError(null);
             setUploadOpen(true);
           }}
+          // The tutor is built into the lecture workspace's dock (no floating Live Tutor button here).
+          avatar={<LiveAvatarTile call={call} onTutorChange={setTutor} />}
         />
 
         {/* Right Pane: Interactive Concept Canvas + Circle-to-Ask Overlay */}
-        <main className="relative flex min-h-[72vh] flex-col bg-[var(--bg-canvas)] lg:min-h-0">
+        <main className="apple-sheet relative flex min-h-[72vh] min-w-0 flex-col rounded-[22px] lg:min-h-0">
           {dataset && (
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-subtle)] px-4 py-2.5">
               <div className="min-w-0">
-                <h2 title={dataset.title} className="truncate text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
+                <h2 title={dataset.title} className="apple-heading truncate text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
                 <p title={dataset.subtitle} className="truncate text-[11px] text-[var(--text-muted)]">{dataset.subtitle}</p>
               </div>
-              <div className="hidden shrink-0 items-center gap-3 text-[10px] font-medium text-[var(--text-muted)] sm:flex">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Prereq</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />Supports</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />Contradicts</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-gap)]" />Gap</span>
+              <div className="hidden shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)] md:flex">
+                <span className="flex items-center gap-1 px-1"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Prereq</span>
+                <span className="flex items-center gap-1 px-1"><span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />Supports</span>
+                <span className="flex items-center gap-1 px-1"><span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />Contradicts</span>
+                <span className="flex items-center gap-1 px-1"><span className="h-2 w-2 rounded-full bg-[var(--status-gap)]" />Gap</span>
               </div>
             </div>
           )}
 
           {statusMsg && (
-            <div className="m-4 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
+            <div className="mx-3 mt-3 shrink-0 rounded-2xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
               {statusMsg}
             </div>
           )}
 
-          <div className="relative min-h-0 flex-1">
+          {/* Clipped to the sheet's lower corners so the graph's dot grid never pokes past the
+              rounded edge. Everything inside (controls, legend, caption, lasso) sits well inset. */}
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-b-[21px]">
             {dataset && (
               <GraphCanvas
                 key={`${dataset.title}:${dataset.nodes.length}`}
@@ -651,10 +657,13 @@ export default function ScholarTwinWorkspace() {
             <LassoOverlay active={lassoActive} onCapture={handleLassoCapture} />
 
             {selectedNode && (
-              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex justify-center">
-                <div className="apple-glass-elevated pointer-events-auto max-w-xl rounded-2xl border px-4 py-2.5">
-                  <p className="text-xs font-semibold text-[var(--accent)]">{selectedNode.label}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+              // Inset past React Flow's controls (bottom-left) so they never touch.
+              <div className="pointer-events-none absolute bottom-4 left-14 right-4 z-10 flex justify-center">
+                <div className="apple-glass-elevated pointer-events-auto min-w-0 max-w-xl rounded-2xl border px-4 py-2.5">
+                  <p title={selectedNode.label} className="truncate text-xs font-semibold text-[var(--accent)]">
+                    {selectedNode.label}
+                  </p>
+                  <p title={selectedNode.summary} className="mt-0.5 line-clamp-4 text-[11px] text-[var(--text-secondary)] sm:line-clamp-3">
                     {selectedNode.summary}
                   </p>
                 </div>

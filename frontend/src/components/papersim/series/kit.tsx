@@ -3,11 +3,13 @@
 /** Small shared building blocks for the PaperSim analysis tabs. */
 import React, { useEffect, useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { SERIES_PALETTE } from "../simulation/format";
 
 /** Same dash order as the main simulation plot, so a series looks identical everywhere. */
 export const SERIES_DASHES: (string | undefined)[] = [undefined, "8 4", "2 3", "10 4 2 4", "14 4"];
-/** Okabe-Ito fallback, in fixed order (never cycled by rank). */
-export const SERIES_FALLBACK = ["#0284c7", "#e69f00", "#009e73", "#cc79a7", "#d55e00"];
+/** Okabe-Ito fallback, in fixed order (never cycled by rank): the simulation plot's own palette,
+    so the two tabs can never drift apart and no colour is hard-coded here. */
+export const SERIES_FALLBACK: readonly string[] = SERIES_PALETTE;
 
 export function seriesColor(color: string | undefined, idx: number): string {
   return color || SERIES_FALLBACK[idx % SERIES_FALLBACK.length];
@@ -92,7 +94,7 @@ export function CopyButton({
       type="button"
       onClick={onClick}
       title={title ?? label}
-      className={`apple-press apple-focus inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] ${className}`}
+      className={`apple-press apple-focus inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] ${className}`}
     >
       {copied ? <Check className="h-3.5 w-3.5 text-[var(--status-support)]" /> : <Copy className="h-3.5 w-3.5" />}
       <span aria-live="polite">{copied ? "Copied" : label}</span>

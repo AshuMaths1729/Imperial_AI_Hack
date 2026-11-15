@@ -22,6 +22,8 @@ import { EvidenceGlyph, EvidenceLegend, SearchProgress, StarterTopics } from "./
 import { buildHypothesisModel } from "./hypothesis/model";
 import { EdgeBubble, NodeBubble } from "./hypothesis/Bubbles";
 import { PaperList } from "./hypothesis/PaperList";
+import { LiveTutorFab } from "../tutor/LiveTutorFab";
+import { useAvatarCall } from "../tutor/useAvatarCall";
 
 export type HypothesisTopicRun = TopicRun;
 
@@ -105,13 +107,19 @@ function isNarrowScreen(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 }
 
+/** A tinted glass capsule counting one kind of node or line. */
 function StatChip({ n, label, color }: { n: number; label: string; color: string }) {
   return (
     <span
-      style={{ color, borderColor: `color-mix(in srgb, ${color} 35%, transparent)`, backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)` }}
-      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+      style={{
+        color: `color-mix(in srgb, ${color} 86%, var(--text-primary))`,
+        borderColor: `color-mix(in srgb, ${color} 32%, var(--glass-rim))`,
+        background: `linear-gradient(160deg, var(--glass-specular), transparent 60%), color-mix(in srgb, ${color} 11%, var(--bg-surface))`,
+        boxShadow: "inset 0 1px 0 var(--glass-highlight)",
+      }}
+      className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10.5px] font-semibold leading-none"
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       {n} {label}
     </span>
   );
@@ -132,6 +140,9 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
   const recognitionRef = useRef<InstanceType<SpeechRecCtor> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // The Live Tutor call lives here (the button is only on the results view), so switching
+  // topics remounts the floating button but never drops a call in progress.
+  const tutorCall = useAvatarCall();
 
   // Paper-level graph: papers and open questions as nodes, claims inside their paper.
   const model = useMemo(() => (dataset ? buildHypothesisModel(dataset) : null), [dataset]);
@@ -317,8 +328,8 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     <form
       onSubmit={handleSubmit}
       style={hero ? ({ "--st-glow-a": "var(--status-gap)", "--st-glow-b": "var(--status-support)" } as React.CSSProperties) : undefined}
-      className={`relative flex items-center gap-2 rounded-2xl border border-[var(--status-gap-border)] bg-[var(--bg-surface)] transition-[border-color,box-shadow] duration-300 focus-within:border-[var(--status-gap)] focus-within:shadow-[0_0_0_4px_var(--status-gap-soft)] ${
-        hero ? "st-glow-border p-2.5 shadow-xl" : "p-2 shadow-lg"
+      className={`relative flex items-center gap-2 rounded-full border border-[var(--status-gap-border)] shadow-[inset_0_1px_0_var(--glass-highlight),inset_0_-1px_1px_var(--glass-lowlight),var(--shadow-elevated)] transition-[border-color,box-shadow] duration-300 [background:linear-gradient(160deg,var(--glass-specular),transparent_40%,transparent_75%,var(--glass-specular-2)),var(--bg-surface)] focus-within:border-[var(--status-gap)] focus-within:shadow-[inset_0_1px_0_var(--glass-highlight),0_0_0_4px_var(--status-gap-soft),var(--shadow-card)] ${
+        hero ? "st-glow-border p-2" : "p-1.5"
       }`}
     >
       <button
@@ -327,7 +338,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
         disabled={transcribing}
         aria-label={listening ? "Stop microphone" : "Start microphone"}
         title={listening ? "Click to stop & transcribe" : "Speak research topic"}
-        className={`apple-press apple-focus relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+        className={`apple-press apple-focus relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
           listening
             ? "bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
             : transcribing
@@ -336,7 +347,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
         }`}
       >
         {listening && (
-          <span aria-hidden className="absolute inset-0 rounded-xl bg-[var(--status-contradict)] motion-safe:animate-ping" style={{ opacity: 0.35 }} />
+          <span aria-hidden className="absolute inset-0 rounded-full bg-[var(--status-contradict)] motion-safe:animate-ping" style={{ opacity: 0.35 }} />
         )}
         {transcribing ? (
           <Loader2 className="relative h-4 w-4 animate-spin" />
@@ -352,15 +363,15 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder={listening ? "Listening… click the mic again to stop" : "Enter a research topic or question (e.g. Chinchilla scaling laws)…"}
         aria-label="Research topic or question"
-        className={`min-w-0 flex-1 bg-transparent px-2 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none ${
+        className={`min-w-0 flex-1 bg-transparent px-1.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none ${
           hero ? "text-[15px]" : "text-sm"
         }`}
       />
       <button
         type="submit"
         disabled={loading || !query.trim()}
-        style={{ backgroundColor: "var(--status-gap)", color: "var(--accent-fg)" }}
-        className="apple-press apple-focus st-sheen group relative flex h-10 shrink-0 items-center gap-1.5 overflow-hidden rounded-xl px-4 text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
+        style={{ "--tint": "var(--status-gap)" } as React.CSSProperties}
+        className="apple-tint apple-press apple-focus st-sheen group relative flex h-10 shrink-0 items-center gap-1.5 overflow-hidden rounded-full px-3 text-xs font-semibold transition hover:brightness-110 disabled:opacity-50 sm:px-4"
       >
         {loading ? (
           <>
@@ -381,15 +392,16 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
   const errorBox = errorMsg && (
     <div
       role="alert"
-      className="st-shake mt-3 flex items-start gap-2 rounded-xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3.5 py-2 text-xs text-[var(--status-contradict)]"
+      className="st-shake mt-3 flex items-start gap-2 rounded-2xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3.5 py-2 text-xs text-[var(--status-contradict)]"
     >
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <span>{errorMsg}</span>
+      <span className="min-w-0 break-words">{errorMsg}</span>
     </div>
   );
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+    // Transparent root: the body's colour field shows through the floating glass sheets.
+    <div className="flex h-screen flex-col text-[var(--text-primary)]">
       <AppHeader
         tone="gap"
         back={{ label: "Home", onClick: onBackHome }}
@@ -398,7 +410,8 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
         subtitle="Grounded multi-paper evidence, contradictions & gaps"
       />
 
-      <div className="relative flex min-h-0 flex-1">
+      {/* Floating sheets inset from the edges, lined up with the header capsule. */}
+      <div className="relative flex min-h-0 flex-1 gap-2.5 px-2 pb-2 pt-2.5 sm:px-3">
         {/* On phones the rail stays in flow and the expanded panel overlays the page. */}
         <div className="relative z-30 flex w-[60px] shrink-0 md:w-auto">
           <TopicSidebar
@@ -412,11 +425,12 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
           />
         </div>
 
-        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {hero ? (
-            <>
-              {/* Ambient animated backdrop */}
-              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+            // One floating glass sheet; `isolate` keeps its layers under the phone sidebar overlay.
+            <div className="apple-sheet relative isolate flex min-h-0 flex-1 flex-col rounded-[28px]">
+              {/* Ambient animated backdrop, clipped to the sheet's rounded corners */}
+              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[27px]">
                 <div className="apple-hero-glow absolute inset-x-0 top-0 h-[420px]" />
                 <div className="st-aurora absolute -top-40 left-[calc(50%-380px)] h-[460px] w-[760px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
                 <div className="st-aurora-slow absolute bottom-0 -left-32 h-[340px] w-[340px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
@@ -424,7 +438,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
                 <div className="st-grid absolute inset-0 opacity-[0.3]" />
               </div>
 
-              <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 py-8 sm:px-6">
+              <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[27px] px-4 pb-10 pt-8 sm:px-6">
                 <div className="mx-auto my-auto w-full max-w-2xl">
                   <div className="st-fade-up mx-auto mb-2 w-full max-w-[400px]">
                     <EvidenceGlyph busy={loading} className="st-float h-auto w-full" />
@@ -474,88 +488,97 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           ) : model ? (
-            <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
-              {/* Full-space hypothesis graph (new searches start from "New topic" in the sidebar) */}
-              <div
-                key={activeRunId ?? dataset.title}
-                className="st-fade-up grid min-h-0 flex-1 grid-cols-1 overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden"
+            // Full-space hypothesis graph (new searches start from "New topic" in the sidebar).
+            // Graph and paper list are two floating sheets; the negative margin spends the row's
+            // padding so their shadows have room inside the scroll box.
+            <div
+              key={activeRunId ?? dataset.title}
+              className="st-fade-up -m-2 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto p-2 lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden"
+            >
+              <section
+                aria-label="Paper graph"
+                className="apple-sheet relative flex min-h-[78vh] min-w-0 flex-col rounded-[22px] lg:min-h-0"
               >
-                <div className="relative flex min-h-[72vh] flex-col lg:min-h-0">
-                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border-subtle)] px-4 py-2.5">
-                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                      <h2
-                        title={dataset.title}
-                        className="apple-heading mr-1 max-w-[26rem] truncate text-sm font-semibold text-[var(--text-primary)]"
-                      >
-                        {dataset.title}
-                      </h2>
-                      <StatChip n={model.counts.paper} label={model.counts.paper === 1 ? "paper" : "papers"} color="var(--accent)" />
-                      <StatChip n={model.counts.supports} label={model.counts.supports === 1 ? "agreement" : "agreements"} color="var(--status-support)" />
-                      <StatChip n={model.counts.contradicts} label={model.counts.contradicts === 1 ? "contradiction" : "contradictions"} color="var(--status-contradict)" />
-                      <StatChip n={model.counts.gap} label={model.counts.gap === 1 ? "open question" : "open questions"} color="var(--status-gap)" />
-                    </div>
-                    {model.counts.unlinked > 0 && (
-                      <span className="text-[11px] text-[var(--text-muted)]">
-                        {model.counts.unlinked} {model.counts.unlinked === 1 ? "paper stands" : "papers stand"} alone (greyed out, bottom row)
-                      </span>
-                    )}
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border-subtle)] px-4 py-2.5">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <h2
+                      title={dataset.title}
+                      // Up to two lines, so a long topic still reads in full on a narrow canvas.
+                      className="apple-heading mr-1 line-clamp-2 min-w-0 max-w-[26rem] break-words text-sm font-semibold text-[var(--text-primary)]"
+                    >
+                      {dataset.title}
+                    </h2>
+                    <StatChip n={model.counts.paper} label={model.counts.paper === 1 ? "paper" : "papers"} color="var(--accent)" />
+                    <StatChip n={model.counts.supports} label={model.counts.supports === 1 ? "agreement" : "agreements"} color="var(--status-support)" />
+                    <StatChip n={model.counts.contradicts} label={model.counts.contradicts === 1 ? "contradiction" : "contradictions"} color="var(--status-contradict)" />
+                    <StatChip n={model.counts.gap} label={model.counts.gap === 1 ? "open question" : "open questions"} color="var(--status-gap)" />
                   </div>
-
-                  <div className="relative min-h-[420px] flex-1">
-                    <GraphCanvas
-                      nodes={model.nodes}
-                      edges={model.edges}
-                      focusPadding={FOCUS_PADDING}
-                      nodeMeta={nodeMeta}
-                      selectedNodeId={shownId}
-                      selectedEdgeId={selectedEdge?.id ?? null}
-                      annotations={[]}
-                      onSelectNode={(n) => selectNode(n.id)}
-                      onSelectEdge={(edge) => setSelectedEdge(edge)}
-                      onClearSelection={clearSelection}
-                    />
-
-                    {selectedEdge ? (
-                      <EdgeBubble
-                        key={selectedEdge.id}
-                        model={model}
-                        edge={selectedEdge}
-                        onSelectNode={selectNode}
-                        onBack={selectedNode ? () => setSelectedEdge(null) : undefined}
-                        onClose={clearSelection}
-                      />
-                    ) : (
-                      selectedNode && (
-                        <NodeBubble
-                          key={selectedNode.id}
-                          model={model}
-                          node={selectedNode}
-                          onSelectNode={selectNode}
-                          onShowEdge={(edge) => setSelectedEdge(edge)}
-                          onClose={clearSelection}
-                          highlightClaimId={selectedId !== shownId ? selectedId : null}
-                        />
-                      )
-                    )}
-
-                    {!selectedNode && !selectedEdge && (
-                      <p className="apple-glass pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] text-[var(--text-secondary)] sm:flex">
-                        <MousePointerClick className="h-3.5 w-3.5 text-[var(--status-gap)]" />
-                        Click a paper to see its claims and links · click a line to see why
-                      </p>
-                    )}
-                  </div>
+                  {model.counts.unlinked > 0 && (
+                    <span className="text-[11px] text-[var(--text-muted)]">
+                      {model.counts.unlinked} {model.counts.unlinked === 1 ? "paper stands" : "papers stand"} alone (greyed out, bottom row)
+                    </span>
+                  )}
                 </div>
 
-                <aside
-                  aria-label="Papers in this topic"
-                  className="flex h-[60vh] min-h-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] lg:h-auto lg:border-l lg:border-t-0"
-                >
-                  <PaperList model={model} selectedId={selectedId} onSelect={selectNode} />
-                </aside>
-              </div>
+                {/* The canvas ends above a footer lane holding the hint and the Live tutor button,
+                    so the button never sits on a node, the zoom controls or a bubble. */}
+                <div className="relative min-h-[420px] flex-1 overflow-hidden">
+                  <GraphCanvas
+                    nodes={model.nodes}
+                    edges={model.edges}
+                    focusPadding={FOCUS_PADDING}
+                    controlsPosition="top-left"
+                    nodeMeta={nodeMeta}
+                    selectedNodeId={shownId}
+                    selectedEdgeId={selectedEdge?.id ?? null}
+                    annotations={[]}
+                    onSelectNode={(n) => selectNode(n.id)}
+                    onSelectEdge={(edge) => setSelectedEdge(edge)}
+                    onClearSelection={clearSelection}
+                  />
+
+                  {selectedEdge ? (
+                    <EdgeBubble
+                      key={selectedEdge.id}
+                      model={model}
+                      edge={selectedEdge}
+                      onSelectNode={selectNode}
+                      onBack={selectedNode ? () => setSelectedEdge(null) : undefined}
+                      onClose={clearSelection}
+                    />
+                  ) : (
+                    selectedNode && (
+                      <NodeBubble
+                        key={selectedNode.id}
+                        model={model}
+                        node={selectedNode}
+                        onSelectNode={selectNode}
+                        onShowEdge={(edge) => setSelectedEdge(edge)}
+                        onClose={clearSelection}
+                        highlightClaimId={selectedId !== shownId ? selectedId : null}
+                      />
+                    )
+                  )}
+
+                </div>
+
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--border-subtle)] py-2 pl-4 pr-2.5">
+                  <p className="flex min-w-0 items-center gap-1.5 text-[11px] leading-snug text-[var(--text-secondary)]">
+                    <MousePointerClick className="h-3.5 w-3.5 shrink-0 text-[var(--status-gap)]" aria-hidden />
+                    <span>Click a paper to see its claims and links · click a line to see why</span>
+                  </p>
+                  <LiveTutorFab call={tutorCall} className="relative shrink-0" />
+                </div>
+              </section>
+
+              <aside
+                aria-label="Papers in this topic"
+                className="apple-sheet flex h-[60vh] min-h-0 min-w-0 flex-col rounded-[22px] lg:h-auto"
+              >
+                <PaperList model={model} selectedId={selectedId} onSelect={selectNode} />
+              </aside>
             </div>
           ) : null}
         </main>

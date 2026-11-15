@@ -24,23 +24,50 @@ export function paperUrl(paper: GraphNodeData): string | undefined {
   return resolveCitationUrl({ docId: paper.doc_id || paper.id, citation: paper.authors_year, title: paper.label });
 }
 
-function Shell({ label, onClose, children }: { label: string; onClose: () => void; children: React.ReactNode }) {
+/**
+ * Floating glass bubble docked to the bottom of the canvas, centred once the canvas is wide.
+ * The zoom controls sit top-left and the Live tutor button in the sheet's footer lane, so the
+ * bubble never covers either. It keeps the top of the canvas for the focused node (>= 15rem
+ * tall on short canvases so the header always fits).
+ *
+ * The `header` (kind pill, title, citation, list label) stays put; only the `children` list
+ * below it scrolls, so the glass scrollbar runs beside the list, never the whole card.
+ */
+function Shell({
+  label,
+  onClose,
+  header,
+  children,
+}: {
+  label: string;
+  onClose: () => void;
+  header: React.ReactNode;
+  children?: React.ReactNode;
+}) {
   return (
     <div
       role="dialog"
       aria-label={label}
-      className="apple-glass-elevated apple-materialize absolute bottom-4 left-4 right-4 z-20 mx-auto flex max-h-[48%] max-w-xl flex-col overflow-hidden rounded-2xl border"
+      className="apple-glass-elevated apple-materialize absolute bottom-3 left-3 right-3 z-20 mx-auto flex max-h-[max(48%,15rem)] max-w-xl flex-col overflow-hidden rounded-[24px] border"
     >
       <button
         type="button"
         onClick={onClose}
         aria-label="Close details"
         title="Close (Esc)"
-        className="apple-press apple-focus absolute right-2.5 top-2.5 z-10 rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
+        className="apple-press apple-focus absolute right-3 top-3 z-10 grid h-7 w-7 place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
       >
-        <X className="h-4 w-4" />
+        <X className="h-3.5 w-3.5" />
       </button>
-      <div className="overflow-y-auto p-4 pr-10">{children}</div>
+      <div className={`shrink-0 px-4 pr-12 pt-4 ${children ? "pb-1" : "pb-4"}`}>{header}</div>
+      {children && (
+        // The only scroller. Its inner padding keeps the cards' borders and focus rings inside the
+        // clip box; the scrollbar takes its own gutter, so it never sits on the text.
+        // Margins (not padding) so the scroll viewport, and its scrollbar, stop short of the rim.
+        <div className="mx-3 mb-3 min-h-0 flex-1 overflow-y-auto">
+          <div className="p-1">{children}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -53,7 +80,7 @@ function Pill({ color, children }: { color: string; children: React.ReactNode })
         borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
         backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
       }}
-      className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold"
+      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
     >
       {children}
     </span>
@@ -83,7 +110,7 @@ function Citation({ paper }: { paper: GraphNodeData }) {
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: "color-mix(in srgb, var(--accent) 82%, var(--text-primary))" }}
-          className="apple-press apple-focus inline-flex items-center gap-1 rounded-md border border-[var(--accent-border)] bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10.5px] font-semibold hover:opacity-90"
+          className="apple-press apple-focus inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2 py-0.5 text-[10.5px] font-semibold hover:opacity-90"
         >
           Open paper
           <ExternalLink className="h-3 w-3" />
@@ -126,9 +153,10 @@ export function NodeBubble({
           type="button"
           onClick={() => onSelectNode(l.other.id)}
           title={`Go to: ${l.other.label}`}
-          className="apple-press apple-focus flex min-w-0 flex-1 items-start gap-2 rounded-lg px-2 py-1 text-left hover:bg-[var(--bg-surface-muted)]"
+          // Baseline-aligned: the verb sits on the first line of the (possibly wrapping) target.
+          className="apple-press apple-focus flex min-w-0 flex-1 items-baseline gap-2 rounded-lg px-2 py-1 text-left leading-snug hover:bg-[var(--bg-surface-muted)]"
         >
-          <span className="mt-px shrink-0 text-[11px] font-semibold" style={{ color: l.color }}>
+          <span className="shrink-0 text-[11px] font-semibold" style={{ color: l.color }}>
             {l.verb}
           </span>
           <span className="min-w-0 flex-1 text-[11.5px] text-[var(--text-primary)]">
@@ -147,7 +175,7 @@ export function NodeBubble({
             type="button"
             onClick={() => onShowEdge(l.edge)}
             title="Show which claims, with quotes"
-            className="apple-press apple-focus mt-0.5 flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+            className="apple-press apple-focus mt-0.5 flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
           >
             <Quote className="h-2.5 w-2.5" />
             Why
@@ -157,60 +185,88 @@ export function NodeBubble({
     );
   };
 
+  // With claims listed, their links already say who agrees / disagrees; otherwise list the
+  // linked papers, then the open questions. A paper keeps its one list label in the fixed
+  // header (so the scroll box holds just the rows); an open question's description and labels
+  // scroll with its list, so a long description can't crowd the list out on a small canvas.
+  const showLinked = claims.length === 0 && papersLinked.length > 0;
+  const showGaps = claims.length === 0 && gapsLeft.length > 0;
+  const gapsLabel = kind === "gap" ? "Raised by" : `Open questions · ${gapsLeft.length}`;
+  const standsAlone = kind !== "gap" && links.length === 0;
+  const summary = kind !== "paper" && node.summary && node.summary !== node.label ? node.summary : null;
+  const headerLabel =
+    kind !== "paper"
+      ? null
+      : claims.length > 0
+        ? `What this paper claims · ${claims.length}`
+        : showLinked && !showGaps
+          ? `Linked papers · ${papersLinked.length}`
+          : showGaps && !showLinked
+            ? gapsLabel
+            : null;
+  const inlineLabels = !headerLabel;
+  const hasBody = claims.length > 0 || showLinked || showGaps || standsAlone || !!summary;
+
   return (
-    <Shell label={`${meta.label} details`} onClose={onClose}>
-      <Pill color={meta.color}>
-        <KindIcon className="h-3 w-3" />
-        {meta.label}
-      </Pill>
-      <h3 className="apple-heading mt-2 text-sm font-semibold leading-snug text-[var(--text-primary)]">{node.label}</h3>
-      {kind === "paper" ? (
-        <Citation paper={node} />
-      ) : (
-        node.summary &&
-        node.summary !== node.label && (
-          <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">{node.summary}</p>
-        )
-      )}
+    <Shell
+      label={`${meta.label} details`}
+      onClose={onClose}
+      header={
+        <>
+          <Pill color={meta.color}>
+            <KindIcon className="h-3 w-3" />
+            {meta.label}
+          </Pill>
+          <h3 className="apple-heading mt-2 break-words text-sm font-semibold leading-snug text-[var(--text-primary)]">{node.label}</h3>
+          {kind === "paper" && <Citation paper={node} />}
+          {headerLabel && (
+            <div className="mt-3 -mb-1.5">
+              <Label>{headerLabel}</Label>
+            </div>
+          )}
+        </>
+      }
+    >
+      {hasBody && (
+        <>
+          {summary && <p className="mb-3 text-xs leading-relaxed text-[var(--text-secondary)]">{summary}</p>}
 
-      {claims.length > 0 && (
-        <div className="mt-3">
-          <Label>What this paper claims · {claims.length}</Label>
-          <ul className="space-y-1.5">
-            {claims.map((c) => (
-              <ClaimCard
-                key={c.id}
-                model={model}
-                claim={c}
-                highlight={c.id === highlightClaimId}
-                onSelectNode={onSelectNode}
-                onShowEdge={onShowEdge}
-              />
-            ))}
-          </ul>
-        </div>
-      )}
+          {claims.length > 0 && (
+            <ul className="space-y-1.5">
+              {claims.map((c) => (
+                <ClaimCard
+                  key={c.id}
+                  model={model}
+                  claim={c}
+                  highlight={c.id === highlightClaimId}
+                  onSelectNode={onSelectNode}
+                  onShowEdge={onShowEdge}
+                />
+              ))}
+            </ul>
+          )}
 
-      {/* With claims listed, their links already say who agrees / disagrees. */}
-      {claims.length === 0 && papersLinked.length > 0 && (
-        <div className="mt-3">
-          <Label>Linked papers · {papersLinked.length}</Label>
-          <ul className="space-y-1">{papersLinked.map(row)}</ul>
-        </div>
-      )}
+          {showLinked && (
+            <div>
+              {inlineLabels && <Label>Linked papers · {papersLinked.length}</Label>}
+              <ul className="space-y-1">{papersLinked.map(row)}</ul>
+            </div>
+          )}
 
-      {claims.length === 0 && gapsLeft.length > 0 && (
-        <div className="mt-3">
-          <Label>{kind === "gap" ? "Raised by" : `Open questions · ${gapsLeft.length}`}</Label>
-          <ul className="space-y-1">{gapsLeft.map(row)}</ul>
-        </div>
-      )}
+          {showGaps && (
+            <div className={showLinked ? "mt-3" : ""}>
+              {inlineLabels && <Label>{gapsLabel}</Label>}
+              <ul className="space-y-1">{gapsLeft.map(row)}</ul>
+            </div>
+          )}
 
-      {kind !== "gap" && links.length === 0 && (
-        <p className="mt-3 rounded-lg border border-dashed border-[var(--border-strong)] px-2.5 py-1.5 text-[11px] text-[var(--text-secondary)]">
-          <span className="font-semibold">Stands alone.</span> No other paper in this search agrees or disagrees
-          with it, and it raises no open question, so it&apos;s greyed out on the graph.
-        </p>
+          {standsAlone && (
+            <p className="rounded-xl border border-dashed border-[var(--border-strong)] px-2.5 py-1.5 text-[11px] text-[var(--text-secondary)]">
+              <span className="font-semibold">Stands alone.</span> No other paper in this search agrees or disagrees
+              with it, and it raises no open question, so it&apos;s greyed out on the graph.
+            </p>
+          )}
+        </>
       )}
     </Shell>
   );
@@ -245,28 +301,46 @@ export function ClaimLinks({
         const color = EDGE_META[r.type].color;
         const target = r.type === "gap" ? r.other.label : r.other.authors_year || r.other.label;
         return (
-          <li key={`${r.line.id}-${i}`} className="flex items-start gap-1.5 text-[10.5px] leading-snug">
-            <span aria-hidden className="mt-[5px] h-0 w-3 shrink-0 border-t-2" style={{ borderColor: color, borderTopStyle: r.type === "supports" ? "solid" : "dashed" }} />
-            <span className="min-w-0 flex-1">
+          <li key={`${r.line.id}-${i}`} className="flex items-start gap-2 text-[10.5px] leading-[1.5]">
+            {/* One line of text: glyph, verb and target all share the first line's baseline.
+                (A block-level clamp inside the target button used to drop the verb onto the
+                button's last line, so the three sat at different heights.) The clamp applies
+                to the whole line instead. */}
+            <p className={`min-w-0 flex-1 ${r.type === "gap" ? "line-clamp-3" : ""}`}>
+              <span
+                aria-hidden
+                className="mr-1.5 inline-block w-3 border-t-2 align-middle"
+                style={{ borderColor: color, borderTopStyle: r.type === "supports" ? "solid" : "dashed" }}
+              />
               <span className="font-semibold" style={{ color: `color-mix(in srgb, ${color} 80%, var(--text-primary))` }}>
-                {CLAIM_VERB[r.type]}{" "}
-              </span>
+                {CLAIM_VERB[r.type]}
+              </span>{" "}
               {onSelectNode ? (
-                <button
-                  type="button"
+                // A real inline element (Chrome lays a <button> out as an inline-block box even
+                // with display:inline), so a long target wraps as text and keeps the baseline.
+                <span
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectNode(r.other.id);
                   }}
-                  className="apple-focus rounded text-left font-medium text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-2 hover:decoration-[var(--text-primary)]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSelectNode(r.other.id);
+                    }
+                  }}
+                  className="apple-focus cursor-pointer rounded font-medium text-[var(--text-primary)] underline decoration-[var(--border-strong)] underline-offset-2 hover:decoration-[var(--text-primary)]"
                 >
-                  {r.type === "gap" ? <span className="line-clamp-2">{target}</span> : target}
-                </button>
+                  {target}
+                </span>
               ) : (
                 <span className="font-medium text-[var(--text-primary)]">{target}</span>
               )}
               {r.otherClaim && <span className="text-[var(--text-muted)]"> — “{r.otherClaim.label}”</span>}
-            </span>
+            </p>
             {onShowEdge && r.type !== "gap" && (
               <button
                 type="button"
@@ -275,7 +349,7 @@ export function ClaimLinks({
                   onShowEdge(r.line);
                 }}
                 title="Show the evidence, with quotes"
-                className="apple-press apple-focus flex shrink-0 items-center gap-0.5 rounded-md border border-[var(--border-subtle)] px-1 py-px text-[9.5px] font-semibold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                className="apple-press apple-focus mt-px flex shrink-0 items-center gap-0.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1.5 py-px text-[9.5px] font-semibold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
               >
                 <Quote className="h-2.5 w-2.5" />
                 Why
@@ -308,10 +382,10 @@ function ClaimCard({
   return (
     <li
       ref={ref}
-      className={`rounded-lg border px-2.5 py-1.5 transition ${
+      className={`rounded-xl border px-2.5 py-1.5 transition ${
         highlight
           ? "border-[var(--accent-border)] bg-[var(--accent-soft)] ring-1 ring-[var(--accent-border)]"
-          : "border-[var(--border-subtle)] bg-[var(--bg-canvas)]"
+          : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]"
       }`}
     >
       <p className="text-[11.5px] leading-snug text-[var(--text-primary)]">{claim.label}</p>
@@ -350,31 +424,37 @@ export function EdgeBubble({
   const author = (claim: GraphNodeData) => model.byId.get(model.resolveId(claim.id) ?? "")?.authors_year;
 
   return (
-    <Shell label={`${meta.label} link`} onClose={onClose}>
-      <div className="flex flex-wrap items-center gap-2">
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="apple-press apple-focus flex items-center gap-1 rounded-md border border-[var(--border-subtle)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            Back
-          </button>
-        )}
-        <Pill color={meta.color}>{meta.label}</Pill>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1 text-xs text-[var(--text-secondary)]">
-        {name(source, edge.source)}
-        <span className="text-[11px]" style={{ color: meta.color }}>
-          {edge.type === "supports" ? "and" : edge.type === "contradicts" ? "vs" : "leaves open"}
-        </span>
-        {name(target, edge.target)}
-      </div>
-
-      <div className="mt-3 space-y-2.5">
+    <Shell
+      label={`${meta.label} link`}
+      onClose={onClose}
+      header={
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="apple-press apple-focus flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                Back
+              </button>
+            )}
+            <Pill color={meta.color}>{meta.label}</Pill>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1 pb-1.5 text-xs text-[var(--text-secondary)]">
+            {name(source, edge.source)}
+            <span className="text-[11px]" style={{ color: meta.color }}>
+              {edge.type === "supports" ? "and" : edge.type === "contradicts" ? "vs" : "leaves open"}
+            </span>
+            {name(target, edge.target)}
+          </div>
+        </>
+      }
+    >
+      <div className="space-y-2.5">
         {links.map(({ edge: e, from, to }, i) => (
-          <div key={`${e.id}-${i}`} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-2.5">
+          <div key={`${e.id}-${i}`} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
             <p className="text-[11.5px] leading-snug text-[var(--text-primary)]">
               {author(from) && <span className="font-semibold">{author(from)}: </span>}
               {from.label}

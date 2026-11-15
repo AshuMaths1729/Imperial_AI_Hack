@@ -54,27 +54,35 @@ const OPTIONS: {
   },
 ];
 
+/* apple-card (unlayered CSS) only transitions `transform`; Tailwind's hover lift and press
+   use the separate `translate` / `scale` properties, so the card states its own transition. */
+const CARD_TRANSITION =
+  "translate 300ms cubic-bezier(0.22, 1, 0.36, 1), scale 150ms ease-out, box-shadow 220ms ease, border-color 220ms ease";
+
 export function HomeHub({ onSelectMode }: HomeHubProps) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      {/* Ambient animated backdrop, one glow per workspace hue */}
+    // Transparent root so the body's colour field shows. overflow-x-clip (not overflow-hidden)
+    // keeps the wide aurora blobs from causing a sideways scroll without turning the root into
+    // a scroll container, so the sticky header keeps sticking to the viewport.
+    <div className="relative flex min-h-screen flex-col overflow-x-clip text-[var(--text-primary)]">
+      {/* Ambient animated backdrop, one glow per workspace hue (soft tints over the colour field) */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="apple-hero-glow absolute inset-x-0 top-0 h-[560px]" />
         <div className="st-aurora absolute -top-48 left-[calc(50%-440px)] h-[560px] w-[880px] rounded-full bg-[var(--accent-soft)] blur-3xl" />
         <div className="st-aurora-slow absolute top-72 -left-40 h-[400px] w-[400px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
         <div className="st-aurora-slow absolute top-80 -right-36 h-[380px] w-[380px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
-        <div className="st-grid absolute inset-0 opacity-[0.35]" />
+        <div className="st-grid absolute inset-0 opacity-[0.22]" />
       </div>
 
       {/* The bar keeps only the global controls: the name lives in the hero below. */}
       <AppHeader sticky />
 
-      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-12">
+      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-12 pt-10 sm:px-6 sm:pt-12">
         <div className="my-auto">
           {/* Hero: the product name, front and centre */}
-          <section className="mb-12 text-center">
+          <section className="mb-10 text-center sm:mb-12">
             <div className="st-fade-up mx-auto mb-5 flex w-fit items-center justify-center" style={{ animationDelay: "40ms" }}>
-              <span className="st-float relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--accent-border)] bg-[var(--bg-surface)] shadow-lg">
+              <span className="apple-sheet st-float relative flex h-16 w-16 items-center justify-center rounded-2xl">
                 <span
                   aria-hidden
                   className="absolute inset-0 rounded-2xl opacity-60 blur-xl"
@@ -83,7 +91,7 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
                       "conic-gradient(from 180deg, var(--accent), var(--status-support), var(--status-gap), var(--accent))",
                   }}
                 />
-                <span className="relative flex h-full w-full items-center justify-center rounded-2xl bg-[var(--bg-surface)]">
+                <span className="relative flex h-full w-full items-center justify-center rounded-[21px] bg-[var(--bg-glass-elevated)] shadow-[inset_0_1px_0_var(--glass-highlight)]">
                   <Sparkles className="st-twinkle h-7 w-7 text-[var(--accent)]" />
                 </span>
               </span>
@@ -112,15 +120,16 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
 
           <div className="st-fade-up mb-5 flex items-center gap-3" style={{ animationDelay: "280ms" }}>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[var(--border-strong)]" />
-            <h2 className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
+            <h2 className="apple-sheet apple-label shrink-0 rounded-full px-3.5 py-1 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
               Choose a workspace
             </h2>
             <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[var(--border-strong)]" />
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {OPTIONS.map((opt, i) => {
               const Icon = opt.icon;
+              const last = i === OPTIONS.length - 1;
               return (
                 <button
                   key={opt.mode}
@@ -129,37 +138,46 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
                   style={
                     {
                       animationDelay: `${340 + i * 90}ms`,
+                      transition: CARD_TRANSITION,
                       "--card-c": opt.accentVar,
                       "--card-b": opt.borderVar,
                     } as React.CSSProperties
                   }
-                  className="apple-card apple-focus st-fade-up st-sheen group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--border-subtle)] p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[var(--card-b)] hover:shadow-xl focus-visible:-translate-y-1 active:scale-[0.98]"
+                  className={`apple-card apple-focus st-fade-up st-sheen group relative flex min-w-0 flex-col justify-between overflow-hidden rounded-3xl border p-6 text-left hover:-translate-y-1 hover:border-[var(--card-b)]! focus-visible:-translate-y-1 active:scale-[0.98] ${
+                    last ? "sm:col-span-2 lg:col-span-1" : ""
+                  }`}
                 >
+                  {/* Hue wash across the top of the glass (replaces the old solid strip) */}
                   <div
                     aria-hidden
-                    style={{ backgroundColor: opt.accentVar }}
-                    className="absolute inset-x-0 top-0 h-1 opacity-85 transition-all duration-300 group-hover:h-1.5"
+                    style={{
+                      background: `linear-gradient(to bottom, color-mix(in srgb, ${opt.accentVar} 16%, transparent), transparent)`,
+                    }}
+                    className="pointer-events-none absolute inset-x-0 top-0 h-28 opacity-80 transition-opacity duration-300 group-hover:opacity-100"
                   />
-                  <div>
+                  <div className="relative min-w-0">
                     <div className="mb-4 flex items-center justify-between">
                       <span
                         style={{ backgroundColor: opt.softVar, color: opt.accentVar, borderColor: opt.borderVar }}
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border shadow-[inset_0_1px_0_var(--glass-highlight)] transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
                       >
                         <Icon className="h-5 w-5" />
                       </span>
-                      <ArrowRight className="h-4 w-4 text-[var(--text-muted)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--card-c)]" />
+                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--card-c)]" />
                     </div>
-                    <h3 className="apple-heading text-lg font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--card-c)]">
+                    <h3 className="apple-heading text-lg font-semibold text-[var(--text-primary)] transition-colors [overflow-wrap:anywhere] group-hover:text-[var(--card-c)]">
                       {opt.title}
                     </h3>
                     <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">{opt.tagline}</p>
                     <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{opt.description}</p>
                   </div>
 
-                  <div style={{ color: opt.accentVar }} className="mt-6 flex items-center gap-1.5 text-xs font-semibold">
-                    Open {opt.title}
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  <div
+                    style={{ color: opt.accentVar, backgroundColor: opt.softVar, borderColor: opt.borderVar }}
+                    className="relative mt-6 inline-flex max-w-full items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-semibold"
+                  >
+                    <span className="min-w-0 truncate">Open {opt.title}</span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </div>
                 </button>
               );
@@ -167,6 +185,7 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
           </div>
         </div>
       </main>
+
     </div>
   );
 }

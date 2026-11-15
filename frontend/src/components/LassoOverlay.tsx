@@ -71,7 +71,10 @@ export function LassoOverlay({ active, onCapture }: LassoOverlayProps) {
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
     // Canvas can't read CSS vars directly: resolve the theme's accent so the lasso matches every theme.
-    const accent = getComputedStyle(canvas).getPropertyValue("--accent").trim() || "#0066cc";
+    // Falls back to the text token, then the inherited text colour (no hard-coded hex).
+    const css = getComputedStyle(canvas);
+    const accent =
+      css.getPropertyValue("--accent").trim() || css.getPropertyValue("--text-primary").trim() || css.color;
     ctx.strokeStyle = accent;
     ctx.lineWidth = 2.5;
     ctx.setLineDash([5, 4]);
@@ -112,7 +115,9 @@ export function LassoOverlay({ active, onCapture }: LassoOverlayProps) {
       onPointerDown={handleDown}
       onPointerMove={handleMove}
       onPointerUp={handleUp}
-      className="absolute inset-0 z-20 cursor-crosshair"
+      // A faint accent wash so it is obvious the canvas is in drawing mode.
+      // touch-none: a finger drag draws the lasso instead of scrolling the page.
+      className="absolute inset-0 z-20 cursor-crosshair touch-none bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]"
     />
   );
 }

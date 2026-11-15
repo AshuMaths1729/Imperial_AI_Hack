@@ -67,8 +67,9 @@ export function PaperList({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 space-y-2.5 border-b border-[var(--border-subtle)] p-3">
-        <div className="flex gap-1 rounded-xl bg-[var(--bg-surface-muted)] p-1" role="tablist" aria-label="Show papers or open questions">
+      <div className="shrink-0 space-y-2.5 border-b border-[var(--border-subtle)] px-2.5 py-3">
+        {/* Segmented pill. Segments size to their label (flex-auto) so "Questions 12" fits at 300px. */}
+        <div className="apple-seg flex gap-0.5 rounded-full p-[3px]" role="tablist" aria-label="Show papers or open questions">
           {tabs
             .filter((t) => t.id === "paper" || t.n > 0)
             .map((t) => {
@@ -86,35 +87,33 @@ export function PaperList({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setTab(t.id)}
-                  className={`apple-press apple-focus flex flex-1 items-center justify-center gap-1 rounded-lg px-1.5 py-1 text-[10.5px] font-semibold transition ${
-                    active
-                      ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className={`apple-press apple-focus flex min-w-0 flex-auto items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-1.5 py-1 text-[10.5px] font-semibold transition ${
+                    active ? "apple-seg-on text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   <span aria-hidden className={`h-2 w-2 shrink-0 ${dot.className}`} style={dot.style} />
                   {t.label}
-                  <span className="text-[var(--text-muted)]">{t.n}</span>
+                  <span className="tabular-nums text-[var(--text-muted)]">{t.n}</span>
                 </button>
               );
             })}
         </div>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tab === "paper" ? "Find a paper or author…" : tab === "claim" ? "Find a claim or paper…" : "Find an open question…"}
             aria-label={tab === "paper" ? "Find a paper" : tab === "claim" ? "Find a claim" : "Find an open question"}
-            className="apple-focus w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-1.5 pl-8 pr-7 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--status-gap-border)]"
+            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--status-gap-border)]"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="apple-focus absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className="apple-focus absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -153,10 +152,10 @@ export function PaperList({
 }
 
 const rowClass = (active: boolean) =>
-  `st-fade-up flex items-start gap-1 rounded-xl border p-2 transition ${
+  `st-fade-up flex items-start gap-1 rounded-2xl border p-2 transition ${
     active
-      ? "border-[var(--accent-border)] bg-[var(--accent-soft)]"
-      : "border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--border-strong)]"
+      ? "border-[var(--accent-border)] bg-[var(--accent-soft)] shadow-[inset_0_1px_0_var(--glass-highlight)]"
+      : "border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[inset_0_1px_0_var(--glass-highlight)] hover:border-[var(--border-strong)]"
   }`;
 
 function PaperRow({
@@ -189,10 +188,10 @@ function PaperRow({
         type="button"
         onClick={() => onSelect(paper.id)}
         aria-current={active ? "true" : undefined}
-        className="apple-focus min-w-0 flex-1 rounded-lg px-1 text-left"
+        className="apple-focus min-w-0 flex-1 rounded-xl px-1 text-left"
       >
         {paper.authors_year && (
-          <span className="block text-xs font-semibold text-[var(--text-primary)]">{paper.authors_year}</span>
+          <span className="block break-words text-xs font-semibold text-[var(--text-primary)]">{paper.authors_year}</span>
         )}
         <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-[var(--text-secondary)]">{paper.label}</span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-[var(--text-muted)]">
@@ -214,7 +213,7 @@ function PaperRow({
           rel="noopener noreferrer"
           aria-label={`Open ${paper.authors_year || "paper"} in a new tab`}
           title="Open the paper"
-          className="apple-press apple-focus shrink-0 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--accent)]"
+          className="apple-press apple-focus shrink-0 rounded-full p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--accent)]"
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
@@ -245,7 +244,7 @@ function GapRow({
         type="button"
         onClick={() => onSelect(gap.id)}
         aria-current={active ? "true" : undefined}
-        className="apple-focus min-w-0 flex-1 rounded-lg px-1 text-left"
+        className="apple-focus min-w-0 flex-1 rounded-xl px-1 text-left"
       >
         <span className="line-clamp-3 block text-[11.5px] font-medium leading-snug text-[var(--text-primary)]">{gap.label}</span>
         {raisedBy.length > 0 && (
@@ -292,13 +291,16 @@ function ClaimRow({
           }
         }}
         aria-current={active ? "true" : undefined}
-        className="apple-focus min-w-0 flex-1 cursor-pointer rounded-lg px-1 text-left"
+        className="apple-focus min-w-0 flex-1 cursor-pointer rounded-xl px-1 text-left"
       >
         <span className="block text-[11.5px] font-medium leading-snug text-[var(--text-primary)]">{claim.label}</span>
         {paper && (
           <span className="mt-1 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
             <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-sm bg-[var(--accent)]" />
-            From <span className="truncate font-semibold text-[var(--text-secondary)]">{paper.authors_year || paper.label}</span>
+            From{" "}
+            <span title={paper.authors_year || paper.label} className="min-w-0 truncate font-semibold text-[var(--text-secondary)]">
+              {paper.authors_year || paper.label}
+            </span>
           </span>
         )}
         <ClaimLinks model={model} claimId={claim.id} />

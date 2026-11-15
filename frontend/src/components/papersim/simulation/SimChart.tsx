@@ -160,36 +160,43 @@ interface LegendProps {
 export function Legend({ names, docs, hidden, onToggle, onEmphasis }: LegendProps) {
   if (names.length < 2 && !docs.size) return null;
   return (
-    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Series">
+    // The row (not each chip) anchors the tooltips, so a tooltip never runs past the card edge
+    // (a hidden one would otherwise still widen the scroll area on a phone).
+    <div className="relative flex flex-wrap gap-1.5" role="group" aria-label="Series">
       {names.map((name, idx) => {
         const off = hidden.has(name);
         const doc = docs.get(name.trim().toLowerCase());
         return (
-          <div key={name} className="group relative">
+          <div key={name} className="group min-w-0 max-w-full">
             <button
               type="button"
               aria-pressed={!off}
+              title={name}
               onClick={() => onToggle(name)}
               onMouseEnter={() => onEmphasis(name)}
               onMouseLeave={() => onEmphasis(null)}
               onFocus={() => onEmphasis(name)}
               onBlur={() => onEmphasis(null)}
-              className={`apple-press apple-focus flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+              className={`apple-press apple-focus flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium ${
                 off
                   ? "border-dashed border-[var(--border-strong)] text-[var(--text-muted)] line-through"
                   : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
               }`}
             >
-              <span className={off ? "opacity-40" : ""}>
+              <span className={`shrink-0 ${off ? "opacity-40" : ""}`}>
                 <Swatch idx={idx} />
               </span>
-              <RichText className="max-w-[16ch] truncate" text={name} />
-              {off ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60" />}
+              <RichText className="min-w-0 truncate" text={name} />
+              {off ? (
+                <EyeOff className="h-3 w-3 shrink-0" />
+              ) : (
+                <Eye className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-60" />
+              )}
             </button>
             {doc && (
               <div
                 role="tooltip"
-                className="apple-glass-elevated pointer-events-none invisible absolute left-0 top-full z-30 mt-2 w-64 rounded-xl border p-3 opacity-0 transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+                className="apple-glass-elevated pointer-events-none invisible absolute left-0 top-full z-30 mt-2 w-[min(16rem,100%)] rounded-2xl border p-3 opacity-0 transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
               >
                 <p className="text-xs font-semibold text-[var(--text-primary)]">{name}</p>
                 <p className="mt-1 text-[11px] leading-snug text-[var(--text-secondary)]">
@@ -266,7 +273,11 @@ export function SimChart({
   const w = Math.max(280, width);
   const h = Math.round(Math.min(440, Math.max(260, w * 0.5)));
   const padL = 26 + tickW;
-  const padR = directLabels ? 112 : 18;
+  // Direct labels get the room their full names need (up to ~28% of the chart), so they're
+  // only shortened when a name genuinely can't fit; ~6.2px per 11px glyph plus the leader.
+  const labelCap = Math.max(10, Math.floor((w * 0.28 - 26) / 6.2));
+  const labelChars = directLabels ? Math.min(labelCap, Math.max(...visibleIdx.map((i) => names[i].length))) : 0;
+  const padR = directLabels ? Math.ceil(26 + labelChars * 6.2) : 18;
   const padT = 16;
   const padB = 46;
   const plotW = Math.max(40, w - padL - padR);
@@ -352,7 +363,10 @@ export function SimChart({
         )
       : [];
   const tipLeft = hx !== null ? g.sx(hx) : 0;
-  const flip = tipLeft > w - 230;
+  // Open towards the side with more room, and never wider than that room (no overflow on phones).
+  const roomRight = w - tipLeft;
+  const flip = roomRight < 250 && tipLeft > roomRight;
+  const tipRoom = Math.max(120, (flip ? tipLeft : roomRight) - 22);
 
   const clampN = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -496,7 +510,8 @@ export function SimChart({
           <g key={`lab${l.i}`} style={{ opacity: dimFor(names[l.i]), transition: "opacity 180ms" }}>
             <line x1={padL + plotW + 4} x2={padL + plotW + 14} y1={l.y} y2={l.y} strokeWidth={2} style={{ stroke: seriesColor(l.i) }} />
             <text x={padL + plotW + 18} y={l.y + 3.5} fontSize="11" fontWeight={500} style={{ fill: "var(--text-secondary)" }}>
-              {names[l.i].length > 14 ? `${names[l.i].slice(0, 13)}…` : names[l.i]}
+              <title>{names[l.i]}</title>
+              {names[l.i].length > labelCap ? `${names[l.i].slice(0, labelCap - 1)}…` : names[l.i]}
             </text>
           </g>
         ))}
@@ -522,7 +537,7 @@ export function SimChart({
                   cy={clampN(g.sy(v), padT, padT + plotH)}
                   r={4.5}
                   strokeWidth={2}
-                  style={{ fill: seriesColor(i), stroke: "var(--bg-surface)" }}
+                  style={{ fill: seriesColor(i), stroke: "var(--bg-surface-solid)" }}
                 />
               );
             })}
@@ -577,11 +592,13 @@ export function SimChart({
         <div
           role="status"
           aria-live="polite"
-          className="apple-glass-elevated pointer-events-none absolute z-20 min-w-44 max-w-64 rounded-xl border px-3 py-2"
+          className="apple-glass-elevated pointer-events-none absolute z-20 rounded-2xl border px-3 py-2"
           style={{
             top: padT + 6,
             left: flip ? undefined : tipLeft + 14,
             right: flip ? w - tipLeft + 14 : undefined,
+            minWidth: Math.min(176, tipRoom),
+            maxWidth: Math.min(256, tipRoom),
           }}
         >
           <p className="mb-1 flex items-baseline justify-between gap-3 border-b border-[var(--border-subtle)] pb-1 text-[11px] text-[var(--text-muted)]">
@@ -652,16 +669,17 @@ export function DataTable({
   if (n && rows[rows.length - 1] !== n - 1) rows.push(n - 1);
   const cols = names.map((nm, i) => ({ nm, i })).filter((c) => !hidden.has(c.nm));
   return (
-    <div className="st-fade-up max-h-72 overflow-auto rounded-xl border border-[var(--border-subtle)]">
+    // Solid surface (not glass) so rows stay crisp and the sticky header hides rows scrolling under it.
+    <div className="st-fade-up max-h-72 overflow-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-solid)]">
       <table className="w-full border-collapse text-[11px]">
         <caption className="sr-only">Simulation values{stride > 1 ? `, every ${stride}th sample` : ""}</caption>
-        <thead className="sticky top-0 bg-[var(--bg-surface-muted)]">
+        <thead className="sticky top-0 z-[1] bg-[var(--bg-surface-solid)] shadow-[inset_0_-1px_0_var(--border-subtle)]">
           <tr>
-            <th scope="col" className="px-3 py-1.5 text-left font-semibold text-[var(--text-secondary)]">
+            <th scope="col" className="whitespace-nowrap px-3 py-1.5 text-left font-semibold text-[var(--text-secondary)]">
               <RichText text={xLabel} />
             </th>
             {cols.map((c) => (
-              <th key={c.nm} scope="col" className="px-3 py-1.5 text-right font-semibold text-[var(--text-secondary)]">
+              <th key={c.nm} scope="col" className="whitespace-nowrap px-3 py-1.5 text-right font-semibold text-[var(--text-secondary)]">
                 <span className="inline-flex items-center gap-1.5">
                   <Swatch idx={c.i} />
                   {c.nm}
@@ -673,9 +691,9 @@ export function DataTable({
         <tbody className="font-mono tabular-nums">
           {rows.map((r) => (
             <tr key={r} className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-surface-muted)]">
-              <td className="px-3 py-1 text-[var(--text-secondary)]">{formatValue(frame.x[r])}</td>
+              <td className="whitespace-nowrap px-3 py-1 text-[var(--text-secondary)]">{formatValue(frame.x[r])}</td>
               {cols.map((c) => (
-                <td key={c.nm} className="px-3 py-1 text-right text-[var(--text-primary)]">
+                <td key={c.nm} className="whitespace-nowrap px-3 py-1 text-right text-[var(--text-primary)]">
                   {formatValue(frame.ys[c.i]?.[r])}
                 </td>
               ))}

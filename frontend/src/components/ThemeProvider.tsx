@@ -84,7 +84,7 @@ export function ThemeToggle() {
     <div
       role="group"
       aria-label="Color theme"
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-0.5"
+      className="apple-seg inline-flex shrink-0 items-center gap-0.5 rounded-full p-0.5"
     >
       {THEME_OPTIONS.map((opt) => {
         const Icon = opt.icon;
@@ -97,9 +97,9 @@ export function ThemeToggle() {
             aria-pressed={active}
             aria-label={`${opt.label} theme`}
             title={`${opt.label} theme`}
-            className={`apple-press apple-focus flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition ${
+            className={`apple-press apple-focus flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] sm:px-2.5 font-medium transition ${
               active
-                ? "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
+                ? "apple-seg-on border-[var(--glass-rim)] text-[var(--text-primary)]"
                 : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
           >

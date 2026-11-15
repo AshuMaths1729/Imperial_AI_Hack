@@ -13,12 +13,12 @@ import { RichText } from "../../math/MathTex";
 function Tile({ label, value, sub, i }: { label: string; value: string; sub?: string; i: number }) {
   return (
     <div
-      className="st-rise rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
+      className="st-rise min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
       style={stagger(i, 40, 100)}
     >
       <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
-      <p className="font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</p>
-      {sub && <p className="truncate text-[10px] text-[var(--text-muted)]" title={sub}><RichText text={sub} /></p>}
+      <p className="break-all font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+      {sub && <p className="break-words text-[10px] leading-snug text-[var(--text-muted)]"><RichText text={sub} /></p>}
     </div>
   );
 }
@@ -36,16 +36,16 @@ function PairSelect({
 }) {
   const v = views.find((s) => s.name === value);
   return (
-    <label className="flex min-w-0 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-1 pl-2.5 pr-1">
+    <label className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-1 pl-3 pr-1.5 focus-within:border-[var(--accent-border)]">
       <span className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">{label}</span>
       {v && <SeriesSwatch color={v.color} dash={v.dash} width={18} />}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="apple-focus min-w-0 flex-1 cursor-pointer rounded-lg bg-transparent py-1 pr-1 text-xs font-medium text-[var(--text-primary)] outline-none"
+        className="apple-focus min-w-0 flex-1 cursor-pointer rounded-full bg-transparent py-1 pr-1 text-xs font-medium text-[var(--text-primary)] outline-none"
       >
         {views.map((s) => (
-          <option key={s.name} value={s.name} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
+          <option key={s.name} value={s.name} className="bg-[var(--bg-surface-solid)] text-[var(--text-primary)]">
             {s.name}
           </option>
         ))}
@@ -103,7 +103,7 @@ export function ComparisonPanel({
       </div>
 
       {/* Overlay of every series */}
-      <div className="apple-card rounded-2xl border border-[var(--border-subtle)] p-4">
+      <div className="apple-card min-w-0 rounded-2xl border p-4">
         <p className="mb-2 text-xs font-semibold text-[var(--text-primary)]">All series, overlaid</p>
         <LineChart
           x={x}
@@ -122,12 +122,13 @@ export function ComparisonPanel({
             {ranking.map(({ v, final }, i) => (
               <span
                 key={v.name}
-                className="st-rise flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-0.5 text-[11px]"
+                className="st-rise flex max-w-full items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-0.5 text-[11px]"
                 style={stagger(i, 60, 300)}
+                title={v.name}
               >
                 <span className="font-mono text-[var(--text-muted)]">{i + 1}</span>
                 <SeriesSwatch color={v.color} dash={v.dash} width={16} />
-                <RichText className="text-[var(--text-secondary)]" text={v.name} />
+                <RichText className="min-w-0 truncate text-[var(--text-secondary)]" text={v.name} />
                 <span className="font-mono font-semibold text-[var(--text-primary)]">{fmtNum(final)}</span>
               </span>
             ))}
@@ -136,7 +137,7 @@ export function ComparisonPanel({
       </div>
 
       {/* Pairwise */}
-      <div className="apple-card rounded-2xl border border-[var(--border-subtle)] p-4">
+      <div className="apple-card min-w-0 rounded-2xl border p-4">
         <div className="flex flex-wrap items-center gap-2">
           <p className="mr-auto text-xs font-semibold text-[var(--text-primary)]">Head to head</p>
           <PairSelect label="A" value={pair[0]} onChange={setA} views={views} />
@@ -145,7 +146,7 @@ export function ComparisonPanel({
             onClick={() => setPicked([pair[1], pair[0]])}
             title="Swap A and B"
             aria-label="Swap A and B"
-            className="apple-press apple-focus flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:text-[var(--accent)]"
+            className="apple-press apple-focus flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:text-[var(--accent)]"
           >
             <ArrowRightLeft className="h-3.5 w-3.5" />
           </button>
@@ -157,7 +158,7 @@ export function ComparisonPanel({
         ) : (
           <>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <div className="min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-3">
+              <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
                 <p className="text-[11px] font-semibold text-[var(--text-primary)]">Difference A − B</p>
                 <p className="mb-1 text-[10px] text-[var(--text-muted)]">
                   Shaded with A&apos;s colour where A leads, B&apos;s where B leads
@@ -173,7 +174,7 @@ export function ComparisonPanel({
                   ariaLabel={`Difference between ${A.name} and ${B.name}`}
                 />
               </div>
-              <div className="min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] p-3">
+              <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
                 <p className="text-[11px] font-semibold text-[var(--text-primary)]">Ratio A ÷ B</p>
                 <p className="mb-1 text-[10px] text-[var(--text-muted)]">Above 1 means A is larger by that factor</p>
                 {cmp.ratioValid ? (
@@ -208,7 +209,7 @@ export function ComparisonPanel({
               <Tile i={5} label="Correlation r" value={cmp.r === null ? "—" : cmp.r.toFixed(3)} sub="shape similarity" />
             </div>
 
-            <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
+            <div className="mt-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
               <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-primary)]">
                 <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" /> What this means
               </p>

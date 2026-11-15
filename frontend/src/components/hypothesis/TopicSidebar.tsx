@@ -76,8 +76,13 @@ function PeekStats({ run }: { run: TopicRun }) {
 }
 
 /**
- * Saved HypothesisGraph topics. Collapses to a narrow rail of mini cards (short title,
- * evidence mix, date) with a full-title peek on hover; on phones the rail is icon-only.
+ * Saved HypothesisGraph topics, as a floating glass sheet. Collapses to a narrow rail of mini
+ * cards (short title, evidence mix, date) with a full-title peek on hover; on phones the rail is
+ * icon-only and the expanded sheet overlays the page.
+ *
+ * The peek is position: fixed, so nothing on or above this sheet may get a transform, filter,
+ * backdrop-filter or containment (that would clip it). The one blur below is phone-only and only
+ * while expanded, when no peek can show.
  */
 export function TopicSidebar({
   runs,
@@ -98,8 +103,10 @@ export function TopicSidebar({
     <aside
       id="hypothesis-topics"
       aria-label="Saved topics"
-      className={`z-20 flex h-full shrink-0 flex-col overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-md:absolute max-md:inset-y-0 max-md:left-0 md:relative ${
-        collapsed ? "w-[60px] md:w-[124px]" : "w-64 max-md:shadow-2xl"
+      className={`apple-sheet z-20 flex h-full shrink-0 flex-col overflow-hidden rounded-[22px] transition-[width,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-md:absolute max-md:inset-y-0 max-md:left-0 md:relative ${
+        collapsed
+          ? "w-[60px] md:w-[124px]"
+          : "w-64 max-md:!shadow-[inset_0_1px_0_var(--glass-highlight),var(--shadow-elevated)] max-md:backdrop-blur-[22px] max-md:backdrop-saturate-150"
       }`}
     >
       {/* Top: New topic + collapse toggle */}
@@ -116,8 +123,8 @@ export function TopicSidebar({
           }}
           aria-label="New topic"
           title="New topic"
-          style={{ backgroundColor: "var(--status-gap)", color: "var(--accent-fg)" }}
-          className={`apple-press apple-focus st-sheen group relative flex h-9 items-center justify-center gap-1.5 overflow-hidden rounded-xl text-xs font-semibold shadow-sm transition hover:opacity-90 ${
+          style={{ "--tint": "var(--status-gap)" } as React.CSSProperties}
+          className={`apple-tint apple-press apple-focus st-sheen group relative flex h-9 items-center justify-center gap-1.5 overflow-hidden rounded-full text-xs font-semibold transition hover:brightness-110 ${
             collapsed ? "w-9 max-md:order-2 md:flex-1" : "flex-1 px-3"
           }`}
         >
@@ -134,7 +141,7 @@ export function TopicSidebar({
           aria-expanded={!collapsed}
           aria-controls="hypothesis-topics"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="apple-press apple-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
+          className="apple-press apple-focus flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
@@ -148,7 +155,7 @@ export function TopicSidebar({
             onClick={onToggleCollapsed}
             title={`${runs.length} saved ${runs.length === 1 ? "topic" : "topics"}: expand to browse`}
             aria-label={`Show ${runs.length} saved topics`}
-            className="apple-press apple-focus relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--status-gap)] md:hidden"
+            className="apple-press apple-focus relative flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--status-gap)] md:hidden"
           >
             <History className="h-4 w-4" />
             {runs.length > 0 && (
@@ -158,7 +165,7 @@ export function TopicSidebar({
             )}
           </button>
 
-          <span className="apple-label hidden w-full px-0.5 pb-0.5 text-[9.5px] font-semibold uppercase text-[var(--text-muted)] md:block">
+          <span className="apple-label hidden w-full px-1 pb-0.5 text-[9.5px] font-semibold uppercase text-[var(--text-muted)] md:block">
             Topics · {runs.length}
           </span>
           {runs.map((run, idx) => {
@@ -180,10 +187,10 @@ export function TopicSidebar({
                   animationDelay: `${idx * 40}ms`,
                   ...(active ? { borderColor: "var(--status-gap-border)", backgroundColor: "var(--status-gap-soft)" } : {}),
                 }}
-                className={`apple-press apple-focus st-fade-up hidden w-full flex-col gap-1 rounded-xl border p-2 text-left transition-all duration-200 md:flex ${
+                className={`apple-press apple-focus st-fade-up hidden w-full shrink-0 flex-col gap-1 rounded-[14px] border p-2 text-left shadow-[inset_0_1px_0_var(--glass-highlight)] transition-all duration-200 md:flex ${
                   active
-                    ? "shadow-sm"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] hover:-translate-y-px hover:border-[var(--status-gap-border)]"
+                    ? ""
+                    : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:-translate-y-px hover:border-[var(--status-gap-border)]"
                 }`}
               >
                 {/* Evidence mix at a glance: supports / contradicts / gaps */}
@@ -209,7 +216,7 @@ export function TopicSidebar({
             <div
               role="tooltip"
               style={{ left: peek.left, top: peek.top }}
-              className="apple-glass-elevated apple-materialize pointer-events-none fixed z-50 hidden w-64 rounded-xl border p-3 md:block"
+              className="apple-glass-elevated apple-materialize pointer-events-none fixed z-50 hidden w-64 rounded-[20px] border p-3 md:block"
             >
               <p className="text-xs font-semibold leading-snug text-[var(--text-primary)]">{peek.run.title}</p>
               <PeekStats run={peek.run} />
@@ -222,13 +229,13 @@ export function TopicSidebar({
             <span className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
               Previous topics
             </span>
-            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1.5 py-px text-[10px] font-semibold text-[var(--text-muted)]">
+            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-px text-[10px] font-semibold tabular-nums text-[var(--text-muted)]">
               {runs.length}
             </span>
           </div>
           <div className="flex-1 space-y-1.5 overflow-y-auto px-2.5 pb-3 pt-1">
             {runs.length === 0 ? (
-              <div className="st-fade-up mt-2 flex flex-col items-center rounded-xl border border-dashed border-[var(--border-strong)] px-3 py-6 text-center">
+              <div className="st-fade-up mt-2 flex flex-col items-center rounded-2xl border border-dashed border-[var(--border-strong)] px-3 py-6 text-center">
                 <History className="st-bob mb-2 h-5 w-5 text-[var(--text-muted)]" />
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Paper graphs you generate are saved here.
@@ -257,9 +264,9 @@ export function TopicSidebar({
                         ? { borderColor: "var(--status-gap-border)", backgroundColor: "var(--status-gap-soft)" }
                         : {}),
                     }}
-                    className={`apple-press apple-focus st-fade-up group relative flex cursor-pointer items-start justify-between gap-2 overflow-hidden rounded-xl border py-2 pl-3 pr-2 transition-all duration-200 ${
+                    className={`apple-press apple-focus st-fade-up group relative flex cursor-pointer items-start justify-between gap-2 overflow-hidden rounded-[14px] border py-2 pl-3 pr-2 transition-all duration-200 ${
                       active
-                        ? ""
+                        ? "shadow-[inset_0_1px_0_var(--glass-highlight)]"
                         : "border-transparent hover:translate-x-0.5 hover:border-[var(--border-subtle)] hover:bg-[var(--bg-surface-muted)]"
                     }`}
                   >
@@ -273,7 +280,7 @@ export function TopicSidebar({
                     <div className="min-w-0 flex-1">
                       <p
                         title={run.title}
-                        className={`truncate text-xs font-medium ${
+                        className={`line-clamp-2 break-words text-xs font-medium leading-snug ${
                           active ? "text-[var(--status-gap)]" : "text-[var(--text-primary)]"
                         }`}
                       >
@@ -311,7 +318,7 @@ export function TopicSidebar({
                         e.stopPropagation();
                         onDeleteRun(run.id);
                       }}
-                      className="apple-focus rounded p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
+                      className="apple-focus shrink-0 rounded-full p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
