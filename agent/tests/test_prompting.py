@@ -126,3 +126,30 @@ def test_voice_llm_answers_without_thinking_and_the_first_call_has_room():
     # thinking measured ~1.2 s to first token on the same prompt (plan bar: switch if under ~1.5 s)
     assert agent.VOICE_MODEL == "claude-sonnet-5-5" and agent.VoiceLLM.EXTRA["thinking"] == {"type": "between_tools"}
     assert agent.LLM_TIMEOUT_S >= 20
+
+
+def test_rules_teach_the_speech_synced_laser():
+    # v3.1 F1: tags right before the word, stripped before speech; the laser follows the words
+    from prompting import RULES
+    assert "the [[rise]] rise over the [[run]] run" in RULES
+    assert "one tag per sentence" in RULES and "only ids that exist" in RULES
+
+
+def test_slower_pace():
+    # v3.1 F8: speech 0.85x, 1-2 short sentences per step, a beat after each reveal
+    import agent
+    from prompting import RULES
+    assert agent.SPEECH_SPEED == 0.85
+    assert "1-2 short sentences, then the step" in RULES and "after each reveal" in RULES
+
+
+def test_board_working_is_written_first_then_explained_line_by_line():
+    # v3.1 F6: explaining while the board writes was confusing
+    from prompting import RULES
+    assert "write the whole working first" in RULES and "line by line" in RULES and "let me write it out" in RULES
+
+
+def test_reacts_only_to_what_is_literally_written():
+    # v3.1 F9: "your working" was praised when only "ANS = 4" was written
+    from prompting import RULES
+    assert "literally" in RULES and "no working" in RULES

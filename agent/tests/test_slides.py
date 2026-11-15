@@ -104,7 +104,7 @@ def test_tool_names_are_the_shared_contract():
 def test_rules_follow_the_teaching_contract():
     r = slides.RULES
     assert "bridge" in r and "We just saw" in r  # bridge into every slide
-    assert "2-3 short sentences" in r and "what they think will happen" in r  # pace + predict before reveal
+    assert "1-2 short sentences" in r and "[[" in r and "what they think will happen" in r  # pace + predict before reveal
     assert "check question and wait" in r  # check before slide_go
     assert r.index("slide_edit") < r.index("slide_animate") and "Never jump to a new slide" in r
 
@@ -137,7 +137,7 @@ def test_go_then_step_reports_the_next_hint():
     assert asyncio.run(t.slide_go(3)).startswith("ok\nDeck:")
     assert io.rpcs[0] == ("slides.go", {"index": 3})
     assert asyncio.run(t.slide_step(1)) == ("ok: slide 3, step 1 of 3. Next: the tangent is the slope "
-                                           "(2-3 short sentences, then slide_step(2)).")
+                                           "(1-2 short sentences, then slide_step(2)).")
     assert asyncio.run(t.slide_step(3)).endswith(
         "last step of this slide: ask a short check question on its idea and wait for the answer before slide_go.")
 
@@ -357,6 +357,31 @@ def test_edit_plans_validates_sends_and_names_the_new_steps():
     assert "new steps 6-7" in ctx.notes[0] and "step 6: this is the tangent you circled" in ctx.notes[0]
     assert "slide_step(6)" in ctx.notes[0] and "helped" in ctx.notes[0]
     assert ctx.replies and "slide_step(6)" in ctx.replies[0]
+
+
+async def test_slide_edit_clears_the_slide_circle_as_the_explanation_starts():
+    from circle import PendingCircle
+
+    io = FakeIO({"slides.describe": {"ok": False, "errors": ["x"]}})
+    circle = PendingCircle(io)
+    circle.open({"circle_id": "k1", "source": "slide"})
+    t = SlideTools(io, "L1", client=FakeAnthropic(), circle=circle)
+    out = await t.slide_edit("why the slope is 3", ["tan"])
+    assert io.rpcs[0] == ("ui.clear_circle", {"circle_id": "k1"})  # before the edit is even planned
+    assert "circle is cleared" in out
+    assert "circle" not in await t.slide_edit("again", [])  # nothing left to clear
+    for task in list(t._tasks):
+        task.cancel()
+
+
+def test_clear_circle_tool_forgets_the_pending_circle():
+    from circle import PendingCircle
+
+    io = FakeIO()
+    circle = PendingCircle(io)
+    circle.open({"circle_id": "k1", "source": "slide"})
+    asyncio.run(SlideTools(io, "L1", circle=circle).clear_circle("k1"))
+    assert circle.id is None
 
 
 def test_edit_retries_with_errors_then_falls_back_to_words():

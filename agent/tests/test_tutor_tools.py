@@ -292,3 +292,20 @@ async def test_unavailable_note_when_board_raises(monkeypatch):
 
     notes = await _run_visual_with(monkeypatch, [{"op": "write_text", "text": "x", "place": "next"}], describe=boom)
     assert notes == [UNAVAILABLE_NOTE]
+
+
+async def test_board_write_tool_clears_a_board_circle_and_asks_to_explain_line_by_line():
+    from circle import PendingCircle
+
+    io = FakeIO({"board.apply": {"ok": True, "ids": ["s1", "s2"], "errors": []},
+                 "ui.clear_circle": {"ok": True, "errors": []}})
+    circle = PendingCircle(io)
+    circle.open({"circle_id": "c7", "source": "board"})
+    tool = next(t for t in TutorTools(io, "L1", circle=circle).function_tools() if t.info.name == "board_write")
+    ops = [{"op": "write_math", "id": "s1", "latex": "2x+3=11", "place": "next"},
+           {"op": "write_math", "id": "s2", "latex": "2x=8", "place": "below:s1"}]
+    out = await tool(raw_arguments={"ops": ops})
+    assert io.rpcs[0] == ("ui.clear_circle", {"circle_id": "c7"})  # the explanation starts: the circle goes
+    assert out.startswith("ok: drew s1, s2") and "line by line" in out and "[[s1]]" in out
+    await tool(raw_arguments={"ops": ops[:1]})
+    assert [m for m, _ in io.rpcs].count("ui.clear_circle") == 1

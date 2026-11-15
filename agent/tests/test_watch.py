@@ -247,3 +247,18 @@ async def test_bad_payload_is_ignored():
 
 def test_rules_teach_circle_write_below_explain():
     assert "annotate" in watch.RULES and "below" in watch.RULES and "red" in watch.RULES
+
+
+def test_checker_describes_only_what_is_literally_written():
+    # v3.1 F9: the checker said "your working" when only "ANS = 4" was on the board
+    assert "literally" in watch.SYSTEM and "ANS = 4" in watch.SYSTEM and "no working" in watch.SYSTEM
+    assert "literally" in watch.TOOL["input_schema"]["properties"]["say"]["description"]
+
+
+async def test_spoken_reactions_stick_to_what_was_written():
+    session, tools = FakeSession(), FakeTools()
+    await run(session, tools, verdict("hint", say="Start from the update rule."))
+    assert "only what they actually wrote" in session.replies[0]["instructions"]
+    session, tools = FakeSession(), FakeTools()
+    await run(session, tools, verdict("mistake", say="the sign is wrong", correction_latex="x=4"))
+    assert "only what they actually wrote" in session.replies[0]["instructions"]
