@@ -7,8 +7,10 @@ dependencies = [
     "livekit-plugins-synthesia~=1.8",
     "python-dotenv",
     "httpx",
-    "jsonschema",
-    "livekit-plugins-noise-cancellation~=0.2",
+    "jsonschema>=4",
+    "fal-client>=1.0",
+    "anthropic>=1.17.0",
+    "livekit-plugins-noise-cancellation>=0.3.3",
 ]
 
 [dependency-groups]

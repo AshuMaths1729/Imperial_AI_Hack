@@ -1,0 +1,1407 @@
+{
+ "title": "Gradient Descent, intuitively",
+ "slides": [
+  {
+   "id": "landscape",
+   "title": "Lost in the fog",
+   "kp_ids": [
+    "gd1"
+   ],
+   "idea": "Training a model means finding the lowest point of a loss landscape that we can only feel locally.",
+   "check": "Why can't training just look at the whole landscape and jump to the bottom?",
+   "objects": [
+    {
+     "kind": "axes",
+     "id": "ax",
+     "x": 180,
+     "y": 170,
+     "w": 1240,
+     "h": 560,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ],
+     "x_label": "θ  (a setting of the model)",
+     "y_label": "L(θ)  how wrong"
+    },
+    {
+     "kind": "curve",
+     "id": "loss",
+     "axes": "ax",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue",
+     "label": "loss"
+    },
+    {
+     "kind": "dot",
+     "id": "you",
+     "axes": "ax",
+     "curve": "loss",
+     "x": -2.3,
+     "color": "gold",
+     "label": "you are here"
+    },
+    {
+     "kind": "dot",
+     "id": "goal",
+     "axes": "ax",
+     "curve": "loss",
+     "x": 0.5,
+     "color": "green",
+     "label": "lowest loss"
+    },
+    {
+     "kind": "text",
+     "id": "fog",
+     "text": "You can't see the valley — you can only feel the slope under your feet.",
+     "x": 800,
+     "y": 850,
+     "size": 32,
+     "color": "grey"
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Picture a landscape: sideways is a setting of the model, height is how wrong it is.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "ax",
+        "loss"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Training starts somewhere random, usually high up, here.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "you"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "We want the bottom of the valley, where the loss is smallest.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "goal"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "But with millions of parameters it's foggy: all we can feel is the slope where we stand.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "fog"
+       ]
+      },
+      {
+       "do": "indicate",
+       "ids": [
+        "you"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "loss",
+   "title": "What the loss measures",
+   "kp_ids": [
+    "gd1"
+   ],
+   "idea": "The loss is one number that measures how wrong the model is; every setting w gives one loss value.",
+   "builds_on": "landscape",
+   "check": "If the line went exactly through every data point, what would the loss be?",
+   "objects": [
+    {
+     "kind": "axes",
+     "id": "data_ax",
+     "x": 120,
+     "y": 180,
+     "w": 620,
+     "h": 500,
+     "x_range": [
+      0,
+      5
+     ],
+     "y_range": [
+      0,
+      5
+     ],
+     "x_label": "x",
+     "y_label": "y"
+    },
+    {
+     "kind": "curve",
+     "id": "line",
+     "axes": "data_ax",
+     "expr": "1.15*x",
+     "color": "gold",
+     "label": "model: y = w·x"
+    },
+    {
+     "kind": "polyline",
+     "id": "err0",
+     "axes": "data_ax",
+     "points": [
+      [
+       0.5,
+       1.0
+      ],
+      [
+       0.5,
+       0.575
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "polyline",
+     "id": "err1",
+     "axes": "data_ax",
+     "points": [
+      [
+       1.2,
+       1.0
+      ],
+      [
+       1.2,
+       1.38
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "polyline",
+     "id": "err2",
+     "axes": "data_ax",
+     "points": [
+      [
+       2.0,
+       2.3
+      ],
+      [
+       2.0,
+       2.3
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "polyline",
+     "id": "err3",
+     "axes": "data_ax",
+     "points": [
+      [
+       2.8,
+       2.0
+      ],
+      [
+       2.8,
+       3.22
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "polyline",
+     "id": "err4",
+     "axes": "data_ax",
+     "points": [
+      [
+       3.5,
+       3.0
+      ],
+      [
+       3.5,
+       4.025
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "polyline",
+     "id": "err5",
+     "axes": "data_ax",
+     "points": [
+      [
+       4.3,
+       3.1
+      ],
+      [
+       4.3,
+       4.945
+      ]
+     ],
+     "color": "red"
+    },
+    {
+     "kind": "dot",
+     "id": "p0",
+     "axes": "data_ax",
+     "x": 0.5,
+     "y": 1.0,
+     "color": "white"
+    },
+    {
+     "kind": "dot",
+     "id": "p1",
+     "axes": "data_ax",
+     "x": 1.2,
+     "y": 1.0,
+     "color": "white"
+    },
+    {
+     "kind": "dot",
+     "id": "p2",
+     "axes": "data_ax",
+     "x": 2.0,
+     "y": 2.3,
+     "color": "white"
+    },
+    {
+     "kind": "dot",
+     "id": "p3",
+     "axes": "data_ax",
+     "x": 2.8,
+     "y": 2.0,
+     "color": "white"
+    },
+    {
+     "kind": "dot",
+     "id": "p4",
+     "axes": "data_ax",
+     "x": 3.5,
+     "y": 3.0,
+     "color": "white"
+    },
+    {
+     "kind": "dot",
+     "id": "p5",
+     "axes": "data_ax",
+     "x": 4.3,
+     "y": 3.1,
+     "color": "white"
+    },
+    {
+     "kind": "math",
+     "id": "loss_eq",
+     "latex": "L(w)=\\frac{1}{n}\\sum_i \\big(\\textcolor{#FC6255}{y_i - w x_i}\\big)^2",
+     "x": 430,
+     "y": 790,
+     "size": 46
+    },
+    {
+     "kind": "axes",
+     "id": "loss_ax",
+     "x": 900,
+     "y": 180,
+     "w": 580,
+     "h": 500,
+     "x_range": [
+      0,
+      1.6
+     ],
+     "y_range": [
+      0,
+      5.5
+     ],
+     "x_label": "w",
+     "y_label": "L(w)"
+    },
+    {
+     "kind": "curve",
+     "id": "lw",
+     "axes": "loss_ax",
+     "expr": "7.3783*x^2-11.91*x+4.9833",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "wdot",
+     "axes": "loss_ax",
+     "curve": "lw",
+     "x": 1.15,
+     "color": "gold",
+     "label": "our w"
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Here's some data and a simple model: a line through the origin with slope w.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "data_ax",
+        "p0",
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5",
+        "line"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "The red gaps are the model's errors, one per data point.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "err0",
+        "err1",
+        "err2",
+        "err3",
+        "err4",
+        "err5"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Square each error and average them: that one number is the loss.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "loss_eq"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Every choice of w gives one loss value, so the loss is a curve over w.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "loss_ax",
+        "lw",
+        "wdot"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Tilt the line to fit better and watch the loss slide down.",
+     "actions": [
+      {
+       "do": "hide",
+       "ids": [
+        "err0",
+        "err1",
+        "err2",
+        "err3",
+        "err4",
+        "err5"
+       ]
+      },
+      {
+       "do": "morph",
+       "id": "line",
+       "expr": "0.807*x"
+      },
+      {
+       "do": "move",
+       "id": "wdot",
+       "to": 0.807,
+       "with_prev": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gradient",
+   "title": "The slope points uphill",
+   "kp_ids": [
+    "gd2"
+   ],
+   "idea": "The slope of the loss shows which way is uphill, so minus the gradient points downhill.",
+   "builds_on": "loss",
+   "check": "If the slope where you stand is positive, which way should you step?",
+   "objects": [
+    {
+     "kind": "axes",
+     "id": "ax",
+     "x": 120,
+     "y": 170,
+     "w": 900,
+     "h": 580,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ],
+     "x_label": "θ",
+     "y_label": "L(θ)"
+    },
+    {
+     "kind": "curve",
+     "id": "loss",
+     "axes": "ax",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "p",
+     "axes": "ax",
+     "curve": "loss",
+     "x": -1.8,
+     "color": "gold"
+    },
+    {
+     "kind": "tangent",
+     "id": "tan",
+     "curve": "loss",
+     "dot": "p",
+     "length": 2.4,
+     "color": "yellow"
+    },
+    {
+     "kind": "math",
+     "id": "deriv",
+     "latex": "\\text{slope} = \\textcolor{#FFE45C}{\\frac{dL}{d\\theta}}",
+     "x": 1300,
+     "y": 250,
+     "size": 48
+    },
+    {
+     "kind": "math",
+     "id": "neg",
+     "latex": "\\textcolor{#FFE45C}{\\frac{dL}{d\\theta}} < 0 \\;\\Rightarrow\\; \\text{downhill is right}",
+     "x": 1300,
+     "y": 390,
+     "size": 34
+    },
+    {
+     "kind": "math",
+     "id": "pos",
+     "latex": "\\textcolor{#FFE45C}{\\frac{dL}{d\\theta}} > 0 \\;\\Rightarrow\\; \\text{downhill is left}",
+     "x": 1300,
+     "y": 390,
+     "size": 34
+    },
+    {
+     "kind": "vector",
+     "id": "up",
+     "axes": "ax",
+     "start": [
+      2.3,
+      0.35
+     ],
+     "end": [
+      3.05,
+      0.35
+     ],
+     "color": "yellow",
+     "label": "∇L"
+    },
+    {
+     "kind": "vector",
+     "id": "down",
+     "axes": "ax",
+     "start": [
+      2.3,
+      0.35
+     ],
+     "end": [
+      1.5499999999999998,
+      0.35
+     ],
+     "color": "green",
+     "label": "−∇L"
+    },
+    {
+     "kind": "math",
+     "id": "rule",
+     "latex": "\\textcolor{#FFE45C}{\\nabla L} \\text{ points uphill}",
+     "x": 1300,
+     "y": 530,
+     "size": 36
+    },
+    {
+     "kind": "math",
+     "id": "rule2",
+     "latex": "\\textcolor{#83C167}{-\\nabla L} \\text{ points downhill}",
+     "x": 1300,
+     "y": 600,
+     "size": 36
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Stand at this point and feel the ground under your feet.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "ax",
+        "loss",
+        "p"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "The tangent line is the slope right here: that's the derivative.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "tan",
+        "deriv"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Here the slope is negative, so the ground falls away to the right.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "neg"
+       ]
+      },
+      {
+       "do": "indicate",
+       "ids": [
+        "tan"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Walk to the other side and the slope flips sign.",
+     "actions": [
+      {
+       "do": "hide",
+       "ids": [
+        "neg"
+       ]
+      },
+      {
+       "do": "move",
+       "id": "p",
+       "to": 2.3
+      },
+      {
+       "do": "show",
+       "ids": [
+        "pos"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "So the gradient points uphill, and minus the gradient points downhill.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "up",
+        "down",
+        "rule",
+        "rule2"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "update",
+   "title": "One step downhill",
+   "kp_ids": [
+    "gd3"
+   ],
+   "idea": "One gradient-descent step moves against the slope, by the learning rate times the slope.",
+   "builds_on": "gradient",
+   "check": "Why do the steps get smaller near the bottom, even though the learning rate stays the same?",
+   "objects": [
+    {
+     "kind": "math",
+     "id": "rule",
+     "latex": "\\textcolor{#F0AC5F}{\\theta}_{\\text{new}} = \\textcolor{#F0AC5F}{\\theta} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}(\\textcolor{#F0AC5F}{\\theta})",
+     "x": 800,
+     "y": 215,
+     "size": 62
+    },
+    {
+     "kind": "math",
+     "id": "legend",
+     "latex": "\\textcolor{#E072C8}{\\eta}:\\ \\text{step size (learning rate)} \\qquad \\textcolor{#FFE45C}{\\nabla L}:\\ \\text{slope}",
+     "x": 800,
+     "y": 305,
+     "size": 30
+    },
+    {
+     "kind": "axes",
+     "id": "ax",
+     "x": 200,
+     "y": 400,
+     "w": 1200,
+     "h": 430,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ],
+     "x_label": "θ",
+     "y_label": "L"
+    },
+    {
+     "kind": "curve",
+     "id": "loss",
+     "axes": "ax",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "q",
+     "axes": "ax",
+     "curve": "loss",
+     "x": -2.5,
+     "color": "gold"
+    },
+    {
+     "kind": "step_arrow",
+     "id": "stepv",
+     "dot": "q",
+     "scale": 0.6,
+     "color": "green",
+     "label": "−η∇L"
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Here's the whole algorithm in one line.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "rule"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Eta is the step size; the gradient is the slope we just felt.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "legend"
+       ]
+      },
+      {
+       "do": "indicate",
+       "ids": [
+        "rule"
+       ],
+       "with_prev": true
+      }
+     ]
+    },
+    {
+     "narration": "Back on our valley: this arrow is one step, minus eta times the slope.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "ax",
+        "loss",
+        "q",
+        "stepv"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Take the step, feel the new slope, step again.",
+     "actions": [
+      {
+       "do": "path",
+       "id": "q",
+       "xs": [
+        -1.06,
+        -0.311,
+        0.078
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Notice the steps shrink on their own as the ground flattens out.",
+     "actions": [
+      {
+       "do": "path",
+       "id": "q",
+       "xs": [
+        0.281,
+        0.386,
+        0.441,
+        0.469
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "learning_rate",
+   "title": "Choosing the step size",
+   "kp_ids": [
+    "gd3"
+   ],
+   "idea": "The learning rate must be neither too small (slow) nor too big (overshoots).",
+   "builds_on": "update",
+   "check": "What would you see if the learning rate were far too big?",
+   "objects": [
+    {
+     "kind": "axes",
+     "id": "ax_small",
+     "x": 80,
+     "y": 300,
+     "w": 440,
+     "h": 420,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ]
+    },
+    {
+     "kind": "curve",
+     "id": "c_small",
+     "axes": "ax_small",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "d_small",
+     "axes": "ax_small",
+     "curve": "c_small",
+     "x": -2.5,
+     "color": "gold"
+    },
+    {
+     "kind": "text",
+     "id": "l_small",
+     "text": "too small",
+     "x": 300,
+     "y": 200,
+     "size": 36,
+     "color": "grey"
+    },
+    {
+     "kind": "math",
+     "id": "e_small",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 0.15",
+     "x": 300,
+     "y": 255,
+     "size": 32
+    },
+    {
+     "kind": "axes",
+     "id": "ax_good",
+     "x": 600,
+     "y": 300,
+     "w": 440,
+     "h": 420,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ]
+    },
+    {
+     "kind": "curve",
+     "id": "c_good",
+     "axes": "ax_good",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "d_good",
+     "axes": "ax_good",
+     "curve": "c_good",
+     "x": -2.5,
+     "color": "gold"
+    },
+    {
+     "kind": "text",
+     "id": "l_good",
+     "text": "just right",
+     "x": 820,
+     "y": 200,
+     "size": 36,
+     "color": "green"
+    },
+    {
+     "kind": "math",
+     "id": "e_good",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 0.9",
+     "x": 820,
+     "y": 255,
+     "size": 32
+    },
+    {
+     "kind": "axes",
+     "id": "ax_big",
+     "x": 1120,
+     "y": 300,
+     "w": 440,
+     "h": 420,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      6
+     ]
+    },
+    {
+     "kind": "curve",
+     "id": "c_big",
+     "axes": "ax_big",
+     "expr": "0.4*(x-0.5)^2+0.5",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "d_big",
+     "axes": "ax_big",
+     "curve": "c_big",
+     "x": -1.0,
+     "color": "gold"
+    },
+    {
+     "kind": "text",
+     "id": "l_big",
+     "text": "too big",
+     "x": 1340,
+     "y": 200,
+     "size": 36,
+     "color": "red"
+    },
+    {
+     "kind": "math",
+     "id": "e_big",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 2.7",
+     "x": 1340,
+     "y": 255,
+     "size": 32
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Same valley, three hikers with different step sizes.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "ax_small",
+        "ax_good",
+        "ax_big",
+        "c_small",
+        "c_good",
+        "c_big",
+        "d_small",
+        "d_good",
+        "d_big"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Too small and we crawl: safe, but painfully slow.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "l_small",
+        "e_small"
+       ]
+      },
+      {
+       "do": "path",
+       "id": "d_small",
+       "xs": [
+        -2.14,
+        -1.823,
+        -1.544,
+        -1.299,
+        -1.083,
+        -0.893,
+        -0.726,
+        -0.579
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Just right and we reach the bottom in a few steps.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "l_good",
+        "e_good"
+       ]
+      },
+      {
+       "do": "path",
+       "id": "d_good",
+       "xs": [
+        -0.34,
+        0.265,
+        0.434,
+        0.482
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Too big and we overshoot, bouncing higher every time.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "l_big",
+        "e_big"
+       ]
+      },
+      {
+       "do": "path",
+       "id": "d_big",
+       "xs": [
+        2.24,
+        -1.518,
+        2.841,
+        -2.216
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "momentum",
+   "title": "Momentum: a heavy ball",
+   "kp_ids": [
+    "gd4"
+   ],
+   "idea": "Momentum keeps a velocity, so the ball rolls through small dips instead of stopping in them.",
+   "builds_on": "learning_rate",
+   "check": "Why does plain gradient descent stop in the small dip?",
+   "objects": [
+    {
+     "kind": "axes",
+     "id": "ax",
+     "x": 100,
+     "y": 170,
+     "w": 930,
+     "h": 600,
+     "x_range": [
+      -3,
+      3
+     ],
+     "y_range": [
+      0,
+      5.5
+     ],
+     "x_label": "θ",
+     "y_label": "L(θ)"
+    },
+    {
+     "kind": "curve",
+     "id": "loss",
+     "axes": "ax",
+     "expr": "0.08*x^4-0.5*x^2-0.35*x+2",
+     "color": "blue"
+    },
+    {
+     "kind": "dot",
+     "id": "plain",
+     "axes": "ax",
+     "curve": "loss",
+     "x": -2.8,
+     "color": "gold",
+     "label": "plain GD"
+    },
+    {
+     "kind": "text",
+     "id": "stuck",
+     "text": "stuck: slope = 0",
+     "axes": "ax",
+     "x": -1.6,
+     "y": 0.9,
+     "size": 28,
+     "color": "red"
+    },
+    {
+     "kind": "math",
+     "id": "mv",
+     "latex": "\\textcolor{#B08CD9}{v} \\leftarrow \\beta\\,\\textcolor{#B08CD9}{v} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}(\\textcolor{#F0AC5F}{\\theta})",
+     "x": 1310,
+     "y": 300,
+     "size": 44
+    },
+    {
+     "kind": "math",
+     "id": "mt",
+     "latex": "\\textcolor{#F0AC5F}{\\theta} \\leftarrow \\textcolor{#F0AC5F}{\\theta} + \\textcolor{#B08CD9}{v}",
+     "x": 1310,
+     "y": 390,
+     "size": 44
+    },
+    {
+     "kind": "text",
+     "id": "beta",
+     "text": "β ≈ 0.9: how much speed it keeps",
+     "x": 1310,
+     "y": 470,
+     "size": 26,
+     "color": "grey"
+    },
+    {
+     "kind": "dot",
+     "id": "heavy",
+     "axes": "ax",
+     "curve": "loss",
+     "x": -2.8,
+     "color": "purple",
+     "label": "momentum"
+    },
+    {
+     "kind": "text",
+     "id": "made",
+     "text": "made it",
+     "axes": "ax",
+     "x": 1.9,
+     "y": 0.15,
+     "size": 28,
+     "color": "green"
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Real loss landscapes have bumps: a small dip on the way to the deep valley.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "ax",
+        "loss"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Plain gradient descent rolls into the first dip and stops, because the slope there is zero.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "plain"
+       ]
+      },
+      {
+       "do": "path",
+       "id": "plain",
+       "xs": [
+        -2.251,
+        -2.041,
+        -1.918,
+        -1.835,
+        -1.776,
+        -1.732,
+        -1.698,
+        -1.672,
+        -1.651,
+        -1.634,
+        -1.621,
+        -1.61,
+        -1.601,
+        -1.593
+       ]
+      },
+      {
+       "do": "show",
+       "ids": [
+        "stuck"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Momentum keeps a velocity, like a heavy ball that remembers how fast it was rolling.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "mv",
+        "mt",
+        "beta"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "The heavy ball rolls straight through the dip and settles in the deeper valley.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "heavy"
+       ]
+      },
+      {
+       "do": "path",
+       "id": "heavy",
+       "xs": [
+        -2.526,
+        -2.113,
+        -1.688,
+        -1.314,
+        -1.01,
+        -0.772,
+        -0.586,
+        -0.438,
+        -0.317,
+        -0.21,
+        -0.112,
+        -0.013,
+        0.091,
+        0.205,
+        0.336,
+        0.487,
+        0.664,
+        0.87,
+        1.105,
+        1.366,
+        1.642,
+        1.911,
+        2.142,
+        2.299,
+        2.358,
+        2.319,
+        2.206,
+        2.058,
+        1.909,
+        1.784,
+        1.697,
+        1.653,
+        1.648,
+        1.678,
+        1.734,
+        1.807,
+        1.885,
+        1.957,
+        2.013,
+        2.045
+       ],
+       "trail": false
+      },
+      {
+       "do": "show",
+       "ids": [
+        "made"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recap",
+   "title": "The whole picture",
+   "kp_ids": [
+    "gd1",
+    "gd2",
+    "gd3",
+    "gd4"
+   ],
+   "idea": "Loss, gradient, step size and momentum together make the training loop.",
+   "builds_on": "momentum",
+   "check": "What would a negative learning rate do?",
+   "objects": [
+    {
+     "kind": "math",
+     "id": "r1m",
+     "latex": "L(\\textcolor{#F0AC5F}{\\theta})",
+     "x": 420,
+     "y": 220,
+     "size": 40
+    },
+    {
+     "kind": "text",
+     "id": "r1t",
+     "text": "Loss: one number for how wrong the model is",
+     "x": 700,
+     "y": 220,
+     "size": 32,
+     "align": "left"
+    },
+    {
+     "kind": "math",
+     "id": "r2m",
+     "latex": "\\textcolor{#FFE45C}{\\nabla L}",
+     "x": 420,
+     "y": 350,
+     "size": 40
+    },
+    {
+     "kind": "text",
+     "id": "r2t",
+     "text": "Gradient: the uphill direction; go the other way",
+     "x": 700,
+     "y": 350,
+     "size": 32,
+     "align": "left"
+    },
+    {
+     "kind": "math",
+     "id": "r3m",
+     "latex": "\\textcolor{#F0AC5F}{\\theta} \\leftarrow \\textcolor{#F0AC5F}{\\theta} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}",
+     "x": 420,
+     "y": 480,
+     "size": 40
+    },
+    {
+     "kind": "text",
+     "id": "r3t",
+     "text": "Step: small moves downhill, sized by η",
+     "x": 700,
+     "y": 480,
+     "size": 32,
+     "align": "left"
+    },
+    {
+     "kind": "math",
+     "id": "r4m",
+     "latex": "\\textcolor{#B08CD9}{v} \\leftarrow \\beta \\textcolor{#B08CD9}{v} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}",
+     "x": 420,
+     "y": 610,
+     "size": 40
+    },
+    {
+     "kind": "text",
+     "id": "r4t",
+     "text": "Momentum: speed carries us past small bumps",
+     "x": 700,
+     "y": 610,
+     "size": 32,
+     "align": "left"
+    },
+    {
+     "kind": "text",
+     "id": "q",
+     "text": "Your turn: what would a negative η do?",
+     "x": 800,
+     "y": 800,
+     "size": 36,
+     "color": "yellow"
+    }
+   ],
+   "steps": [
+    {
+     "narration": "Loss turns 'how wrong' into a single number.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "r1m",
+        "r1t"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "The gradient tells us which way is uphill.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "r2m",
+        "r2t"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Each step moves a little downhill, sized by the learning rate.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "r3m",
+        "r3t"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Momentum lets the ball keep rolling through small dips.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "r4m",
+        "r4t"
+       ]
+      }
+     ]
+    },
+    {
+     "narration": "Quick check before we go on.",
+     "actions": [
+      {
+       "do": "show",
+       "ids": [
+        "q"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

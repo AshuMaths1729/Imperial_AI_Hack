@@ -1,0 +1,19 @@
+{
+  "ops": [
+    { "op": "write_text", "id": "title", "text": "Gradient descent with momentum", "place": "next" },
+    { "op": "write_math", "id": "eq_update", "latex": "v_{t+1} = \\beta v_t + \\nabla L(\\theta_t)", "place": "below:title", "group": "mom", "step": 1 },
+    { "op": "write_math", "id": "eq_theta", "latex": "\\theta_{t+1} = \\theta_t - \\eta\\, v_{t+1}", "place": "below:eq_update", "group": "mom", "step": 2 },
+    { "op": "plot_function", "id": "plot_damped", "expr": "exp(-0.3*x)*cos(2*x)", "x_range": [0, 10], "label": "θ(t) with momentum", "place": "right_of:eq_update", "group": "mom", "step": 3 },
+    { "op": "plot_function", "id": "plot_points", "points": [[0, 1], [1, 0.4], [2, -0.2], [3, 0.1]], "x_range": [0, 3], "place": "next" },
+    { "op": "draw_shape", "id": "box_beta", "shape": "ellipse", "label": "β = friction", "place": "region:600,700,250,120" },
+    { "op": "draw_shape", "id": "line_sep", "shape": "line", "place": "next" },
+    { "op": "draw_arrow", "id": "arr1", "from_id": "box_beta", "to_id": "eq_update", "label": "controls" },
+    { "op": "place_image", "id": "img_ball", "url": "https://example.com/ball.png", "caption": "Ball rolling into a valley", "place": "next" },
+    { "op": "highlight", "target_id": "eq_update", "color": "yellow" },
+    { "op": "reveal_step", "group_id": "mom", "step": 1 },
+    { "op": "reveal_step", "group_id": "mom", "step": 2 },
+    { "op": "reveal_step", "group_id": "mom", "step": 3 },
+    { "op": "erase", "target_id": "line_sep" },
+    { "op": "clear_tutor_layer" }
+  ]
+}

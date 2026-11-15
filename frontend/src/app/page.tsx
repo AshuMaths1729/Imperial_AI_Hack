@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Layers, MessageSquarePlus, PenTool } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { GraduationCap, Layers, MessageSquarePlus, PenTool } from "lucide-react";
 import type { AskSpatialRequest, AskSpatialResponse, SimSpec } from "../api/types";
 import {
   createTopicGraph,
@@ -146,6 +147,7 @@ type Screen =
   | "hypothesis-chat";
 
 export default function ScholarTwinWorkspace() {
+  const router = useRouter();
   const [screen, setScreen] = useState<Screen>("home");
   const libraryTopics = useSyncExternalStore(
     subscribeLibrary,
@@ -588,6 +590,11 @@ export default function ScholarTwinWorkspace() {
               active={lassoActive}
               wideLabel
               onClick={() => setLassoActive((v) => !v)}
+            />
+            <HeaderAction
+              icon={GraduationCap}
+              label="Live lesson"
+              onClick={() => router.push("/lecture/lesson")}
             />
           </>
         }
