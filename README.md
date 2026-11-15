@@ -2,6 +2,8 @@
 
 An interactive multimodal AI research & learning workspace with a 3-mode entry hub (**LectureUnderstanding**, **PaperSim**, and **HypothesisGraph**), **Circle-to-Ask** spatial tutoring, and a reactive **LiveKit + Synthesia** digital avatar.
 
+![Athena UI](image.png)
+
 ## Core Modules & UI Flow
 
 The landing hub (`HomeHub`) routes into three dedicated workflows:
