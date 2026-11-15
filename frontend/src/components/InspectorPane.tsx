@@ -1,8 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { BookOpen, CheckCircle2, AlertTriangle, Code2, Sparkles } from "lucide-react";
+import React, { useState } from "react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Code2,
+  ExternalLink,
+  HelpCircle,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import { GraphEdgeData, GraphNodeData, SimulationPayload, WorkspaceMode } from "../types/scholartwin";
+import { resolveCitationUrl } from "../api/citations";
 
 interface InspectorPaneProps {
   mode: WorkspaceMode;
@@ -11,24 +22,33 @@ interface InspectorPaneProps {
   simulation?: SimulationPayload | null;
 }
 
-export function InspectorPane({ mode, selectedNode, edges, simulation }: InspectorPaneProps) {
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+const EDGE_STYLE: Record<
+  GraphEdgeData["type"],
+  { colorVar: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  supports: { colorVar: "var(--status-support)", icon: CheckCircle2 },
+  contradicts: { colorVar: "var(--status-contradict)", icon: AlertTriangle },
+  gap: { colorVar: "var(--status-gap)", icon: HelpCircle },
+  prerequisite: { colorVar: "var(--accent)", icon: ArrowRight },
+};
 
-  useEffect(() => {
-    setSelectedOption(null);
-  }, [selectedNode?.id]);
+export function InspectorPane({ mode, selectedNode, edges, simulation }: InspectorPaneProps) {
+  // Track which node the pick belongs to so it resets when the node changes (no effect needed).
+  const [pick, setPick] = useState<{ nodeId: string | undefined; option: number } | null>(null);
+  const selectedOption = pick && pick.nodeId === selectedNode?.id ? pick.option : null;
+  const setSelectedOption = (option: number) => setPick({ nodeId: selectedNode?.id, option });
 
   const relatedEdges = selectedNode
     ? edges.filter((e) => e.source === selectedNode.id || e.target === selectedNode.id)
     : [];
 
   return (
-    <aside className="flex h-full flex-col gap-4 overflow-y-auto border-l border-slate-800 bg-slate-900/70 p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+    <aside className="apple-sheet flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-y-auto rounded-[22px] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="apple-label truncate pl-1 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
           Context Inspector
         </span>
-        <span className="rounded bg-slate-800 px-2 py-0.5 text-[11px] font-medium text-sky-300">
+        <span className="shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
           {mode === "lecture" ? "Understand" : mode === "paper2sim" ? "Reproduce" : "Verify"}
         </span>
       </div>
@@ -36,20 +56,22 @@ export function InspectorPane({ mode, selectedNode, edges, simulation }: Inspect
       {/* Paper2Sim Inspector */}
       {mode === "paper2sim" && simulation && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-sky-300">
-              <Sparkles className="h-3.5 w-3.5" />
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5">
+            <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--accent)]">
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
               {simulation.arxiv_id}
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">{simulation.summary}</p>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              {simulation.summary}
+            </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5">
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-200">
-              <Code2 className="h-3.5 w-3.5 text-emerald-400" />
+          <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
+              <Code2 className="h-3.5 w-3.5 text-[var(--status-support)]" />
               Generated Sandboxed Python
             </div>
-            <pre className="overflow-x-auto rounded-lg bg-slate-900 p-2.5 text-[11px] leading-relaxed text-emerald-300">
+            <pre className="overflow-x-auto rounded-xl border border-[var(--glass-rim)] bg-[var(--bg-surface)] p-2.5 text-[11px] leading-relaxed text-[var(--status-support)]">
               <code>{simulation.python_code}</code>
             </pre>
           </div>
@@ -59,28 +81,53 @@ export function InspectorPane({ mode, selectedNode, edges, simulation }: Inspect
       {/* Graph Node Inspector (Lecture & Hypothesis) */}
       {mode !== "paper2sim" && selectedNode && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-4">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="text-sm font-semibold text-slate-100">{selectedNode.label}</h3>
+              <h3 className="apple-heading min-w-0 break-words text-sm font-semibold text-[var(--text-primary)]">
+                {selectedNode.label}
+              </h3>
               {selectedNode.slide_ref && (
-                <span className="shrink-0 rounded bg-sky-950 px-2 py-0.5 text-[10px] font-medium text-sky-300">
+                <span className="shrink-0 rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
                   {selectedNode.slide_ref}
                 </span>
               )}
             </div>
-            {selectedNode.authors_year && (
-              <p className="mt-1 text-[11px] font-medium text-purple-300">{selectedNode.authors_year}</p>
-            )}
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">{selectedNode.summary}</p>
+            {selectedNode.authors_year && (() => {
+              const url = resolveCitationUrl({
+                docId: selectedNode.doc_id,
+                citation: selectedNode.authors_year,
+                title: selectedNode.label,
+              });
+              return url ? (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="apple-focus mt-1 inline-flex max-w-full items-center gap-1 rounded-full text-[11px] font-semibold text-[var(--status-gap)] hover:underline"
+                >
+                  <span className="min-w-0 break-words">{selectedNode.authors_year}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              ) : (
+                <p className="mt-1 text-[11px] font-semibold text-[var(--status-gap)]">
+                  {selectedNode.authors_year}
+                </p>
+              );
+            })()}
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              {selectedNode.summary}
+            </p>
 
             <div className="mt-3">
-              <div className="mb-1 flex justify-between text-[11px] text-slate-400">
+              <div className="mb-1 flex justify-between text-[11px] text-[var(--text-muted)]">
                 <span>Mastery / Confidence</span>
-                <span>{selectedNode.mastery}%</span>
+                <span className="font-mono font-semibold text-[var(--text-primary)]">
+                  {selectedNode.mastery}%
+                </span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
                 <div
-                  className="h-full rounded-full bg-sky-400 transition-all"
+                  className="h-full rounded-full bg-[var(--accent)] transition-all"
                   style={{ width: `${selectedNode.mastery}%` }}
                 />
               </div>
@@ -89,35 +136,61 @@ export function InspectorPane({ mode, selectedNode, edges, simulation }: Inspect
 
           {/* Adaptive Quiz for LectureGraph */}
           {selectedNode.quiz.length > 0 && (
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-4">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--status-warning)]">
                 <BookOpen className="h-3.5 w-3.5" />
                 Adaptive Concept Check
               </div>
-              <p className="text-xs font-medium text-slate-100">{selectedNode.quiz[0].question}</p>
+              <p className="text-xs font-medium text-[var(--text-primary)]">
+                {selectedNode.quiz[0].question}
+              </p>
               <div className="mt-3 space-y-1.5">
                 {selectedNode.quiz[0].options.map((opt, idx) => {
                   const isCorrect = idx === selectedNode.quiz[0].correct_index;
                   const isPicked = selectedOption === idx;
-                  let btnStyle = "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600";
-                  if (selectedOption !== null) {
-                    if (isCorrect) btnStyle = "border-emerald-500 bg-emerald-950/60 text-emerald-200";
-                    else if (isPicked) btnStyle = "border-rose-500 bg-rose-950/60 text-rose-200";
-                  }
+                  const showCorrect = selectedOption !== null && isCorrect;
+                  const showWrong = selectedOption !== null && isPicked && !isCorrect;
+
                   return (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => setSelectedOption(idx)}
-                      className={`w-full rounded-lg border px-3 py-2 text-left text-xs transition ${btnStyle}`}
+                      style={
+                        showCorrect
+                          ? {
+                              borderColor: "var(--status-support)",
+                              backgroundColor: "var(--status-support-soft)",
+                              color: "var(--text-primary)",
+                            }
+                          : showWrong
+                          ? {
+                              borderColor: "var(--status-contradict)",
+                              backgroundColor: "var(--status-contradict-soft)",
+                              color: "var(--text-primary)",
+                            }
+                          : undefined
+                      }
+                      className={`apple-press apple-focus flex w-full items-center justify-between gap-2 rounded-2xl border px-3.5 py-2 text-left text-xs ${
+                        !showCorrect && !showWrong
+                          ? "border-[var(--glass-rim)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+                          : ""
+                      }`}
                     >
-                      {opt}
+                      <span className="min-w-0 break-words">{opt}</span>
+                      {showCorrect && (
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[var(--status-support)]" />
+                      )}
+                      {showWrong && (
+                        <XCircle className="h-3.5 w-3.5 shrink-0 text-[var(--status-contradict)]" />
+                      )}
                     </button>
                   );
                 })}
               </div>
               {selectedOption !== null && (
-                <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-300">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--status-support)]" />
                   {selectedNode.quiz[0].explanation}
                 </p>
               )}
@@ -127,40 +200,41 @@ export function InspectorPane({ mode, selectedNode, edges, simulation }: Inspect
           {/* Evidence & Contradiction Cards */}
           {relatedEdges.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-400">Linked Claims & Conditions</p>
-              {relatedEdges.map((edge) => (
-                <div
-                  key={edge.id}
-                  className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs"
-                >
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    {edge.type === "contradicts" && <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />}
-                    <span
-                      className={
-                        edge.type === "contradicts"
-                          ? "text-rose-400"
-                          : edge.type === "supports"
-                          ? "text-emerald-400"
-                          : edge.type === "gap"
-                          ? "text-purple-400"
-                          : "text-sky-400"
-                      }
+              <p className="apple-label pl-1 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
+                Linked Claims & Conditions
+              </p>
+              {relatedEdges.map((edge) => {
+                const spec = EDGE_STYLE[edge.type];
+                const Icon = spec.icon;
+                return (
+                  <div
+                    key={edge.id}
+                    className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3 text-xs"
+                  >
+                    <div
+                      style={{ color: spec.colorVar }}
+                      className="flex items-start gap-1.5 font-semibold"
                     >
-                      {edge.type.toUpperCase()}: {edge.label}
-                    </span>
+                      <Icon className="mt-px h-3.5 w-3.5 shrink-0" />
+                      <span className="min-w-0 break-words">
+                        {edge.type.toUpperCase()}: {edge.label}
+                      </span>
+                    </div>
+                    {edge.condition && (
+                      <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+                        {edge.condition}
+                      </p>
+                    )}
                   </div>
-                  {edge.condition && (
-                    <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{edge.condition}</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
       {mode !== "paper2sim" && !selectedNode && (
-        <div className="rounded-xl border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">
+        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface-muted)] p-6 text-center text-xs text-[var(--text-muted)]">
           Click any node or circle a region on the canvas to inspect concepts, quizzes, or evidence.
         </div>
       )}

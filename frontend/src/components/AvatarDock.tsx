@@ -11,6 +11,8 @@ interface AvatarDockProps {
   onToggleTts: () => void;
   onAsk: (text: string) => void;
   onUploadClick: () => void;
+  /** Replaces the built-in face (e.g. the live tutor tile). */
+  avatar?: React.ReactNode;
 }
 
 export function AvatarDock({
@@ -21,6 +23,7 @@ export function AvatarDock({
   onToggleTts,
   onAsk,
   onUploadClick,
+  avatar,
 }: AvatarDockProps) {
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
@@ -67,92 +70,124 @@ export function AvatarDock({
     setInput("");
   };
 
-  const ringColor =
+  const ringStyle =
     avatarState === "emphatic"
-      ? "border-amber-400 shadow-amber-500/20"
+      ? { borderColor: "var(--status-warning)" }
       : avatarState === "questioning"
-      ? "border-purple-400 shadow-purple-500/20"
+      ? { borderColor: "var(--status-gap)" }
       : isSpeaking
-      ? "border-sky-400 shadow-sky-500/30"
-      : "border-slate-700";
+      ? { borderColor: "var(--accent)" }
+      : { borderColor: "var(--border-strong)" };
 
   return (
-    <aside className="flex h-full flex-col justify-between border-r border-slate-800 bg-slate-900/70 p-4">
+    // A floating glass sheet; it scrolls itself at lg (where its grid row is height-bounded).
+    <aside className="apple-sheet flex min-w-0 flex-col justify-between gap-3 rounded-[22px] p-4 lg:h-full lg:min-h-0 lg:overflow-y-auto">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="flex items-center justify-between gap-2">
+          <span className="apple-label truncate pl-1 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
             ScholarTwin Tutor
           </span>
           <button
+            type="button"
             onClick={onToggleTts}
             title={ttsEnabled ? "Mute voice" : "Enable voice"}
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+            aria-label={ttsEnabled ? "Mute voice" : "Enable voice"}
+            className={`apple-press apple-focus grid h-8 w-8 shrink-0 place-items-center rounded-full border ${
+              ttsEnabled
+                ? "border-[var(--accent-border)] bg-[var(--accent-soft)]"
+                : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
           >
-            {ttsEnabled ? <Volume2 className="h-4 w-4 text-sky-400" /> : <VolumeX className="h-4 w-4" />}
+            {ttsEnabled ? (
+              <Volume2 className="h-4 w-4 text-[var(--accent)]" />
+            ) : (
+              <VolumeX className="h-4 w-4" />
+            )}
           </button>
         </div>
 
         {/* Clean Interactive Digital Avatar */}
-        <div className="flex flex-col items-center rounded-xl border border-slate-800 bg-slate-950/80 p-5">
-          <div
-            className={`relative flex h-24 w-24 items-center justify-center rounded-full border-2 shadow-lg transition-all duration-300 ${ringColor} ${
-              isSpeaking ? "scale-105" : ""
-            }`}
-          >
-            <svg viewBox="0 0 100 100" className="h-20 w-20">
-              <circle cx="50" cy="50" r="44" fill="#0f172a" stroke="#38bdf8" strokeWidth="2" />
-              {/* Eyes */}
-              <circle cx="36" cy="42" r="4.5" fill="#e2e8f0" />
-              <circle cx="64" cy="42" r="4.5" fill="#e2e8f0" />
-              <circle cx="37" cy="41" r="1.5" fill="#38bdf8" />
-              <circle cx="65" cy="41" r="1.5" fill="#38bdf8" />
-              {/* Mouth reacts to speaking */}
-              {isSpeaking ? (
-                <ellipse cx="50" cy="64" rx="10" ry="6" fill="#38bdf8" className="animate-pulse" />
-              ) : (
-                <path d="M 38 63 Q 50 71 62 63" stroke="#94a3b8" strokeWidth="3" fill="none" strokeLinecap="round" />
-              )}
-            </svg>
-            <span
-              className={`absolute -bottom-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                isSpeaking
-                  ? "bg-sky-500 text-slate-950"
-                  : listening
-                  ? "bg-rose-500 text-white"
-                  : "bg-slate-800 text-slate-300"
+        <div className="flex flex-col items-center rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-5">
+          {avatar ?? (
+            <div
+              style={ringStyle}
+              className={`relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-2 shadow-md transition-all duration-200 ${
+                isSpeaking ? "scale-105" : ""
               }`}
             >
-              {listening ? "Listening" : isSpeaking ? "Speaking" : avatarState}
-            </span>
-          </div>
+              <svg viewBox="0 0 100 100" className="h-20 w-20">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="44"
+                  fill="var(--bg-surface)"
+                  stroke="var(--accent)"
+                  strokeWidth="2"
+                />
+                {/* Eyes */}
+                <circle cx="36" cy="42" r="4.5" fill="var(--text-primary)" />
+                <circle cx="64" cy="42" r="4.5" fill="var(--text-primary)" />
+                <circle cx="37" cy="41" r="1.5" fill="var(--accent)" />
+                <circle cx="65" cy="41" r="1.5" fill="var(--accent)" />
+                {/* Mouth reacts to speaking */}
+                {isSpeaking ? (
+                  <ellipse cx="50" cy="64" rx="10" ry="6" fill="var(--accent)" className="animate-pulse" />
+                ) : (
+                  <path
+                    d="M 38 63 Q 50 71 62 63"
+                    stroke="var(--text-muted)"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                )}
+              </svg>
+              <span
+                className={`absolute -bottom-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  isSpeaking
+                    ? "bg-[var(--accent)] text-[var(--accent-fg)]"
+                    : listening
+                    ? "bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
+                    : "border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)]"
+                }`}
+              >
+                {listening ? "Listening" : isSpeaking ? "Speaking" : avatarState}
+              </span>
+            </div>
+          )}
 
-          <div className="mt-4 w-full rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-200">
+          {/* Text sits on thick glass (the sheet + one surface layer). */}
+          <div className="mt-4 w-full break-words rounded-2xl border border-[var(--glass-rim)] bg-[var(--bg-surface)] p-3 text-xs leading-relaxed text-[var(--text-secondary)] shadow-[inset_0_1px_0_var(--glass-highlight)]">
             {lastReply}
           </div>
         </div>
 
         {/* Source Quick Action */}
         <button
+          type="button"
           onClick={onUploadClick}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-700 bg-slate-900/50 px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:border-sky-500 hover:text-sky-300"
+          className="apple-press apple-focus flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface-muted)] px-4 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
         >
-          <Upload className="h-3.5 w-3.5" />
-          Drop Lecture PDF / arXiv URL
+          <Upload className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">Drop Lecture PDF / arXiv URL</span>
         </button>
       </div>
 
       {/* Voice + Text Ask Controls */}
+      {/* The view's one tinted primary is the Live Tutor button on the canvas, so the mic is
+          an accent-washed capsule rather than a second solid fill. */}
       <div className="space-y-2 pt-3">
         <button
+          type="button"
           onClick={handleVoice}
-          className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
+          className={`apple-press apple-focus flex h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full border px-4 text-xs font-semibold ${
             listening
-              ? "bg-rose-500 text-white animate-pulse"
-              : "bg-sky-500 text-slate-950 hover:bg-sky-400"
+              ? "animate-pulse border-[var(--status-contradict)] bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
+              : "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)]"
           }`}
         >
-          {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          {listening ? "Listening... Speak now" : "Hold / Click to Ask Avatar"}
+          {listening ? <MicOff className="h-4 w-4 shrink-0" /> : <Mic className="h-4 w-4 shrink-0" />}
+          <span className="truncate">{listening ? "Listening... Speak now" : "Hold / Click to Ask Avatar"}</span>
         </button>
 
         <form onSubmit={handleSubmit} className="flex gap-1.5">
@@ -161,11 +196,12 @@ export function AvatarDock({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about circled area..."
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
+            aria-label="Ask the tutor a question"
+            className="apple-focus h-10 w-full min-w-0 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-4 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)]"
           />
           <button
             type="submit"
-            className="rounded-lg bg-slate-800 px-2.5 text-slate-200 hover:bg-slate-700"
+            className="apple-press apple-focus grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-primary)] hover:border-[var(--border-strong)]"
             aria-label="Send question"
           >
             <Send className="h-3.5 w-3.5" />

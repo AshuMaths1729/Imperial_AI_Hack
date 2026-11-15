@@ -1,0 +1,4642 @@
+{
+  "components": {
+    "schemas": {
+      "ActiveContext": {
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Graph Id"
+          },
+          "paper_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Id"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          },
+          "view": {
+            "enum": [
+              "sim",
+              "lecture",
+              "hypothesis"
+            ],
+            "title": "View",
+            "type": "string"
+          }
+        },
+        "required": [
+          "view"
+        ],
+        "title": "ActiveContext",
+        "type": "object"
+      },
+      "AnswerRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "choice": {
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Choice",
+            "type": "integer"
+          },
+          "question_id": {
+            "title": "Question Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question_id",
+          "choice"
+        ],
+        "title": "AnswerRequest",
+        "type": "object"
+      },
+      "AnswerResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "correct": {
+            "title": "Correct",
+            "type": "boolean"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "mastery": {
+            "title": "Mastery",
+            "type": "number"
+          }
+        },
+        "required": [
+          "correct",
+          "explanation",
+          "mastery"
+        ],
+        "title": "AnswerResponse",
+        "type": "object"
+      },
+      "AskSpatialRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "active_context": {
+            "$ref": "#/components/schemas/ActiveContext"
+          },
+          "cropped_image_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PNG of the circled region, downscaled to <= 1024 px",
+            "title": "Cropped Image Base64"
+          },
+          "hit_metadata": {
+            "$ref": "#/components/schemas/HitMetadata"
+          },
+          "transcript": {
+            "title": "Transcript",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transcript",
+          "active_context"
+        ],
+        "title": "AskSpatialRequest",
+        "type": "object"
+      },
+      "AskSpatialResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "avatar_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "explaining",
+                  "emphatic",
+                  "questioning"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar State"
+          },
+          "follow_up": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FollowUp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "minItems": 1,
+            "title": "Segments",
+            "type": "array"
+          },
+          "spoken_answer": {
+            "description": "Full text, for captions and fallback TTS",
+            "title": "Spoken Answer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spoken_answer",
+          "segments",
+          "follow_up",
+          "avatar_state"
+        ],
+        "title": "AskSpatialResponse",
+        "type": "object"
+      },
+      "AvatarClipSession": {
+        "properties": {
+          "can_render": {
+            "title": "Can Render",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "clips",
+              "audio_only"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "ready_clips": {
+            "title": "Ready Clips",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mode",
+          "ready_clips",
+          "can_render"
+        ],
+        "title": "AvatarClipSession",
+        "type": "object"
+      },
+      "Body_generate_from_pdf_api_sim_generate_pdf_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "hint": {
+            "default": "",
+            "title": "Hint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_generate_from_pdf_api_sim_generate_pdf_post",
+        "type": "object"
+      },
+      "Body_ingest_lecture_api_ingest_lecture_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_ingest_lecture_api_ingest_lecture_post",
+        "type": "object"
+      },
+      "Body_ingest_paper_api_ingest_paper_post": {
+        "properties": {
+          "arxiv_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "e.g. 1503.01243 or arXiv:1503.01243v2",
+            "title": "Arxiv Id"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PDF upload",
+            "title": "File"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "arXiv link, direct .pdf link or web page",
+            "title": "Url"
+          }
+        },
+        "title": "Body_ingest_paper_api_ingest_paper_post",
+        "type": "object"
+      },
+      "Body_stt_api_stt_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_stt_api_stt_post",
+        "type": "object"
+      },
+      "CalloutBox": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "space": {
+            "enum": [
+              "node",
+              "data",
+              "view"
+            ],
+            "title": "Space",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Node or edge id; required when space == \"node\"",
+            "title": "Target Id"
+          },
+          "type": {
+            "const": "callout_box",
+            "default": "callout_box",
+            "title": "Type",
+            "type": "string"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "required": [
+          "space",
+          "target_id",
+          "x",
+          "y",
+          "label",
+          "type"
+        ],
+        "title": "CalloutBox",
+        "type": "object"
+      },
+      "CircleRegion": {
+        "additionalProperties": false,
+        "properties": {
+          "h": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "H"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "space": {
+            "enum": [
+              "node",
+              "data",
+              "view"
+            ],
+            "title": "Space",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Node or edge id; required when space == \"node\"",
+            "title": "Target Id"
+          },
+          "type": {
+            "const": "circle_region",
+            "default": "circle_region",
+            "title": "Type",
+            "type": "string"
+          },
+          "w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "W"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "required": [
+          "space",
+          "target_id",
+          "x",
+          "y",
+          "label",
+          "type",
+          "w",
+          "h"
+        ],
+        "title": "CircleRegion",
+        "type": "object"
+      },
+      "ClipCreateRequest": {
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "script": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Script",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "title": "ClipCreateRequest",
+        "type": "object"
+      },
+      "ClipCreateResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clip_id",
+          "status"
+        ],
+        "title": "ClipCreateResponse",
+        "type": "object"
+      },
+      "ClipLookupRequest": {
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,100}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "script": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Script",
+            "type": "string"
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "title": "ClipLookupRequest",
+        "type": "object"
+      },
+      "ClipLookupResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "ready": {
+            "default": false,
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          }
+        },
+        "required": [
+          "found",
+          "clip_id"
+        ],
+        "title": "ClipLookupResponse",
+        "type": "object"
+      },
+      "ClipStatusResponse": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "script": {
+            "title": "Script",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "video_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Url"
+          }
+        },
+        "required": [
+          "clip_id",
+          "status",
+          "ready",
+          "script"
+        ],
+        "title": "ClipStatusResponse",
+        "type": "object"
+      },
+      "ClipSummary": {
+        "properties": {
+          "clip_id": {
+            "title": "Clip Id",
+            "type": "string"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clip_id",
+          "title",
+          "status",
+          "ready"
+        ],
+        "title": "ClipSummary",
+        "type": "object"
+      },
+      "ConceptDoc": {
+        "additionalProperties": false,
+        "description": "A node of the paper's concept & parameter graph.",
+        "properties": {
+          "detail": {
+            "default": "",
+            "description": "2-4 sentences: why it matters / how it works",
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "paper",
+              "model",
+              "concept",
+              "variable",
+              "parameter",
+              "assumption",
+              "result",
+              "cited_work"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "latex": {
+            "default": "",
+            "description": "Defining formula, if any (no $ delimiters)",
+            "title": "Latex",
+            "type": "string"
+          },
+          "param_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PARAMS key if this is a slider",
+            "title": "Param Key"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "description": "One-sentence, beginner-friendly explanation",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "summary",
+          "detail",
+          "latex",
+          "param_key",
+          "source"
+        ],
+        "title": "ConceptDoc",
+        "type": "object"
+      },
+      "ConceptLink": {
+        "additionalProperties": false,
+        "description": "A directed, labelled relation between two concepts.",
+        "properties": {
+          "explanation": {
+            "default": "",
+            "description": "One sentence on why the link holds",
+            "title": "Explanation",
+            "type": "string"
+          },
+          "kind": {
+            "default": "prerequisite",
+            "enum": [
+              "prerequisite",
+              "supports",
+              "contradicts",
+              "gap"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "relation": {
+            "description": "Short verb phrase, e.g. \"slows the decay of\"",
+            "title": "Relation",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "relation",
+          "explanation",
+          "kind"
+        ],
+        "title": "ConceptLink",
+        "type": "object"
+      },
+      "DerivationStep": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "latex": {
+            "default": "",
+            "title": "Latex",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "latex",
+          "explanation"
+        ],
+        "title": "DerivationStep",
+        "type": "object"
+      },
+      "DocInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageInfo"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "doc_id",
+          "filename",
+          "page_count",
+          "total_pages",
+          "truncated",
+          "pages"
+        ],
+        "title": "DocInfo",
+        "type": "object"
+      },
+      "DrawArrow": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "space": {
+            "enum": [
+              "node",
+              "data",
+              "view"
+            ],
+            "title": "Space",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Node or edge id; required when space == \"node\"",
+            "title": "Target Id"
+          },
+          "type": {
+            "const": "draw_arrow",
+            "default": "draw_arrow",
+            "title": "Type",
+            "type": "string"
+          },
+          "x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "X"
+          },
+          "y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y"
+          }
+        },
+        "required": [
+          "space",
+          "target_id",
+          "x",
+          "y",
+          "label",
+          "type"
+        ],
+        "title": "DrawArrow",
+        "type": "object"
+      },
+      "Edge": {
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "e.g. \"at T > 60 °C\"",
+            "title": "Condition"
+          },
+          "confidence": {
+            "default": 1.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "prerequisite",
+              "supports",
+              "contradicts",
+              "gap"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "type",
+          "condition",
+          "evidence",
+          "confidence"
+        ],
+        "title": "Edge",
+        "type": "object"
+      },
+      "Equation": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "default": "",
+            "title": "Context",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "latex": {
+            "title": "Latex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "latex",
+          "context"
+        ],
+        "title": "Equation",
+        "type": "object"
+      },
+      "EquationDoc": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "latex": {
+            "title": "Latex",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/EquationVar"
+            },
+            "title": "Variables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "latex",
+          "explanation",
+          "variables",
+          "source"
+        ],
+        "title": "EquationDoc",
+        "type": "object"
+      },
+      "EquationVar": {
+        "additionalProperties": false,
+        "properties": {
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "symbol_latex": {
+            "title": "Symbol Latex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol_latex",
+          "meaning"
+        ],
+        "title": "EquationVar",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "details"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "description": "The one JSON shape of every error response (see `app.core.errors`).",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "paper_id": {
+            "title": "Paper Id",
+            "type": "string"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paper_id",
+          "quote"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
+      "FollowUp": {
+        "additionalProperties": false,
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "quiz",
+            "default": "quiz",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "node_id"
+        ],
+        "title": "FollowUp",
+        "type": "object"
+      },
+      "FreezeRequest": {
+        "properties": {
+          "include": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include"
+          }
+        },
+        "title": "FreezeRequest",
+        "type": "object"
+      },
+      "GenerateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "arxiv_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arxiv Id"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "paper_text": {
+            "anyOf": [
+              {
+                "maxLength": 200000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Text"
+          }
+        },
+        "title": "GenerateRequest",
+        "type": "object"
+      },
+      "Graph": {
+        "additionalProperties": false,
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/Edge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "lecture",
+              "hypothesis"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/GraphMeta"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "graph_id",
+          "kind",
+          "nodes",
+          "edges",
+          "meta"
+        ],
+        "title": "Graph",
+        "type": "object"
+      },
+      "GraphMeta": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "extractor_used": {
+            "enum": [
+              "frontier",
+              "finetuned"
+            ],
+            "title": "Extractor Used",
+            "type": "string"
+          }
+        },
+        "required": [
+          "extractor_used",
+          "created_at"
+        ],
+        "title": "GraphMeta",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cache_mode": {
+            "enum": [
+              "live",
+              "offline",
+              "refresh"
+            ],
+            "title": "Cache Mode",
+            "type": "string"
+          },
+          "preset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset"
+          },
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "cache_mode",
+          "preset"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "HighlightEdge": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Edge id",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "type": {
+            "const": "highlight_edge",
+            "default": "highlight_edge",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "label"
+        ],
+        "title": "HighlightEdge",
+        "type": "object"
+      },
+      "HitMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "maxItems": 4,
+                "minItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "[x, y, w, h] of the lasso bounding box, in screen pixels",
+            "title": "Bbox"
+          },
+          "edge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Edge Ids",
+            "type": "array"
+          },
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Node Ids",
+            "type": "array"
+          },
+          "plot_range": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlotRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "HitMetadata",
+        "type": "object"
+      },
+      "IngestLectureResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/Graph"
+          },
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "truncated": {
+            "description": "True if only the first 100 pages were processed",
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "graph_id",
+          "doc_id",
+          "graph",
+          "page_count",
+          "truncated"
+        ],
+        "title": "IngestLectureResponse",
+        "type": "object"
+      },
+      "Issue": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Issue",
+        "type": "object"
+      },
+      "JobCreated": {
+        "additionalProperties": false,
+        "description": "Response of every endpoint that starts a job (`POST /ingest/*`, `POST /topics`, ...).",
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "JobCreated",
+        "type": "object"
+      },
+      "JobEvent": {
+        "additionalProperties": false,
+        "description": "One progress event.\n\n`seq` is per job, starts at 0 and is the SSE event id (resume with `Last-Event-ID` or\n`?last_event_id=`). A job always ends with exactly one terminal event: `stage == \"done\"`\n(with `result_id` if the job produced something) or `stage == \"error\"` (reason in\n`message`).",
+        "properties": {
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Message"
+          },
+          "pct": {
+            "description": "Overall progress, 0-100",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Pct",
+            "type": "number"
+          },
+          "result_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Id"
+          },
+          "seq": {
+            "minimum": 0,
+            "title": "Seq",
+            "type": "integer"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "stage",
+          "pct",
+          "message",
+          "result_id"
+        ],
+        "title": "JobEvent",
+        "type": "object"
+      },
+      "MasteryEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "mastery": {
+            "title": "Mastery",
+            "type": "number"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "label",
+          "mastery",
+          "attempts"
+        ],
+        "title": "MasteryEntry",
+        "type": "object"
+      },
+      "MasteryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/MasteryEntry"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "graph_id",
+          "nodes"
+        ],
+        "title": "MasteryResponse",
+        "type": "object"
+      },
+      "NextResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "mastery": {
+            "title": "Mastery",
+            "type": "number"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "graph_id",
+          "node_id",
+          "label",
+          "mastery",
+          "attempts"
+        ],
+        "title": "NextResponse",
+        "type": "object"
+      },
+      "Node": {
+        "additionalProperties": false,
+        "properties": {
+          "authors_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authors Year"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "concept",
+              "claim",
+              "paper"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "summary",
+          "source_ref",
+          "authors_year"
+        ],
+        "title": "Node",
+        "type": "object"
+      },
+      "PageInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "snippet": {
+            "title": "Snippet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page",
+          "snippet"
+        ],
+        "title": "PageInfo",
+        "type": "object"
+      },
+      "PaperOut": {
+        "additionalProperties": false,
+        "properties": {
+          "abstract": {
+            "default": "",
+            "title": "Abstract",
+            "type": "string"
+          },
+          "authors_year": {
+            "default": "",
+            "title": "Authors Year",
+            "type": "string"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tldr": {
+            "default": "",
+            "title": "Tldr",
+            "type": "string"
+          },
+          "venue": {
+            "default": "",
+            "title": "Venue",
+            "type": "string"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "abstract",
+          "tldr",
+          "year",
+          "venue",
+          "doi",
+          "authors_year"
+        ],
+        "title": "PaperOut",
+        "type": "object"
+      },
+      "PaperSource": {
+        "additionalProperties": false,
+        "properties": {
+          "abstract": {
+            "default": "",
+            "title": "Abstract",
+            "type": "string"
+          },
+          "arxiv_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arxiv Id"
+          },
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Authors",
+            "type": "array"
+          },
+          "equations": {
+            "items": {
+              "$ref": "#/components/schemas/Equation"
+            },
+            "title": "Equations",
+            "type": "array"
+          },
+          "macros": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Macros",
+            "type": "array"
+          },
+          "method_text": {
+            "title": "Method Text",
+            "type": "string"
+          },
+          "paper_id": {
+            "title": "Paper Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "arxiv_tex",
+              "pdf",
+              "html"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paper_id",
+          "source_kind",
+          "title",
+          "authors",
+          "arxiv_id",
+          "abstract",
+          "method_text",
+          "equations",
+          "macros",
+          "truncated"
+        ],
+        "title": "PaperSource",
+        "type": "object"
+      },
+      "ParamDoc": {
+        "additionalProperties": false,
+        "description": "Plain-language explanation of one PARAMS slider.",
+        "properties": {
+          "effect": {
+            "description": "What increasing it does to the plot",
+            "title": "Effect",
+            "type": "string"
+          },
+          "key": {
+            "description": "The PARAMS key this documents",
+            "title": "Key",
+            "type": "string"
+          },
+          "meaning": {
+            "description": "What the parameter is, in one plain sentence",
+            "title": "Meaning",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "symbol_latex": {
+            "default": "",
+            "description": "LaTeX symbol, e.g. \\Delta S",
+            "title": "Symbol Latex",
+            "type": "string"
+          },
+          "typical": {
+            "default": "",
+            "description": "Typical / paper-reported value, if any",
+            "title": "Typical",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "symbol_latex",
+          "meaning",
+          "effect",
+          "typical",
+          "source"
+        ],
+        "title": "ParamDoc",
+        "type": "object"
+      },
+      "ParamSpec": {
+        "additionalProperties": false,
+        "description": "One entry of `PARAMS` (a slider).",
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "step": {
+            "exclusiveMinimum": 0.0,
+            "title": "Step",
+            "type": "number"
+          },
+          "unit": {
+            "default": "",
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "default",
+          "step",
+          "unit",
+          "label"
+        ],
+        "title": "ParamSpec",
+        "type": "object"
+      },
+      "PlotRange": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "PlotRange",
+        "type": "object"
+      },
+      "PulseNode": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Node id",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "type": {
+            "const": "pulse_node",
+            "default": "pulse_node",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "label"
+        ],
+        "title": "PulseNode",
+        "type": "object"
+      },
+      "QuizQuestion": {
+        "additionalProperties": false,
+        "properties": {
+          "correct_index": {
+            "title": "Correct Index",
+            "type": "integer"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "question",
+          "options",
+          "correct_index",
+          "explanation"
+        ],
+        "title": "QuizQuestion",
+        "type": "object"
+      },
+      "QuizResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuizQuestion"
+            },
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "graph_id",
+          "node_id",
+          "questions"
+        ],
+        "title": "QuizResponse",
+        "type": "object"
+      },
+      "RunRecord": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ms"
+          },
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "label",
+          "params"
+        ],
+        "title": "RunRecord",
+        "type": "object"
+      },
+      "RunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "sim_id": {
+            "title": "Sim Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sim_id"
+        ],
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "RunResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "ms": {
+            "title": "Ms",
+            "type": "number"
+          },
+          "output": {
+            "$ref": "#/components/schemas/SimOutput"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "runner": {
+            "title": "Runner",
+            "type": "string"
+          }
+        },
+        "required": [
+          "output",
+          "runner",
+          "ms",
+          "cached",
+          "params"
+        ],
+        "title": "RunResponse",
+        "type": "object"
+      },
+      "Segment": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "ui_annotations": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "callout_box": "#/components/schemas/CalloutBox",
+                  "circle_region": "#/components/schemas/CircleRegion",
+                  "draw_arrow": "#/components/schemas/DrawArrow",
+                  "highlight_edge": "#/components/schemas/HighlightEdge",
+                  "pulse_node": "#/components/schemas/PulseNode",
+                  "show_card": "#/components/schemas/ShowCard"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PulseNode"
+                },
+                {
+                  "$ref": "#/components/schemas/HighlightEdge"
+                },
+                {
+                  "$ref": "#/components/schemas/DrawArrow"
+                },
+                {
+                  "$ref": "#/components/schemas/CircleRegion"
+                },
+                {
+                  "$ref": "#/components/schemas/ShowCard"
+                },
+                {
+                  "$ref": "#/components/schemas/CalloutBox"
+                }
+              ]
+            },
+            "title": "Ui Annotations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "text",
+          "ui_annotations"
+        ],
+        "title": "Segment",
+        "type": "object"
+      },
+      "Series": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 5000,
+            "title": "X",
+            "type": "array"
+          },
+          "y": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 5000,
+            "title": "Y",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "x",
+          "y",
+          "color"
+        ],
+        "title": "Series",
+        "type": "object"
+      },
+      "SeriesDoc": {
+        "additionalProperties": false,
+        "properties": {
+          "how_to_read": {
+            "default": "",
+            "title": "How To Read",
+            "type": "string"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "name": {
+            "description": "Must equal a series name returned by simulate()",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "meaning",
+          "how_to_read"
+        ],
+        "title": "SeriesDoc",
+        "type": "object"
+      },
+      "SessionRequest": {
+        "properties": {
+          "tutor_id": {
+            "title": "Tutor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tutor_id"
+        ],
+        "title": "SessionRequest",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "properties": {
+          "identity": {
+            "title": "Identity",
+            "type": "string"
+          },
+          "room": {
+            "title": "Room",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "token",
+          "room",
+          "identity"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
+      "ShowCard": {
+        "additionalProperties": false,
+        "properties": {
+          "card": {
+            "description": "Inspector card to open, e.g. \"quiz\", \"evidence\", \"slide\"",
+            "title": "Card",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Node / edge / page the card is about",
+            "title": "Id"
+          },
+          "type": {
+            "const": "show_card",
+            "default": "show_card",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "card",
+          "id"
+        ],
+        "title": "ShowCard",
+        "type": "object"
+      },
+      "SimDocs": {
+        "additionalProperties": false,
+        "description": "Explanatory material generated alongside the code (all PaperSim tabs read this).",
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptDoc"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "derivation": {
+            "items": {
+              "$ref": "#/components/schemas/DerivationStep"
+            },
+            "title": "Derivation",
+            "type": "array"
+          },
+          "equations": {
+            "items": {
+              "$ref": "#/components/schemas/EquationDoc"
+            },
+            "title": "Equations",
+            "type": "array"
+          },
+          "glossary": {
+            "items": {
+              "$ref": "#/components/schemas/EquationVar"
+            },
+            "title": "Glossary",
+            "type": "array"
+          },
+          "key_findings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Key Findings",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptLink"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "overview": {
+            "description": "3-5 sentence plain-language summary of the paper's idea",
+            "title": "Overview",
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/ParamDoc"
+            },
+            "title": "Params",
+            "type": "array"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/SimPreset"
+            },
+            "title": "Presets",
+            "type": "array"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesDoc"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "x_meaning": {
+            "default": "",
+            "title": "X Meaning",
+            "type": "string"
+          },
+          "y_meaning": {
+            "default": "",
+            "title": "Y Meaning",
+            "type": "string"
+          }
+        },
+        "required": [
+          "overview",
+          "key_findings",
+          "params",
+          "concepts",
+          "links",
+          "equations",
+          "derivation",
+          "presets",
+          "series",
+          "x_meaning",
+          "y_meaning",
+          "limitations",
+          "glossary"
+        ],
+        "title": "SimDocs",
+        "type": "object"
+      },
+      "SimOutput": {
+        "additionalProperties": false,
+        "description": "Return value of `simulate(**params)`; plain finite numbers, <= 5,000 points/series.",
+        "properties": {
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/Series"
+            },
+            "minItems": 1,
+            "title": "Series",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "x_label": {
+            "title": "X Label",
+            "type": "string"
+          },
+          "y_label": {
+            "title": "Y Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "x_label",
+          "y_label",
+          "series"
+        ],
+        "title": "SimOutput",
+        "type": "object"
+      },
+      "SimPayload": {
+        "additionalProperties": false,
+        "description": "What the UI needs to show a simulation: sliders, a first plot and paper context.\n\n`default_output` is `simulate()` at the default params, precomputed so the plot renders\nbefore any runtime (Pyodide) has loaded.",
+        "properties": {
+          "arxiv_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Arxiv Id"
+          },
+          "default_output": {
+            "$ref": "#/components/schemas/SimOutput"
+          },
+          "equation_latex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Equation Latex"
+          },
+          "paper_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Paper Title"
+          },
+          "params": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ParamSpec"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "python_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Python Code"
+          }
+        },
+        "required": [
+          "params",
+          "default_output",
+          "equation_latex",
+          "paper_title",
+          "arxiv_id",
+          "python_code"
+        ],
+        "title": "SimPayload",
+        "type": "object"
+      },
+      "SimPreset": {
+        "additionalProperties": false,
+        "description": "A named scenario: slider values that reproduce something from the paper.\n\nAfter sanitising, `params` holds a value for EVERY PARAMS key, each within its range.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "expected": {
+            "default": "",
+            "description": "What the learner should see in the plot",
+            "title": "Expected",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "params",
+          "expected",
+          "source"
+        ],
+        "title": "SimPreset",
+        "type": "object"
+      },
+      "SimSpec": {
+        "additionalProperties": false,
+        "description": "A stored simulation: the `SimPayload` plus provenance and validation.",
+        "properties": {
+          "arxiv_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arxiv Id"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assumptions",
+            "type": "array"
+          },
+          "default_output": {
+            "$ref": "#/components/schemas/SimOutput"
+          },
+          "docs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SimDocs"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "equation_latex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equation Latex"
+          },
+          "explanation": {
+            "default": "",
+            "title": "Explanation",
+            "type": "string"
+          },
+          "paper_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper Title"
+          },
+          "params": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ParamSpec"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "python_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Python Code"
+          },
+          "sim_id": {
+            "title": "Sim Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationReport"
+          }
+        },
+        "required": [
+          "params",
+          "default_output",
+          "equation_latex",
+          "paper_title",
+          "arxiv_id",
+          "python_code",
+          "sim_id",
+          "title",
+          "explanation",
+          "assumptions",
+          "docs",
+          "validation"
+        ],
+        "title": "SimSpec",
+        "type": "object"
+      },
+      "SourceLoc": {
+        "additionalProperties": false,
+        "description": "Where in the paper something comes from.",
+        "properties": {
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1-based PDF page, when known",
+            "title": "Page"
+          },
+          "quote": {
+            "default": "",
+            "description": "Short verbatim snippet",
+            "maxLength": 400,
+            "title": "Quote",
+            "type": "string"
+          },
+          "section": {
+            "default": "",
+            "description": "Section name/number, e.g. \"3.2 Forgetting\"",
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "page",
+          "quote"
+        ],
+        "title": "SourceLoc",
+        "type": "object"
+      },
+      "SourceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_id": {
+            "title": "Doc Id",
+            "type": "string"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Slide number for lectures, page for papers",
+            "title": "Page"
+          }
+        },
+        "required": [
+          "doc_id",
+          "page"
+        ],
+        "title": "SourceRef",
+        "type": "object"
+      },
+      "SttResponse": {
+        "properties": {
+          "transcript": {
+            "title": "Transcript",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transcript"
+        ],
+        "title": "SttResponse",
+        "type": "object"
+      },
+      "TopicRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "max_papers": {
+            "default": 12,
+            "maximum": 30.0,
+            "minimum": 2.0,
+            "title": "Max Papers",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "TopicRequest",
+        "type": "object"
+      },
+      "TopicResult": {
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "$ref": "#/components/schemas/Graph"
+          },
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/TopicStats"
+          }
+        },
+        "required": [
+          "graph_id",
+          "graph",
+          "stats"
+        ],
+        "title": "TopicResult",
+        "type": "object"
+      },
+      "TopicStats": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "title": "Claims",
+            "type": "integer"
+          },
+          "clusters": {
+            "title": "Clusters",
+            "type": "integer"
+          },
+          "contradicts": {
+            "title": "Contradicts",
+            "type": "integer"
+          },
+          "gaps": {
+            "title": "Gaps",
+            "type": "integer"
+          },
+          "papers_found": {
+            "title": "Papers Found",
+            "type": "integer"
+          },
+          "papers_with_claims": {
+            "title": "Papers With Claims",
+            "type": "integer"
+          },
+          "supports": {
+            "title": "Supports",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "papers_found",
+          "papers_with_claims",
+          "claims",
+          "clusters",
+          "supports",
+          "contradicts",
+          "gaps"
+        ],
+        "title": "TopicStats",
+        "type": "object"
+      },
+      "TtsRequest": {
+        "properties": {
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "voice_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TtsRequest",
+        "type": "object"
+      },
+      "TtsResponse": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "media_id": {
+            "title": "Media Id",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_id",
+          "url",
+          "cached"
+        ],
+        "title": "TtsResponse",
+        "type": "object"
+      },
+      "TtsSegmentIn": {
+        "properties": {
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TtsSegmentIn",
+        "type": "object"
+      },
+      "TtsSegmentsRequest": {
+        "properties": {
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TtsSegmentIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Segments",
+            "type": "array"
+          },
+          "voice_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id"
+          }
+        },
+        "required": [
+          "segments"
+        ],
+        "title": "TtsSegmentsRequest",
+        "type": "object"
+      },
+      "Tutor": {
+        "properties": {
+          "avatar_id": {
+            "title": "Avatar Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "style_prompt": {
+            "title": "Style Prompt",
+            "type": "string"
+          },
+          "tagline": {
+            "title": "Tagline",
+            "type": "string"
+          },
+          "tutor_id": {
+            "title": "Tutor Id",
+            "type": "string"
+          },
+          "voice_id": {
+            "title": "Voice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tutor_id",
+          "name",
+          "tagline",
+          "avatar_id",
+          "voice_id",
+          "style_prompt"
+        ],
+        "title": "Tutor",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "ValidationReport": {
+        "properties": {
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunRecord"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "passed",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ValidationReport",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "ScholarTwin API",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/ask-spatial/v2": {
+      "post": {
+        "operationId": "ask_spatial_v2_api_ask_spatial_v2_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskSpatialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskSpatialResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask Spatial V2",
+        "tags": [
+          "ask"
+        ]
+      }
+    },
+    "/api/avatar/clips": {
+      "get": {
+        "operationId": "list_clips_api_avatar_clips_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClipSummary"
+                  },
+                  "title": "Response List Clips Api Avatar Clips Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Clips",
+        "tags": [
+          "synthesia"
+        ]
+      },
+      "post": {
+        "operationId": "create_clip_api_avatar_clips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/lookup": {
+      "post": {
+        "operationId": "lookup_clip_api_avatar_clips_lookup_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipLookupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lookup Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/{clip_id}": {
+      "get": {
+        "operationId": "get_clip_api_avatar_clips__clip_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip_id",
+            "required": true,
+            "schema": {
+              "title": "Clip Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Clip",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/clips/{clip_id}/video": {
+      "get": {
+        "operationId": "clip_video_api_avatar_clips__clip_id__video_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip_id",
+            "required": true,
+            "schema": {
+              "title": "Clip Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clip Video",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/avatar/session": {
+      "post": {
+        "operationId": "avatar_session_api_avatar_session_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarClipSession"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Avatar Session",
+        "tags": [
+          "synthesia"
+        ]
+      }
+    },
+    "/api/docs/{doc_id}": {
+      "get": {
+        "operationId": "get_doc_api_docs__doc_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Doc",
+        "tags": [
+          "lecture"
+        ]
+      }
+    },
+    "/api/docs/{doc_id}/pages/{n}.png": {
+      "get": {
+        "operationId": "get_page_image_api_docs__doc_id__pages__n__png_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "doc_id",
+            "required": true,
+            "schema": {
+              "title": "Doc Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "title": "N",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": "full",
+              "enum": [
+                "thumb",
+                "full"
+              ],
+              "title": "Size",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Page Image",
+        "tags": [
+          "lecture"
+        ]
+      }
+    },
+    "/api/graphs/{graph_id}": {
+      "get": {
+        "operationId": "get_graph_api_graphs__graph_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "graph_id",
+            "required": true,
+            "schema": {
+              "title": "Graph Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Graph"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Graph",
+        "tags": [
+          "lecture"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/ingest/lecture": {
+      "post": {
+        "operationId": "ingest_lecture_api_ingest_lecture_post",
+        "parameters": [
+          {
+            "description": "Re-run extraction even if cached on disk",
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Re-run extraction even if cached on disk",
+              "title": "Force",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_lecture_api_ingest_lecture_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestLectureResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Lecture",
+        "tags": [
+          "lecture"
+        ]
+      }
+    },
+    "/api/ingest/paper": {
+      "post": {
+        "operationId": "ingest_paper_api_ingest_paper_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_paper_api_ingest_paper_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Paper",
+        "tags": [
+          "ingest"
+        ]
+      }
+    },
+    "/api/ingest/paper/{paper_id}": {
+      "get": {
+        "operationId": "get_paper_api_ingest_paper__paper_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperSource"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Paper",
+        "tags": [
+          "ingest"
+        ]
+      }
+    },
+    "/api/mastery/{graph_id}": {
+      "get": {
+        "operationId": "get_mastery_api_mastery__graph_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "graph_id",
+            "required": true,
+            "schema": {
+              "title": "Graph Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasteryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Mastery",
+        "tags": [
+          "quiz"
+        ]
+      }
+    },
+    "/api/media/{media_id}": {
+      "get": {
+        "operationId": "media_api_media__media_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "title": "Media Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Media",
+        "tags": [
+          "voice"
+        ]
+      }
+    },
+    "/api/papers/{paper_id}": {
+      "get": {
+        "operationId": "get_paper_api_papers__paper_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Paper",
+        "tags": [
+          "hypothesis"
+        ]
+      }
+    },
+    "/api/presets": {
+      "get": {
+        "operationId": "list_presets_api_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response List Presets Api Presets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Presets",
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/api/presets/current": {
+      "get": {
+        "operationId": "current_api_presets_current_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Current Api Presets Current Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Current",
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/api/presets/unload": {
+      "post": {
+        "operationId": "unload_api_presets_unload_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "title": "Response Unload Api Presets Unload Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Unload",
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/api/presets/{name}/freeze": {
+      "post": {
+        "operationId": "freeze_api_presets__name__freeze_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overwrite",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Overwrite",
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/FreezeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Freeze Api Presets  Name  Freeze Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Freeze",
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/api/presets/{name}/load": {
+      "post": {
+        "operationId": "load_api_presets__name__load_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Load Api Presets  Name  Load Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Load",
+        "tags": [
+          "presets"
+        ]
+      }
+    },
+    "/api/quiz/{graph_id}/next": {
+      "get": {
+        "description": "The weakest node: lowest mastery (unseen = 0), then fewest attempts, then graph order.",
+        "operationId": "next_node_api_quiz__graph_id__next_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "graph_id",
+            "required": true,
+            "schema": {
+              "title": "Graph Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Next Node",
+        "tags": [
+          "quiz"
+        ]
+      }
+    },
+    "/api/quiz/{graph_id}/{node_id}": {
+      "get": {
+        "operationId": "get_quiz_api_quiz__graph_id___node_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "graph_id",
+            "required": true,
+            "schema": {
+              "title": "Graph Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quiz",
+        "tags": [
+          "quiz"
+        ]
+      }
+    },
+    "/api/quiz/{graph_id}/{node_id}/answer": {
+      "post": {
+        "operationId": "answer_api_quiz__graph_id___node_id__answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "graph_id",
+            "required": true,
+            "schema": {
+              "title": "Graph Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer",
+        "tags": [
+          "quiz"
+        ]
+      }
+    },
+    "/api/sim/generate": {
+      "post": {
+        "operationId": "generate_api_sim_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimSpec"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate",
+        "tags": [
+          "sim"
+        ]
+      }
+    },
+    "/api/sim/generate-pdf": {
+      "post": {
+        "operationId": "generate_from_pdf_api_sim_generate_pdf_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_generate_from_pdf_api_sim_generate_pdf_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimSpec"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate From Pdf",
+        "tags": [
+          "sim"
+        ]
+      }
+    },
+    "/api/sim/run": {
+      "post": {
+        "operationId": "run_api_sim_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run",
+        "tags": [
+          "sim"
+        ]
+      }
+    },
+    "/api/sim/{sim_id}": {
+      "get": {
+        "operationId": "get_sim_api_sim__sim_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sim_id",
+            "required": true,
+            "schema": {
+              "title": "Sim Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimSpec"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sim",
+        "tags": [
+          "sim"
+        ]
+      }
+    },
+    "/api/stt": {
+      "post": {
+        "operationId": "stt_api_stt_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_stt_api_stt_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SttResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stt",
+        "tags": [
+          "voice"
+        ]
+      }
+    },
+    "/api/topics": {
+      "post": {
+        "description": "Search papers on a topic and build the claim/contradiction graph (synchronous).",
+        "operationId": "create_topic_api_topics_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Topic",
+        "tags": [
+          "hypothesis"
+        ]
+      }
+    },
+    "/api/tts": {
+      "post": {
+        "operationId": "tts_api_tts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tts",
+        "tags": [
+          "voice"
+        ]
+      }
+    },
+    "/api/tts/segments": {
+      "post": {
+        "operationId": "tts_segments_api_tts_segments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsSegmentsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TtsResponse"
+                  },
+                  "title": "Response Tts Segments Api Tts Segments Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tts Segments",
+        "tags": [
+          "voice"
+        ]
+      }
+    },
+    "/api/tutor/session": {
+      "post": {
+        "operationId": "start_session_api_tutor_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Session",
+        "tags": [
+          "tutor"
+        ]
+      }
+    },
+    "/api/tutor/tutors": {
+      "get": {
+        "operationId": "list_tutors_api_tutor_tutors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Tutor"
+                  },
+                  "title": "Response List Tutors Api Tutor Tutors Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tutors",
+        "tags": [
+          "tutor"
+        ]
+      }
+    }
+  }
+}

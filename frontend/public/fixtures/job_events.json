@@ -1,0 +1,44 @@
+[
+  {
+    "seq": 0,
+    "stage": "store",
+    "pct": 0,
+    "message": "Storing upload",
+    "result_id": null
+  },
+  {
+    "seq": 1,
+    "stage": "render_pages",
+    "pct": 10,
+    "message": "Rendering slide thumbnails",
+    "result_id": null
+  },
+  {
+    "seq": 2,
+    "stage": "extract_graph",
+    "pct": 25,
+    "message": "Extracting concepts and prerequisites",
+    "result_id": null
+  },
+  {
+    "seq": 3,
+    "stage": "postprocess",
+    "pct": 85,
+    "message": "Merging duplicates and checking edges",
+    "result_id": null
+  },
+  {
+    "seq": 4,
+    "stage": "persist",
+    "pct": 95,
+    "message": "Saving the graph",
+    "result_id": null
+  },
+  {
+    "seq": 5,
+    "stage": "done",
+    "pct": 100,
+    "message": null,
+    "result_id": "g_demo_lecture"
+  }
+]

@@ -1,0 +1,137 @@
+{
+  "graph_id": "g_demo_hypothesis",
+  "kind": "hypothesis",
+  "nodes": [
+    {
+      "id": "h1",
+      "kind": "claim",
+      "label": "LLZO garnet suppresses Li dendrites",
+      "summary": "High shear modulus (G > 55 GPa) of cubic Li7La3Zr2O12 mechanically blocks lithium filament penetration.",
+      "source_ref": null,
+      "authors_year": null
+    },
+    {
+      "id": "h2",
+      "kind": "paper",
+      "label": "Murugan et al. & Janek Group (2021)",
+      "summary": "Demonstrates stable Li stripping/plating for >500 cycles in dense hot-pressed Al-doped LLZO pellets at 0.3 mA/cm².",
+      "source_ref": {
+        "doc_id": "p_janek2021",
+        "page": null
+      },
+      "authors_year": "Janek et al., Nature Energy 2021"
+    },
+    {
+      "id": "h3",
+      "kind": "paper",
+      "label": "Porz, Chiang & Bruce et al. (2022)",
+      "summary": "Refutes mechanical suppression above 0.8 mA/cm²: Li nucleates inside pre-existing grain-boundary Griffith flaws regardless of bulk shear modulus.",
+      "source_ref": {
+        "doc_id": "p_porz2022",
+        "page": null
+      },
+      "authors_year": "Porz & Bruce, Adv. Energy Mater. 2022"
+    },
+    {
+      "id": "h4",
+      "kind": "paper",
+      "label": "Ag-C Interlayer Stack Pressure (Samsung 2020)",
+      "summary": "Achieves 1000 Wh/L pouch cell stability using 5 µm Ag-C nanocomposite anode layer with argyrodite Li6PS5Cl.",
+      "source_ref": {
+        "doc_id": "p_lee2020",
+        "page": null
+      },
+      "authors_year": "Lee et al., Nature Energy 2020"
+    },
+    {
+      "id": "h5",
+      "kind": "paper",
+      "label": "Low-Pressure Pouch Failure (Meng et al. 2024)",
+      "summary": "Shows Ag-C sulfide cells suffer contact voiding and rapid capacity fade when external stack pressure drops below 2 MPa at 25°C.",
+      "source_ref": {
+        "doc_id": "p_meng2024",
+        "page": null
+      },
+      "authors_year": "Meng et al., Joule 2024"
+    },
+    {
+      "id": "h6",
+      "kind": "claim",
+      "label": "Pulse-heated LLZO/Ag-C hybrid is stable below 1 MPa stack pressure",
+      "summary": "Zero published studies test whether localized millisecond thermal annealing heals grain-boundary flaws under consumer EV stack pressure (<0.8 MPa).",
+      "source_ref": null,
+      "authors_year": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "he1",
+      "source": "h2",
+      "target": "h1",
+      "type": "supports",
+      "condition": "Verified only at low current density (<=0.5 mA/cm2) and 60 °C",
+      "evidence": [
+        {
+          "paper_id": "p_janek2021",
+          "quote": "stable Li stripping/plating for >500 cycles in dense hot-pressed Al-doped LLZO pellets at 0.3 mA/cm²"
+        }
+      ],
+      "confidence": 0.9
+    },
+    {
+      "id": "he2",
+      "source": "h3",
+      "target": "h1",
+      "type": "contradicts",
+      "condition": "Above 0.8 mA/cm² at room temperature: grain-boundary flaws trigger internal Li cracking",
+      "evidence": [
+        {
+          "paper_id": "p_porz2022",
+          "quote": "Li nucleates inside pre-existing grain-boundary Griffith flaws regardless of bulk shear modulus"
+        }
+      ],
+      "confidence": 0.85
+    },
+    {
+      "id": "he3",
+      "source": "h4",
+      "target": "h1",
+      "type": "supports",
+      "condition": "Requires 4-5 MPa external clamp pressure and 60 °C operating temperature",
+      "evidence": [
+        {
+          "paper_id": "p_lee2020",
+          "quote": "Achieves 1000 Wh/L pouch cell stability using 5 µm Ag-C nanocomposite anode layer with argyrodite Li6PS5Cl"
+        }
+      ],
+      "confidence": 0.8
+    },
+    {
+      "id": "he4",
+      "source": "h5",
+      "target": "h4",
+      "type": "contradicts",
+      "condition": "At external stack pressure below 2 MPa (25 °C)",
+      "evidence": [
+        {
+          "paper_id": "p_meng2024",
+          "quote": "suffer contact voiding and rapid capacity fade when external stack pressure drops below 2 MPa at 25°C"
+        }
+      ],
+      "confidence": 0.85
+    },
+    {
+      "id": "he5",
+      "source": "h3",
+      "target": "h6",
+      "type": "gap",
+      "condition": "No experiment combines grain-boundary flaw healing with low-pressure (<1 MPa) Ag-C interlayers",
+      "evidence": [],
+      "confidence": 0.6
+    }
+  ],
+  "meta": {
+    "extractor_used": "frontier",
+    "created_at": "2026-11-14T09:00:00Z"
+  }
+}

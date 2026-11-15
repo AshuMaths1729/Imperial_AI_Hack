@@ -1,0 +1,2 @@
+# Dependencies are managed by uv: see pyproject.toml and uv.lock (run `uv sync` in backend/).
+# This file is intentionally NOT kept in sync with pyproject.toml.
