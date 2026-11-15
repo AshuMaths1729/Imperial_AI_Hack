@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  PenTool,
-  Sparkles,
-  GraduationCap,
-  BookOpen,
-  MessageSquarePlus,
-} from "lucide-react";
+import { Layers, MessageSquarePlus, PenTool } from "lucide-react";
 import type { AskSpatialRequest, AskSpatialResponse, SimSpec } from "../api/types";
 import {
   createTopicGraph,
@@ -19,9 +13,11 @@ import {
 import { fixtureGetGraph, fixtureGetSim } from "../api/fixtures";
 import {
   graphToWorkspaceDataset,
+  resolveSimId,
   simOutputToSeries,
   simSpecToWorkspaceDataset,
 } from "../api/adapters";
+import { ApiError } from "../api/client";
 import {
   GraphNodeData,
   UIAnnotation,
@@ -36,6 +32,7 @@ import { LibraryTopic, LibraryView } from "../components/LibraryView";
 import { HomeHub } from "../components/HomeHub";
 import { PaperSimTabsView } from "../components/PaperSimTabsView";
 import { HypothesisChatView } from "../components/HypothesisChatView";
+import { AppHeader, HeaderAction } from "../components/AppHeader";
 import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
 import { useAvatarCall } from "../tutor/useAvatarCall";
 import type { Tutor } from "../tutor/api";
@@ -210,7 +207,7 @@ export default function ScholarTwinWorkspace() {
     if (topic.dataset) {
       skipNextFetchRef.current = true;
       setDataset(topic.dataset);
-      setSelectedNode(topic.dataset.nodes[0] ?? null);
+      setSelectedNode(null); // open on the whole graph, not zoomed onto the first node
       if (topic.dataset.simulation) {
         const defaults: Record<string, number> = {};
         topic.dataset.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -250,7 +247,7 @@ export default function ScholarTwinWorkspace() {
         }
         if (cancelled) return;
         setDataset(data);
-        setSelectedNode(data.nodes[0] ?? null);
+        setSelectedNode(null);
         if (data.simulation) {
           const defaults: Record<string, number> = {};
           data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -324,23 +321,39 @@ export default function ScholarTwinWorkspace() {
     }
   };
 
-  const handleParamChange = async (key: string, val: number) => {
-    const next = { ...paramValues, [key]: val };
+  const simRunSeqRef = useRef(0);
+
+  /** Set several slider values at once (presets, reset) and re-run the simulation. */
+  const handleSetParams = async (next: Record<string, number>) => {
     setParamValues(next);
-    const simId = dataset?.simulation?.arxiv_id;
-    if (!simId) return;
+    const sim = dataset?.simulation;
+    if (!sim) return;
+    const seq = ++simRunSeqRef.current;
+    const simId = await resolveSimId(sim);
+    if (!simId) {
+      setStatusMsg("This saved simulation can't be re-run. Load the paper again to regenerate it.");
+      return;
+    }
     try {
       const simRes = await runSim(simId, next);
+      if (seq !== simRunSeqRef.current) return; // a newer run superseded this one
       const { x, series } = simOutputToSeries(simRes.output);
+      setStatusMsg(null);
       setDataset((prev) =>
         prev && prev.simulation
-          ? { ...prev, simulation: { ...prev.simulation, x, series } }
+          ? { ...prev, simulation: { ...prev.simulation, sim_id: simId, x, series } }
           : prev
       );
-    } catch {
-      // ignore transient errors during slider drag
+    } catch (err) {
+      // Transient errors during a slider drag are ignored; a missing simulation is not.
+      if (seq === simRunSeqRef.current && err instanceof ApiError && err.status === 404) {
+        setStatusMsg("This saved simulation is no longer on the server. Load the paper again to regenerate it.");
+      }
     }
   };
+
+  const handleParamChange = (key: string, val: number) =>
+    handleSetParams({ ...paramValues, [key]: val });
 
   const handleAsk = async (transcript: string, bboxOverride?: BoundingBox) => {
     const activeBox = bboxOverride ?? lastBbox;
@@ -409,7 +422,7 @@ export default function ScholarTwinWorkspace() {
   ) => {
     skipNextFetchRef.current = true;
     setDataset(data);
-    setSelectedNode(data.nodes[0] ?? null);
+    setSelectedNode(null);
     if (data.simulation) {
       const defaults: Record<string, number> = {};
       data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -435,7 +448,7 @@ export default function ScholarTwinWorkspace() {
     setActiveTopicId(newTopic.id);
     persistLibrary([newTopic, ...libraryTopics]);
     setScreen(mode === "paper2sim" ? "papersim-workspace" : "lecture-workspace");
-    speakText(msg);
+    // Deliberately silent: the tutor only speaks when the user asks it something.
   };
 
   const handleUploadPdf = async (file: File) => {
@@ -530,6 +543,7 @@ export default function ScholarTwinWorkspace() {
           annotations={annotations}
           statusMsg={statusMsg}
           onParamChange={handleParamChange}
+          onSetParams={handleSetParams}
           onBackToLibrary={() => setScreen("library")}
           onNewConversation={() => {
             setUploadError(null);
@@ -549,70 +563,38 @@ export default function ScholarTwinWorkspace() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-950 text-slate-100">
+    <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* Top Workspace Bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/90 px-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setScreen("library")}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-sky-500/60 hover:text-sky-300"
-          >
-            <BookOpen className="h-3.5 w-3.5 text-sky-400" />
-            Lecture Library
-          </button>
-          <div className="hidden items-center gap-2.5 sm:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-tight text-slate-100">
-                LectureUnderstanding
-              </h1>
-              <p className="text-[11px] text-slate-400">2-Pane Avatar & Concept Canvas</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Circle-to-Ask & New Conversation */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setUploadError(null);
-              setUploadOpen(true);
-            }}
-            className="flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/25"
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            New Conversation
-          </button>
-          <button
-            onClick={() => setLassoActive((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
-              lassoActive
-                ? "border-sky-400 bg-sky-500/20 text-sky-300 shadow-sm shadow-sky-500/20"
-                : "border-slate-700 bg-slate-800 text-slate-200 hover:border-slate-600"
-            }`}
-          >
-            <PenTool className="h-3.5 w-3.5" />
-            {lassoActive ? "Draw Circle on Canvas..." : "Circle-to-Ask"}
-          </button>
-          <a
-            href="/tutor"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-600"
-          >
-            <GraduationCap className="h-3.5 w-3.5" />
-            Live Tutor
-          </a>
-          <span className="hidden rounded-md border border-emerald-800/70 bg-emerald-950/50 px-2.5 py-1 text-[11px] font-medium text-emerald-300 md:inline-block">
-            Demo Preset Ready
-          </span>
-        </div>
-      </header>
+      <AppHeader
+        tone="accent"
+        back={{ label: "Lecture Library", onClick: () => setScreen("library") }}
+        icon={Layers}
+        title="LectureUnderstanding"
+        subtitle="Avatar tutor & concept canvas"
+        actions={
+          <>
+            <HeaderAction
+              icon={MessageSquarePlus}
+              label="New Conversation"
+              onClick={() => {
+                setUploadError(null);
+                setUploadOpen(true);
+              }}
+            />
+            <HeaderAction
+              icon={PenTool}
+              label={lassoActive ? "Draw a circle on the canvas…" : "Circle-to-Ask"}
+              active={lassoActive}
+              wideLabel
+              onClick={() => setLassoActive((v) => !v)}
+            />
+          </>
+        }
+      />
 
       {/* Main 2-Pane Workspace: Avatar & Canvas */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[310px_1fr]">
+      {/* Below lg the panes stack and this area scrolls; the canvas keeps a usable height. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[310px_1fr] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
         {/* Left Pane: Avatar & Voice */}
         <AvatarDock
           avatarState={avatarState}
@@ -632,24 +614,24 @@ export default function ScholarTwinWorkspace() {
         />
 
         {/* Right Pane: Interactive Concept Canvas + Circle-to-Ask Overlay */}
-        <main className="relative flex min-h-0 flex-col bg-slate-950">
+        <main className="relative flex min-h-[72vh] flex-col bg-[var(--bg-canvas)] lg:min-h-0">
           {dataset && (
-            <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-900/40 px-4 py-2">
-              <div>
-                <h2 className="text-xs font-semibold text-slate-100">{dataset.title}</h2>
-                <p className="text-[11px] text-slate-400">{dataset.subtitle}</p>
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
+              <div className="min-w-0">
+                <h2 title={dataset.title} className="truncate text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
+                <p title={dataset.subtitle} className="truncate text-[11px] text-[var(--text-muted)]">{dataset.subtitle}</p>
               </div>
-              <div className="hidden items-center gap-3 text-[10px] text-slate-400 sm:flex">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />Prereq</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Supports</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Contradicts</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500" />Gap</span>
+              <div className="hidden shrink-0 items-center gap-3 text-[10px] font-medium text-[var(--text-muted)] sm:flex">
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Prereq</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />Supports</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />Contradicts</span>
+                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-gap)]" />Gap</span>
               </div>
             </div>
           )}
 
           {statusMsg && (
-            <div className="m-4 rounded-lg border border-amber-700/60 bg-amber-950/40 px-4 py-2 text-xs text-amber-200">
+            <div className="m-4 rounded-xl border border-[var(--status-warning-border)] bg-[var(--status-warning-soft)] px-4 py-2 text-xs text-[var(--status-warning)]">
               {statusMsg}
             </div>
           )}
@@ -657,6 +639,7 @@ export default function ScholarTwinWorkspace() {
           <div className="relative min-h-0 flex-1">
             {dataset && (
               <GraphCanvas
+                key={`${dataset.title}:${dataset.nodes.length}`}
                 nodes={dataset.nodes}
                 edges={dataset.edges}
                 selectedNodeId={selectedNode?.id ?? null}
@@ -669,9 +652,9 @@ export default function ScholarTwinWorkspace() {
 
             {selectedNode && (
               <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex justify-center">
-                <div className="pointer-events-auto max-w-xl rounded-xl border border-slate-800 bg-slate-900/90 px-4 py-2.5 shadow-xl backdrop-blur-md">
-                  <p className="text-xs font-semibold text-sky-300">{selectedNode.label}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-300">
+                <div className="apple-glass-elevated pointer-events-auto max-w-xl rounded-2xl border px-4 py-2.5">
+                  <p className="text-xs font-semibold text-[var(--accent)]">{selectedNode.label}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
                     {selectedNode.summary}
                   </p>
                 </div>

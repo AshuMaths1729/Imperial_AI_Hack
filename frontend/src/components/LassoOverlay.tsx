@@ -19,9 +19,10 @@ export function LassoOverlay({ active, onCapture }: LassoOverlayProps) {
   const [drawing, setDrawing] = useState(false);
   const pointsRef = useRef<{ x: number; y: number }[]>([]);
 
+  // The canvas only mounts while active, so size it whenever it (re)appears.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!active || !canvas) return;
     const resize = () => {
       const parent = canvas.parentElement;
       if (parent) {
@@ -32,7 +33,7 @@ export function LassoOverlay({ active, onCapture }: LassoOverlayProps) {
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, []);
+  }, [active]);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -69,12 +70,17 @@ export function LassoOverlay({ active, onCapture }: LassoOverlayProps) {
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.strokeStyle = "#38bdf8";
+    // Canvas can't read CSS vars directly: resolve the theme's accent so the lasso matches every theme.
+    const accent = getComputedStyle(canvas).getPropertyValue("--accent").trim() || "#0066cc";
+    ctx.strokeStyle = accent;
     ctx.lineWidth = 2.5;
     ctx.setLineDash([5, 4]);
     ctx.stroke();
-    ctx.fillStyle = "rgba(56, 189, 248, 0.10)";
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = accent;
     ctx.fill();
+    ctx.restore();
   };
 
   const handleUp = () => {

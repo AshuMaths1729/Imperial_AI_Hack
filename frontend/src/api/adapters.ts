@@ -1,4 +1,5 @@
 import type { Graph, SimOutput, SimSpec } from "./types";
+import { formatCitationLabel } from "./citations";
 import type {
   GraphEdgeData,
   GraphNodeData,
@@ -8,7 +9,8 @@ import type {
   WorkspaceMode,
 } from "../types/scholartwin";
 
-const SERIES_COLORS = ["#38bdf8", "#34d399", "#f472b6", "#fbbf24", "#a78bfa"];
+// Okabe-Ito color-blind-safe palette (distinguishable across protanopia, deuteranopia, tritanopia)
+const SERIES_COLORS = ["#0284c7", "#e69f00", "#009e73", "#cc79a7", "#d55e00"];
 
 function mapNodeCategory(kind: string, mode: WorkspaceMode): GraphNodeData["category"] {
   if (kind === "prerequisite") return "prerequisite";
@@ -40,7 +42,8 @@ export function graphToWorkspaceDataset(
       category: mapNodeCategory(n.kind, mode),
       summary: n.summary,
       slide_ref: n.source_ref?.page ? `Slide / Page ${n.source_ref.page}` : undefined,
-      authors_year: n.authors_year ?? (n.source_ref?.doc_id ? n.source_ref.doc_id : undefined),
+      authors_year: n.authors_year ?? formatCitationLabel(n.source_ref?.doc_id),
+      doc_id: n.source_ref?.doc_id ?? undefined,
       mastery: 0,
       x: 80 + col * 280,
       y: 70 + row * 170,
@@ -78,6 +81,32 @@ export function simOutputToSeries(output: SimOutput): { x: number[]; series: Sim
     y: s.y,
   }));
   return { x, series };
+}
+
+const recoveredIds = new Map<string, string>();
+
+/**
+ * The backend id of a simulation, for `POST /sim/run`.
+ * Newer payloads carry `sim_id`. Some saved topics only have the arXiv id in `arxiv_id`, so the
+ * id is recovered from the code exactly as the backend derives it:
+ * `"sim_" + sha256(python_code)[:10]` (backend app/modules/sim/service.py `make_sim_id`).
+ */
+export async function resolveSimId(sim: {
+  sim_id?: string;
+  arxiv_id?: string;
+  python_code?: string;
+}): Promise<string | undefined> {
+  if (sim.sim_id) return sim.sim_id;
+  if (sim.arxiv_id?.startsWith("sim_")) return sim.arxiv_id;
+  const code = sim.python_code;
+  if (!code || typeof crypto === "undefined" || !crypto.subtle) return undefined;
+  const cached = recoveredIds.get(code);
+  if (cached) return cached;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code));
+  const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+  const id = `sim_${hex.slice(0, 10)}`;
+  recoveredIds.set(code, id);
+  return id;
 }
 
 export function simSpecToWorkspaceDataset(
@@ -119,6 +148,8 @@ export function simSpecToWorkspaceDataset(
       python_code: spec.python_code ?? (typeof spec.code === "string" ? spec.code : ""),
       sim_title: simTitle || undefined,
       assumptions: Array.isArray(spec.assumptions) ? spec.assumptions : undefined,
+      docs: spec.docs ?? undefined,
+      sim_id: spec.sim_id,
       params,
       x_label: out.x_label ?? "x",
       y_label: out.y_label ?? "y",

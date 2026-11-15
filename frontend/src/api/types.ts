@@ -127,6 +127,7 @@ export type SimSpec = SimPayload & {
   title?: string;
   explanation?: string;
   assumptions?: string[];
+  docs?: import("../types/scholartwin").SimDocs | null;
   [extra: string]: unknown;
 };
 

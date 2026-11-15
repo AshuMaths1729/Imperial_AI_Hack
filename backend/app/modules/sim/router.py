@@ -1,8 +1,10 @@
-"""`/api/sim/*`: generate (LLM -> validate -> repair once), fetch, run."""
+"""`/api/sim/*`: generate (LLM -> validate -> repair once -> docs), fetch, run."""
 
 from __future__ import annotations
 
 import base64
+import json
+import logging
 import re
 import time
 from typing import Any
@@ -10,12 +12,15 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from app.core.errors import UpstreamError
+from app.core.errors import AppError, UpstreamError
 from app.deps import get_llm, get_settings
 from app.llm.client import LLMClient
 from app.modules.sim import prompts
+from app.modules.sim.docs import plain_label, sanitize_docs
 from app.modules.sim.models import (
     GenerateRequest,
+    GraphDocsDraft,
+    RepairDraft,
     RunRequest,
     RunResponse,
     SimDraft,
@@ -31,13 +36,19 @@ from app.modules.sim.service import (
     run_cache,
     save_spec,
 )
+from app.schemas.sim import ParamSpec, SimOutput
 from app.settings import Settings
 from app.tools.sandbox import run_simulation, validate_code
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/sim", tags=["sim"])
 
 _ARXIV_RE = re.compile(r"^(\d{4}\.\d{4,5}|[a-z\-]+(\.[A-Za-z]{2})?/\d{7})(v\d+)?$")
 MAX_PDF_BYTES = 25_000_000
+# Code + docs + (always-on) thinking at high effort outgrow the client's 16k default; the
+# client still doubles these once (capped at 64k) on a `max_tokens` stop.
+CODEGEN_MAX_TOKENS = 32_000
+DOCS_MAX_TOKENS = 32_000
 
 
 def _pdf_block(data: bytes) -> dict[str, Any]:
@@ -78,6 +89,7 @@ async def _generate(
     llm: LLMClient,
     settings: Settings,
 ) -> SimSpec:
+    paper_blocks = blocks
     if hint:
         blocks = [*blocks, _text_block(f"User hint: {hint}")]
     draft = (
@@ -87,48 +99,103 @@ async def _generate(
             blocks,
             SimDraft,
             prompt_version=prompts.PROMPT_VERSION,
+            max_tokens=CODEGEN_MAX_TOKENS,
         )
     ).output
-    paper_title = draft.paper_title.strip()  # the repair call never sees the paper
-    report = await validate_code(draft.code)
+    # The repair call never sees the paper: what only the codegen draft can know stays.
+    paper_title = draft.paper_title.strip()
+    core_docs = draft.docs
+    code, title, explanation = draft.code, draft.title, draft.explanation
+    assumptions, equation_latex = draft.assumptions, draft.equation_latex
+    report = await validate_code(code)
     attempts = 1
     if report.status != "passed":
         attempts = 2
         repair_text = (
-            f"Previous title: {draft.title}\n\nPrevious code:\n```python\n{draft.code}\n```\n\n"
+            f"Previous title: {title}\n\nPrevious code:\n```python\n{code}\n```\n\n"
             "Validation report (JSON):\n"
             + report.model_dump_json(include={"status", "errors", "warnings"}, indent=1)
         )
-        draft = (
+        fixed = (
             await llm.parse(
                 "sim.repair",
                 prompts.REPAIR_PROMPT,
                 [_text_block(repair_text)],
-                SimDraft,
+                RepairDraft,
                 prompt_version=prompts.PROMPT_VERSION,
             )
         ).output
-        report = await validate_code(draft.code)
+        code, title, explanation = fixed.code, fixed.title, fixed.explanation
+        assumptions, equation_latex = fixed.assumptions, fixed.equation_latex
+        report = await validate_code(code)
     if report.status != "passed" or report.params is None or report.default_output is None:
         raise SimValidationFailed(
             "generated simulation failed validation",
             details={"validation": report.model_dump(mode="json"), "attempts": attempts},
         )
+    paper_title = paper_title or title
+    # slider labels are shown as plain text too: no LaTeX ("$S_0$" -> "S₀")
+    params = {
+        k: p.model_copy(update={"label": plain_label(p.label)}) for k, p in report.params.items()
+    }
+    graph = await _graph_docs(
+        paper_blocks, code, title, explanation, params, report.default_output, llm
+    )
     spec = SimSpec(
-        sim_id=make_sim_id(draft.code),
-        title=draft.title,
-        explanation=draft.explanation,
-        assumptions=draft.assumptions,
-        equation_latex=draft.equation_latex or None,
-        paper_title=paper_title or draft.title,
+        sim_id=make_sim_id(code),
+        title=title,
+        explanation=explanation,
+        assumptions=assumptions,
+        # checked against the FINAL validated params / series (they may differ after repair)
+        docs=sanitize_docs(core_docs, graph, params, report.default_output, paper_title),
+        equation_latex=equation_latex or None,
+        paper_title=paper_title,
         arxiv_id=arxiv_id,
-        params=report.params,
+        params=params,
         default_output=report.default_output,
-        python_code=draft.code,
+        python_code=code,
         validation=report,
     )
     save_spec(settings, spec)
     return spec
+
+
+async def _graph_docs(
+    paper_blocks: list[dict[str, Any]],
+    code: str,
+    title: str,
+    explanation: str,
+    params: dict[str, ParamSpec],
+    output: SimOutput,
+    llm: LLMClient,
+) -> GraphDocsDraft | None:
+    """Second call: concept graph + equations for the validated module. Best effort: on any
+    LLM failure the spec still ships, with the core docs and a synthesised minimal graph."""
+    sliders = {
+        key: {"label": p.label, "unit": p.unit, "min": p.min, "max": p.max, "default": p.default}
+        for key, p in params.items()
+    }
+    series = [s.name for s in output.series]
+    sim_text = (
+        f"<simulation>\nTitle: {title}\nExplanation: {explanation}\n"
+        f"PARAMS (the sliders): {json.dumps(sliders, ensure_ascii=False)}\n"
+        f"Series names: {json.dumps(series, ensure_ascii=False)}\n"
+        f"Code:\n```python\n{code}\n```\n</simulation>"
+    )
+    try:
+        return (
+            await llm.parse(
+                "sim.docs",
+                prompts.DOCS_PROMPT,
+                [*paper_blocks, _text_block(sim_text)],
+                GraphDocsDraft,
+                prompt_version=prompts.PROMPT_VERSION,
+                max_tokens=DOCS_MAX_TOKENS,
+            )
+        ).output
+    except AppError as exc:
+        log.warning("sim.docs failed (%s); shipping the sim with a minimal concept graph", exc)
+        return None
 
 
 @router.post("/generate", response_model=SimSpec)

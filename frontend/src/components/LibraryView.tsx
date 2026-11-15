@@ -3,20 +3,20 @@
 import React from "react";
 import {
   Activity,
-  ArrowLeft,
   ArrowUpRight,
   BookOpen,
   Clock,
   FileText,
   GitCompare,
-  GraduationCap,
   Layers,
   Link2,
   Sparkles,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import { WorkspaceDataset, WorkspaceMode } from "../types/scholartwin";
 import { NewConversationPanel } from "./UploadModal";
+import { AppHeader } from "./AppHeader";
 
 export interface LibraryTopic {
   id: string;
@@ -44,22 +44,34 @@ interface LibraryViewProps {
 
 const MODE_META: Record<
   WorkspaceMode,
-  { label: string; icon: React.ComponentType<{ className?: string }>; badgeClass: string }
+  {
+    label: string;
+    icon: LucideIcon;
+    colorVar: string;
+    softVar: string;
+    borderVar: string;
+  }
 > = {
   lecture: {
     label: "LectureUnderstanding",
     icon: Layers,
-    badgeClass: "border-sky-500/30 bg-sky-500/10 text-sky-300",
+    colorVar: "var(--accent)",
+    softVar: "var(--accent-soft)",
+    borderVar: "var(--accent-border)",
   },
   paper2sim: {
     label: "PaperSim",
     icon: Activity,
-    badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    colorVar: "var(--status-support)",
+    softVar: "var(--status-support-soft)",
+    borderVar: "var(--status-support-border)",
   },
   hypothesis: {
     label: "HypothesisGraph",
     icon: GitCompare,
-    badgeClass: "border-purple-500/30 bg-purple-500/10 text-purple-300",
+    colorVar: "var(--status-gap)",
+    softVar: "var(--status-gap-soft)",
+    borderVar: "var(--status-gap-border)",
   },
 };
 
@@ -104,52 +116,34 @@ export function LibraryView({
   const copy = COPY[mode];
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-slate-950 text-slate-100">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* Ambient animated backdrop */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="st-aurora absolute -top-40 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-sky-500/15 blur-3xl" />
-        <div className="st-aurora-slow absolute top-56 -left-40 h-[380px] w-[380px] rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="st-aurora-slow absolute top-96 -right-32 h-[340px] w-[340px] rounded-full bg-purple-500/10 blur-3xl" />
-        <div className="st-grid absolute inset-0 opacity-[0.15]" />
+        <div className="apple-hero-glow absolute inset-x-0 top-0 h-[520px]" />
+        <div className="st-aurora absolute -top-40 left-[calc(50%-410px)] h-[520px] w-[820px] rounded-full bg-[var(--accent-soft)] blur-3xl" />
+        <div className="st-aurora-slow absolute top-56 -left-40 h-[380px] w-[380px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
+        <div className="st-aurora-slow absolute top-96 -right-32 h-[340px] w-[340px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
+        <div className="st-grid absolute inset-0 opacity-[0.35]" />
       </div>
 
-      {/* Top Bar */}
-      <header className="st-fade-down relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-900/60 px-6 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBackHome}
-            className="group flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs font-medium text-slate-200 transition hover:border-sky-500/60 hover:text-sky-300"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            Home
-          </button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-400">
-            <Sparkles className="st-twinkle h-4 w-4" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold tracking-tight text-slate-100">{copy.title}</h1>
-            <p className="text-[11px] text-slate-400">ScholarTwin Library</p>
-          </div>
-        </div>
-
-        <a
-          href="/tutor"
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
-        >
-          <GraduationCap className="h-3.5 w-3.5" />
-          Live Tutor
-        </a>
-      </header>
+      <AppHeader
+        sticky
+        tone={mode === "paper2sim" ? "support" : "accent"}
+        back={{ label: "Home", onClick: onBackHome }}
+        icon={MODE_META[mode].icon}
+        title={copy.title}
+        subtitle="ScholarTwin Library"
+      />
 
       <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-6 pb-16 pt-10">
         {/* Hero: centred New Conversation panel */}
         <section className="mx-auto max-w-xl">
           <div className="st-fade-up mb-6 text-center" style={{ animationDelay: "60ms" }}>
-            <h2 className="bg-gradient-to-r from-sky-300 via-slate-100 to-emerald-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
+            {/* leading/padding leave room for descenders, which bg-clip-text would otherwise cut */}
+            <h2 className="apple-display bg-gradient-to-r from-[var(--accent)] via-[var(--text-primary)] to-[var(--status-support)] bg-clip-text pb-1.5 text-2xl font-bold !leading-[1.25] text-transparent sm:text-3xl">
               {copy.tagline}
             </h2>
-            <p className="mt-2 text-sm text-slate-400">{copy.desc}</p>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">{copy.desc}</p>
           </div>
           <div className="st-fade-up st-pop" style={{ animationDelay: "160ms" }}>
             <NewConversationPanel
@@ -166,28 +160,25 @@ export function LibraryView({
 
         {/* Library */}
         <section className="mt-14">
-          <div
-            className="st-fade-up mb-5 flex items-center gap-3"
-            style={{ animationDelay: "260ms" }}
-          >
-            <BookOpen className="h-4 w-4 text-sky-400" />
-            <h3 className="text-sm font-semibold tracking-tight text-slate-100">
+          <div className="st-fade-up mb-5 flex items-center gap-3" style={{ animationDelay: "260ms" }}>
+            <BookOpen className="h-4 w-4 text-[var(--accent)]" />
+            <h3 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
               Your {copy.title} Library
             </h3>
-            <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-medium text-slate-400">
+            <span className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
               {topics.length}
             </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent" />
+            <div className="h-px flex-1 bg-gradient-to-r from-[var(--border-strong)] to-transparent" />
           </div>
 
           {topics.length === 0 ? (
             <div
-              className="st-fade-up flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 px-6 py-14 text-center"
+              className="st-fade-up flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] px-6 py-14 text-center"
               style={{ animationDelay: "320ms" }}
             >
-              <BookOpen className="st-bob mb-3 h-8 w-8 text-slate-600" />
-              <p className="text-sm font-medium text-slate-300">No conversations yet</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <BookOpen className="st-bob mb-3 h-8 w-8 text-[var(--text-muted)]" />
+              <p className="text-sm font-medium text-[var(--text-primary)]">No conversations yet</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
                 Start one above by uploading a PDF or pasting a URL.
               </p>
             </div>
@@ -209,12 +200,17 @@ export function LibraryView({
                       }
                     }}
                     style={{ animationDelay: `${320 + idx * 70}ms` }}
-                    className="st-fade-up st-sheen group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 p-4 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/60 hover:bg-slate-900 hover:shadow-xl hover:shadow-sky-500/10 focus-visible:-translate-y-1 focus-visible:border-sky-500 focus-visible:outline-none"
+                    className="apple-card apple-focus st-fade-up st-sheen group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[var(--border-subtle)] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent-border)] focus-visible:-translate-y-1 active:scale-[0.98]"
                   >
                     <div>
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium ${meta.badgeClass}`}
+                          style={{
+                            color: meta.colorVar,
+                            backgroundColor: meta.softVar,
+                            borderColor: meta.borderVar,
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold"
                         >
                           <ModeIcon className="h-3 w-3" />
                           {meta.label}
@@ -227,33 +223,35 @@ export function LibraryView({
                               e.stopPropagation();
                               onDeleteTopic(topic.id);
                             }}
-                            className="rounded-md p-1 text-slate-500 opacity-0 transition hover:bg-slate-800 hover:text-rose-400 group-hover:opacity-100"
+                            className="apple-focus rounded-md p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                          <ArrowUpRight className="h-4 w-4 -translate-x-1 translate-y-1 text-sky-400 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
+                          <ArrowUpRight className="h-4 w-4 -translate-x-1 translate-y-1 text-[var(--accent)] opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
                         </div>
                       </div>
 
-                      <h3 className="line-clamp-1 text-sm font-semibold text-slate-100 transition-colors group-hover:text-sky-300">
+                      <h3 title={topic.title} className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
                         {topic.title}
                       </h3>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-400">{topic.subtitle}</p>
-                      <p className="mt-3 line-clamp-2 rounded-lg border border-slate-800/80 bg-slate-950/60 px-2.5 py-2 text-[11px] text-slate-400 transition-colors group-hover:border-slate-700">
+                      <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">
+                        {topic.subtitle}
+                      </p>
+                      <p className="mt-3 line-clamp-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-2 text-[11px] text-[var(--text-muted)] transition-colors group-hover:border-[var(--border-strong)]">
                         {topic.lastReply}
                       </p>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-slate-800/80 pt-3 text-[11px] text-slate-500">
-                      <span className="flex max-w-[65%] items-center gap-1 truncate">
+                    <div className="mt-4 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-[11px] text-[var(--text-muted)]">
+                      <span className="flex max-w-[65%] items-center gap-1.5 truncate">
                         {topic.sourceType === "pdf" ? (
-                          <FileText className="h-3 w-3 shrink-0 text-sky-400" />
+                          <FileText className="h-3 w-3 shrink-0 text-[var(--accent)]" />
                         ) : topic.sourceType === "url" ? (
-                          <Link2 className="h-3 w-3 shrink-0 text-emerald-400" />
+                          <Link2 className="h-3 w-3 shrink-0 text-[var(--status-support)]" />
                         ) : (
-                          <Sparkles className="h-3 w-3 shrink-0 text-purple-400" />
+                          <Sparkles className="h-3 w-3 shrink-0 text-[var(--status-gap)]" />
                         )}
-                        <span className="truncate">{topic.sourceLabel}</span>
+                        <span title={topic.sourceLabel} className="truncate">{topic.sourceLabel}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1">
                         <Clock className="h-3 w-3" />

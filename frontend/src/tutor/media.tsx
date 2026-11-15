@@ -28,7 +28,7 @@ export function Portrait({ tutor, size }: { tutor: Tutor; size: number }) {
       alt={`${tutor.name}, ${tutor.tagline}`}
       width={size}
       height={size}
-      className="shrink-0 rounded-full object-cover ring-1 ring-slate-700"
+      className="shrink-0 rounded-full object-cover ring-1 ring-[var(--border-strong)]"
     />
   );
 }
