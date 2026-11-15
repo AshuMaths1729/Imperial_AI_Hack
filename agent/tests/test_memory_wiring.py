@@ -31,7 +31,7 @@ async def test_session_items_reach_end_summary():
         return " | ".join(turns)
 
     rolling, folds = _session_with_turns(summarize)
-    assert folds == [1]  # fold is checked after each tutor turn
+    assert folds == ["The slope of the loss."]  # called after each tutor turn, with what the tutor said
     post = Post()
     await finish_lesson(rolling, LessonEnder(post, "L1"), [], summarize)
     assert post.calls[0][1]["summary"] == "user: What is a gradient? | assistant: The slope of the loss."
