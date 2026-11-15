@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode, type Ref, type RefObject } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { MonitorUp } from "lucide-react";
+import { Segmented } from "@/components/glass/Segmented";
 import { BOARD_PLUGINS, Whiteboard } from "@/tutor/board";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 import { SlidesStage, type Deck, type SlidesHandle, type StageTab } from "@/tutor/slides";
@@ -26,6 +27,8 @@ type Props = {
   slidesRef?: Ref<SlidesHandle | null>;
   /** The side panel's slot for the explanation pop-up, or null for the stage's bottom-right corner. */
   explanationSlot?: HTMLElement | null;
+  /** Shown at the right of the tab row (the lesson's progress and mastery meters). */
+  meters?: ReactNode;
   children?: ReactNode; // a strip under the stage (captions)
 };
 
@@ -42,7 +45,7 @@ const MOVING: Record<StageTab, string> = {
 };
 const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, explanationSlot = null, children }: Props) {
+export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circleMode, onShare, deck = null, deckLoading, slidesRef, explanationSlot = null, meters, children }: Props) {
   const [screenVideo, setScreenVideo] = useState<HTMLVideoElement | null>(null);
   // `leaving` is the tab still fading out; derived during render so the old pane never blinks out before fading.
   const [fade, setFade] = useState<{ tab: StageTab; leaving: StageTab | null }>({ tab, leaving: null });
@@ -59,25 +62,30 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
     ["screen", "Shared screen"],
   ];
   return (
-    <section aria-label="Main stage" className="apple-sheet st-fade-up flex min-h-[60vh] shrink-0 flex-col gap-2 overflow-hidden rounded-[22px] p-2 lg:min-h-0 lg:flex-1 lg:shrink">
-      <div role="tablist" aria-label="Stage" className="apple-seg flex max-w-full shrink-0 items-center gap-0.5 self-start overflow-x-auto rounded-full p-0.5">
-        {tabs.map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => onTab(id)}
-            className={`apple-press apple-focus shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-medium ${
-              tab === id ? "apple-seg-on border-[var(--glass-rim)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            {label}
-            {id === "screen" && screenTrack && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--status-support)] align-middle" />}
-          </button>
-        ))}
+    <section aria-label="Main stage" className="apple-sheet st-fade-up flex min-h-[60vh] shrink-0 flex-col gap-2 overflow-hidden rounded-[26px] p-2 lg:min-h-0 lg:flex-1 lg:shrink">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 pr-2">
+        <div className="max-w-full overflow-x-auto">
+          <Segmented
+            kind="tabs"
+            label="Stage"
+            value={tab}
+            onChange={onTab}
+            buttonClassName="px-3.5"
+            options={tabs.map(([id, label]) => ({
+              value: id,
+              label: (
+                <>
+                  {label}
+                  {id === "screen" && screenTrack && <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--status-support)]" />}
+                </>
+              ),
+            }))}
+          />
+        </div>
+        {meters && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-2">{meters}</div>}
       </div>
-      {/* The stage itself stays dark (the slides' 3Blue1Brown canvas) under every theme. */}
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-[#0b0d12] ring-1 ring-[var(--border-subtle)]">
+      {/* The stage itself stays dark (the slides' 3Blue1Brown canvas) under every theme; a glass rim frames it. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[20px] bg-[#0b0d12] ring-1 ring-[var(--glass-rim)]">
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
         <div className={`absolute inset-0 bg-white ${pane("board")}`}>
           <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
@@ -94,10 +102,11 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+              <MonitorUp className="st-bob h-6 w-6 text-[var(--text-muted)]" aria-hidden />
               <p className="max-w-sm px-4 text-sm text-[var(--text-secondary)]">Share a window — your notes or a problem sheet — and the tutor can see it.</p>
               <button
                 onClick={onShare}
-                className="apple-tint apple-press apple-focus flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+                className="apple-tint st-sheen apple-press apple-focus relative flex items-center gap-2 overflow-hidden rounded-full px-4 py-2 text-xs font-semibold"
               >
                 <MonitorUp className="h-4 w-4" aria-hidden />
                 Share screen
@@ -107,7 +116,7 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
         </div>
         {fade.leaving && (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-            <span role="status" className="apple-glass rounded-full border px-4 py-2 text-sm font-medium text-[var(--text-primary)]">
+            <span role="status" className="apple-glass-elevated rounded-full border px-4 py-2 text-sm font-medium text-[var(--text-primary)]">
               {MOVING[tab]}
             </span>
           </div>

@@ -64,15 +64,16 @@ type Props = {
 
 export function VideoTiles({ tutorName, tutorPortrait, connecting, avatarVideo, tutorSpeaking, selfVideo, cam, mic, where }: Props) {
   return (
-    <section aria-label="Tutor" className="apple-sheet st-fade-up shrink-0 rounded-[22px] p-3">
-      <div className="mb-2 flex items-baseline justify-between px-1">
-        <h2 className="apple-heading text-sm font-semibold">Tutor</h2>
+    // The tutor's video sits in a glass frame: a thick sheet with a refracting lens rim around an inset picture.
+    <section aria-label="Tutor" className="apple-sheet glass-lens st-fade-up relative shrink-0 rounded-[26px] p-2">
+      <div className="mb-1.5 flex items-baseline justify-between px-2 pt-1">
+        <h2 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">Tutor</h2>
         {where && <span className="font-mono text-[11px] text-[var(--text-muted)]">{where}</span>}
       </div>
       <div className="relative">
         <figure
-          className={`relative aspect-video overflow-hidden rounded-2xl bg-[var(--bg-surface-muted)] ring-2 transition-[box-shadow] duration-200 ${
-            tutorSpeaking ? "ring-[var(--accent)] shadow-[0_0_0_4px_var(--accent-soft)]" : "ring-transparent"
+          className={`relative aspect-video overflow-hidden rounded-[20px] bg-[var(--bg-surface-muted)] ring-1 transition-[box-shadow] duration-200 ${
+            tutorSpeaking ? "ring-[var(--accent)] shadow-[0_0_0_2px_var(--accent),0_0_0_6px_var(--accent-soft)]" : "ring-[var(--glass-rim)]"
           }`}
         >
           {avatarVideo ? (
@@ -93,23 +94,23 @@ export function VideoTiles({ tutorName, tutorPortrait, connecting, avatarVideo, 
             </div>
           )}
           {!connecting && (
-            <span className="apple-glass absolute left-2 top-2 flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
+            <span className="apple-glass-elevated absolute left-2 top-2 flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--status-support)]" aria-hidden /> Live
             </span>
           )}
-          <figcaption className="apple-glass absolute bottom-2 left-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
+          <figcaption className="apple-glass-elevated absolute bottom-2 left-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-primary)]">
             {tutorName}
             {tutorSpeaking && <span className="ml-1.5 text-[var(--accent)]">· speaking</span>}
           </figcaption>
         </figure>
         {/* self-view, shown only to you */}
-        <figure className="absolute bottom-2 right-2 aspect-video w-[30%] min-w-24 overflow-hidden rounded-xl bg-[var(--bg-surface-solid)] shadow-[var(--shadow-card)] ring-1 ring-[var(--glass-rim)]">
+        <figure className="absolute bottom-2 right-2 aspect-video w-[30%] min-w-24 overflow-hidden rounded-[14px] bg-[var(--bg-surface-solid)] shadow-[var(--shadow-card)] ring-1 ring-[var(--glass-rim)]">
           {cam && selfVideo ? (
             <TrackVideo track={selfVideo} mirror label="Your camera (only you see this)" />
           ) : (
             <div className="grid h-full w-full place-items-center text-[10px] text-[var(--text-muted)]">Camera off</div>
           )}
-          <figcaption className="apple-glass absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-[var(--text-primary)]">
+          <figcaption className="apple-glass-elevated absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] text-[var(--text-primary)]">
             {!mic && <MicOff className="h-3 w-3 text-[var(--status-contradict)]" aria-label="muted" />}
             You
           </figcaption>

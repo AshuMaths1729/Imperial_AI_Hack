@@ -5,7 +5,11 @@ import { Link2, Loader2, Upload } from "lucide-react";
 import { addMaterial, ingestUrl, uploadPdf, type Track } from "./api";
 import { DeckPrep } from "./DeckPrep";
 
-const UNREADABLE = "Couldn't read that PDF. Check it opens, has selectable text (not a scan) and isn't password-protected.";
+/** Quiet pill buttons; disabled keeps legible muted ink instead of fading out. */
+const BTN =
+  "apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:hover:text-[var(--text-muted)]";
+
+const UNREADABLE ="Couldn't read that PDF. Check it opens, has selectable text (not a scan) and isn't password-protected.";
 
 /** A clear message for a failed PDF upload (`status` comes from api.request; none means the request never got through). */
 function pdfError(e: unknown): string {
@@ -78,30 +82,21 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
 
   return (
     <div className="space-y-2">
-      <form onSubmit={onUrl} className="flex gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Link2 className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" aria-hidden />
+      <form onSubmit={onUrl} className="flex flex-wrap gap-2">
+        <div className="relative min-w-[min(100%,14rem)] flex-1">
+          <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-label="Material URL"
             placeholder="https://arxiv.org/abs/…"
-            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-2 pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
+            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-2 pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
           />
         </div>
-        <button
-          type="submit"
-          disabled={!!busy || !url.trim()}
-          className="apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] disabled:opacity-50"
-        >
+        <button type="submit" disabled={!!busy || !url.trim()} className={`${BTN} py-2`}>
           Add URL
         </button>
-        <button
-          type="button"
-          disabled={!!busy}
-          onClick={() => fileRef.current?.click()}
-          className="apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] disabled:opacity-50"
-        >
+        <button type="button" disabled={!!busy} onClick={() => fileRef.current?.click()} className={`${BTN} py-2`}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Upload className="h-3.5 w-3.5" aria-hidden />}
           PDF
         </button>
@@ -119,12 +114,15 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
         />
       </form>
       {busy && (
-        <p role="status" className="text-[11px] text-[var(--text-muted)]">
+        <p role="status" className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+          <span aria-hidden className="relative h-1 w-10 overflow-hidden rounded-full bg-[var(--accent-soft)]">
+            <span className="st-progress absolute inset-y-0 left-0 w-1/3 rounded-full bg-[var(--accent)]" />
+          </span>
           {busy === "pdf" ? "Reading the PDF… building knowledge points" : "Reading material…"}
         </p>
       )}
       {msg && (
-        <p role={msg.ok ? "status" : "alert"} className={`text-[11px] ${msg.ok ? "text-[var(--status-support)]" : "text-[var(--status-contradict)]"}`}>
+        <p role={msg.ok ? "status" : "alert"} className={`text-xs ${msg.ok ? "text-[var(--status-support)]" : "text-[var(--status-contradict)]"}`}>
           {msg.text}
         </p>
       )}

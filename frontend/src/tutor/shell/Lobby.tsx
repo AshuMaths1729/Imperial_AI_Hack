@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
-import { AlertTriangle, Check, Mic, Pause, Play, Plus, Video } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Mic, Pause, Play, Plus, Upload, Video, X } from "lucide-react";
 import { createTrack, type Track, type Tutor } from "./api";
 import { AddMaterial } from "./AddMaterial";
+import { NoTrackProgress, TrackProgress } from "./TrackProgress";
 import { GlassSelect } from "@/components/GlassSelect";
+import { MODULES } from "@/modules";
 import { tutorPortrait, voiceSampleFor } from "../media";
 
 /** Pre-join mic/camera check. Started by a click (no surprise permission prompt) and released on unmount so LiveKit can take the devices. */
@@ -51,7 +53,7 @@ function DeviceCheck() {
   const bars = 8;
   return (
     <div className="space-y-3">
-      <div className="relative aspect-video overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]">
+      <div className="relative aspect-video overflow-hidden rounded-[18px] border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]">
         {stream ? (
           <video ref={videoRef} autoPlay playsInline muted aria-label="Camera preview" className="h-full w-full -scale-x-100 object-cover" />
         ) : (
@@ -60,7 +62,7 @@ function DeviceCheck() {
             <button
               type="button"
               onClick={startCheck}
-              className="apple-press apple-focus rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent)] hover:opacity-90"
+              className="apple-press apple-focus rounded-full border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)]"
             >
               Check mic & camera
             </button>
@@ -74,13 +76,13 @@ function DeviceCheck() {
             <span
               key={i}
               className={`h-1.5 flex-1 rounded-full transition-colors duration-75 ${
-                stream && level * bars > i ? "bg-[var(--accent)]" : "bg-[var(--bg-surface-muted)]"
+                stream && level * bars > i ? "bg-[var(--accent)]" : "bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)]"
               }`}
             />
           ))}
         </div>
       </div>
-      {err && <p className="text-[11px] text-[var(--status-contradict)]">{err}</p>}
+      {err && <p className="text-xs text-[var(--status-contradict)]">{err}</p>}
     </div>
   );
 }
@@ -98,8 +100,8 @@ type Props = {
   loadError?: string;
 };
 
-/** One tutor as a portrait card (mockup: face on top, "Hear …" pill over it, name + style below). The card is
-    the radio; the voice button sits beside it in the DOM (never nested inside another button). */
+/** One tutor as a portrait card: the card is the radio; the "Hear …" voice button sits over the portrait but beside
+    the radio in the DOM (never nested inside another button), so playing a sample never selects the tutor. */
 function TutorCard({
   tutor,
   selected,
@@ -118,10 +120,8 @@ function TutorCard({
   const hasSample = !!voiceSampleFor(tutor.tutor_id);
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border transition-[border-color,box-shadow] duration-200 ${
-        selected
-          ? "border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]"
-          : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+      className={`group relative rounded-[22px] transition-[box-shadow,translate] duration-300 ease-[cubic-bezier(0.3,1.4,0.5,1)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 ${
+        selected ? "shadow-[0_0_0_2px_var(--accent),0_0_0_6px_var(--accent-soft)]" : ""
       }`}
     >
       <button
@@ -130,17 +130,18 @@ function TutorCard({
         aria-checked={selected}
         aria-label={`${tutor.name}, ${style.trim()}`}
         onClick={onSelect}
-        className="apple-press apple-focus flex h-full w-full flex-col text-left"
+        // Phones: a row (portrait left, words right) so three tutors stack compactly; from sm: portrait on top.
+        className="apple-card st-sheen apple-press apple-focus relative flex h-full w-full items-start gap-3 overflow-hidden rounded-[22px] border p-2 text-left sm:flex-col sm:items-stretch sm:gap-2.5"
       >
-        <span className="relative block aspect-[4/3] w-full overflow-hidden bg-[var(--bg-surface-muted)]">
+        <span className="relative block aspect-square w-[92px] shrink-0 overflow-hidden rounded-2xl bg-[var(--bg-surface-muted)] sm:w-full">
           {src ? (
             <Image
               src={src}
               alt=""
               fill
               loading="eager" // above the fold: the lobby's largest paint
-              sizes="(min-width: 640px) 240px, 100vw"
-              // Square webcam-style frames in a 4:3 card: keep the upper part, so hair never touches the edge.
+              sizes="(min-width: 1024px) 220px, (min-width: 640px) 30vw, 92px"
+              // Square webcam-style frames: keep the upper part, so hair never touches the edge.
               className="object-cover object-[50%_30%] transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
@@ -149,34 +150,36 @@ function TutorCard({
             </span>
           )}
           {selected && (
-            <span aria-hidden className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] shadow-md">
+            <span aria-hidden className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)] shadow-md">
               <Check className="h-4 w-4" strokeWidth={3} />
             </span>
           )}
         </span>
-        <span className={`block flex-1 px-3.5 pb-3.5 pt-3 transition-colors ${selected ? "bg-[var(--accent-soft)]" : "bg-[var(--bg-surface-muted)]"}`}>
-          <span className="block text-sm font-semibold text-[var(--text-primary)]">{tutor.name}</span>
-          <span className="block text-xs font-medium text-[var(--accent)] first-letter:uppercase">{style.trim()}</span>
+        <span className="block min-w-0 pt-1 sm:px-1.5 sm:pb-1.5 sm:pt-0">
+          <span className="block text-base font-medium leading-tight text-[var(--text-primary)]">{tutor.name}</span>
+          <span className="mt-0.5 block text-[13px] leading-snug text-[var(--text-secondary)] first-letter:uppercase">{style.trim()}</span>
           {rest.length > 0 && (
-            <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)] first-letter:uppercase">{rest.join(":").trim()}</span>
+            <span title={rest.join(":").trim()} className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-muted)] first-letter:uppercase sm:line-clamp-4">
+              {rest.join(":").trim()}
+            </span>
           )}
         </span>
       </button>
       {hasSample && (
-        // A portrait-sized overlay holds the pill at the portrait's lower-left corner; the pill is
-        // outside the radio, so playing a sample never selects the tutor.
-        <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]">
+        // Same box as the portrait (the card's 8px padding), so the pill sits on its lower-left corner.
+        <div className="pointer-events-none absolute left-2 top-2 aspect-square w-[92px] sm:right-2 sm:w-auto">
           <button
             type="button"
             onClick={onPlay}
             aria-pressed={playing}
             aria-label={`Hear ${tutor.name}'s voice`}
-            className="apple-glass apple-press apple-focus pointer-events-auto absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-[11px] font-semibold text-[var(--text-primary)]"
+            title={`Hear ${tutor.name}'s voice`}
+            className="apple-glass-elevated apple-press apple-focus pointer-events-auto absolute bottom-1.5 left-1.5 flex items-center gap-1.5 rounded-full border p-1 text-[11px] font-semibold text-[var(--text-primary)] sm:bottom-2 sm:left-2 sm:pr-2.5"
           >
             <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--accent)] text-[var(--accent-fg)]">
               {playing ? <Pause className="h-2.5 w-2.5" fill="currentColor" aria-hidden /> : <Play className="ml-px h-2.5 w-2.5" fill="currentColor" aria-hidden />}
             </span>
-            Hear {tutor.name}
+            <span className="max-sm:hidden">Hear {tutor.name}</span>
           </button>
         </div>
       )}
@@ -184,10 +187,20 @@ function TutorCard({
   );
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const panelHeading ="apple-heading text-xl font-normal tracking-[-0.02em] text-[var(--text-primary)]";
+const quietBtn =
+  "apple-press apple-focus inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface-muted)] font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:hover:text-[var(--text-muted)]";
+const alertBox =
+  "st-shake flex items-start gap-2 rounded-2xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3 py-2 text-xs text-[var(--status-contradict)]";
+
 export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTracksChange, onJoin, error, loadError }: Props) {
   const [newTitle, setNewTitle] = useState<string | null>(null);
   const [createErr, setCreateErr] = useState<string>();
+  const [adding, setAdding] = useState(false);
   const track = tracks.find((t) => t.track_id === trackId);
+  const tutor = tutors.find((t) => t.tutor_id === tutorId);
+  const ready = !!tutor && !!track;
   // "Hear …" voice samples: one plays at a time, and leaving the lobby (joining) stops it.
   const [playing, setPlaying] = useState<string>();
   const sample = useRef<HTMLAudioElement | null>(null);
@@ -220,98 +233,160 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
   };
 
   return (
-    <div className="mx-auto my-auto grid w-full max-w-5xl gap-2.5 px-2 py-4 sm:px-3 md:grid-cols-[1fr_340px]">
-      <div className="apple-sheet st-fade-up min-w-0 space-y-8 rounded-[22px] p-4 sm:p-5">
-        <section>
-          <h2 id="tutor-heading" className="apple-label mb-3 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
-            Choose your tutor
-          </h2>
-          {loadError && (
-            <p role="alert" className="st-shake mb-3 flex items-start gap-2 rounded-2xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3 py-2 text-xs text-[var(--status-contradict)]">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {loadError}
-            </p>
-          )}
-          <div role="radiogroup" aria-labelledby="tutor-heading" className="grid gap-3 sm:grid-cols-3">
-            {tutors.map((t) => (
-              <TutorCard
-                key={t.tutor_id}
-                tutor={t}
-                selected={t.tutor_id === tutorId}
-                playing={playing === t.tutor_id}
-                onSelect={() => onTutor(t.tutor_id)}
-                onPlay={() => playSample(t.tutor_id)}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">Learning track</h2>
-          <div className="flex gap-2">
-            <GlassSelect
-              label="Learning track"
-              value={trackId}
-              placeholder="Choose a track…"
-              options={tracks.map((t) => ({ value: t.track_id, label: t.title }))}
-              onChange={onTrack}
-              className="flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => setNewTitle(newTitle === null ? "" : null)}
-              className="apple-press apple-focus flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
-            >
-              <Plus className="h-3.5 w-3.5" aria-hidden /> New track
-            </button>
-          </div>
-          {newTitle !== null && (
-            <form onSubmit={create} className="flex gap-2">
-              <input
-                autoFocus
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                aria-label="New track title"
-                placeholder="e.g. Linear Algebra"
-                className="apple-focus min-w-0 flex-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3.5 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
-              />
-              <button type="submit" className="apple-tint apple-press apple-focus shrink-0 rounded-full px-4 text-xs font-semibold">
-                Create
-              </button>
-            </form>
-          )}
-          {createErr && <p role="alert" className="text-xs text-[var(--status-contradict)]">{createErr}</p>}
-          {track && (
-            <div className="space-y-2 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-              <p className="text-xs text-[var(--text-muted)]">
-                {track.knowledge_points.length} knowledge points · {track.materials.length} materials
-              </p>
-              <AddMaterial
-                key={track.track_id}
-                trackId={track.track_id}
-                onAdded={(t) => onTracksChange(tracks.map((x) => (x.track_id === t.track_id ? t : x)))}
-              />
-            </div>
-          )}
-        </section>
+    <div className="mx-auto w-full max-w-[1180px] px-3 pb-10 sm:px-5">
+      {/* Straight on the landscape: ink by day, pale by dusk (on-scene). */}
+      <div className="st-fade-up grid grid-cols-1 gap-2.5 px-1 pb-6 pt-8 sm:pb-7 sm:pt-12">
+        <p className="on-scene font-mono text-[11px] font-medium uppercase tracking-[0.12em]">{MODULES.lecture.name}</p>
+        <h2 className="st-display on-scene text-[clamp(34px,5.4vw,60px)]">
+          Learn it face to face. <span className="on-scene-soft">At your pace.</span>
+        </h2>
+        <p className="on-scene max-w-[38rem] text-[15px] font-medium leading-relaxed sm:text-base">
+          Pick a tutor and a topic. They teach with slides and a whiteboard, answer out loud, and pick up next time where you stopped.
+        </p>
       </div>
 
-      <aside className="apple-sheet st-fade-up space-y-4 rounded-[22px] p-4 md:self-start" style={{ animationDelay: "80ms" }}>
-        <DeviceCheck />
-        {error && (
-          <p role="alert" className="st-shake flex items-start gap-2 rounded-2xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3 py-2 text-xs text-[var(--status-contradict)]">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {error}
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={onJoin}
-          disabled={!tutorId || !trackId}
-          className="apple-tint apple-press apple-focus flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Join lesson
-        </button>
-        <p className="text-center text-[11px] text-[var(--text-muted)]">Your camera is only shown to you. The tutor hears your voice and sees what you share.</p>
-      </aside>
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <section aria-labelledby="tutor-heading" className="apple-sheet st-fade-up grid grid-cols-1 min-w-0 gap-5 rounded-[26px] p-3.5 sm:p-5">
+          <div className="grid grid-cols-1 gap-3">
+            <h3 id="tutor-heading" className={panelHeading}>
+              Choose your tutor
+            </h3>
+            {loadError && (
+              <p role="alert" className={alertBox}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {loadError}
+              </p>
+            )}
+            <div role="radiogroup" aria-labelledby="tutor-heading" className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+              {tutors.map((t) => (
+                <TutorCard
+                  key={t.tutor_id}
+                  tutor={t}
+                  selected={t.tutor_id === tutorId}
+                  playing={playing === t.tutor_id}
+                  onSelect={() => onTutor(t.tutor_id)}
+                  onPlay={() => playSample(t.tutor_id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2">
+            <span aria-hidden className="text-[13px] font-medium text-[var(--text-secondary)]">
+              Topic
+            </span>
+            <div className="flex gap-2">
+              <GlassSelect
+                label="Topic"
+                value={trackId}
+                placeholder="Choose a topic…"
+                options={tracks.map((t) => ({ value: t.track_id, label: t.title }))}
+                onChange={onTrack}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                aria-expanded={newTitle !== null}
+                onClick={() => setNewTitle(newTitle === null ? "" : null)}
+                className={`${quietBtn} px-3.5 text-xs`}
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden /> New topic
+              </button>
+            </div>
+            {newTitle !== null && (
+              <form onSubmit={create} className="flex gap-2">
+                <input
+                  autoFocus
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  aria-label="New topic title"
+                  placeholder="e.g. Linear Algebra"
+                  className="apple-focus min-w-0 flex-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3.5 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-border)] focus:outline-none"
+                />
+                <button type="submit" disabled={!newTitle.trim()} className={newTitle.trim() ? "apple-tint apple-press apple-focus shrink-0 rounded-full px-4 text-xs font-semibold" : `${quietBtn} px-4 text-xs`}>
+                  Create
+                </button>
+              </form>
+            )}
+            {createErr && (
+              <p role="alert" className={alertBox}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {createErr}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2.5">
+            {error && (
+              <p role="alert" className={alertBox}>
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> {error}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onJoin}
+                disabled={!ready}
+                // Disabled stays legible: a quiet well with muted ink instead of a faded tint.
+                className={
+                  ready
+                    ? "apple-tint st-sheen apple-press apple-focus relative inline-flex items-center gap-2 overflow-hidden rounded-full px-5 py-3 text-sm font-semibold"
+                    : `${quietBtn} px-5 py-3 text-sm`
+                }
+              >
+                {tutor ? `Start lesson with ${tutor.name}` : "Start lesson"}
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdding((a) => !a)}
+                disabled={!track}
+                aria-expanded={adding && !!track}
+                aria-controls="add-material"
+                title={track ? undefined : "Pick a topic first"}
+                className={`${quietBtn} px-4 py-3 text-sm`}
+              >
+                {adding && track ? <X className="h-4 w-4" aria-hidden /> : <Upload className="h-4 w-4" aria-hidden />}
+                Add your own slides
+              </button>
+            </div>
+            {!ready && (
+              <p className="text-xs text-[var(--text-muted)]">
+                {!tutor && !track ? "Choose a tutor and a topic to start." : !tutor ? "Choose a tutor to start." : "Choose a topic to start."}
+              </p>
+            )}
+            {adding && track && (
+              <div id="add-material" className="st-fade-up grid grid-cols-1 gap-2.5 rounded-[20px] border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">Add to {track.title}</h4>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {plural(track.knowledge_points.length, "knowledge point")} · {plural(track.materials.length, "material")}
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                  A PDF of your slides or notes, or a paper&apos;s URL. The tutor builds the lesson from it.
+                </p>
+                <AddMaterial
+                  key={track.track_id}
+                  trackId={track.track_id}
+                  onAdded={(t) => onTracksChange(tracks.map((x) => (x.track_id === t.track_id ? t : x)))}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 min-w-0 gap-4">
+          {track ? <TrackProgress key={track.track_id} track={track} /> : <NoTrackProgress />}
+          <section aria-labelledby="devices-heading" className="apple-sheet st-fade-up grid grid-cols-1 gap-3 rounded-[26px] p-4 sm:p-5" style={{ animationDelay: "140ms" }}>
+            <h3 id="devices-heading" className="text-sm font-semibold text-[var(--text-primary)]">
+              Before you join
+            </h3>
+            <DeviceCheck />
+            <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+              Your camera is only shown to you. The tutor hears your voice and sees what you share.
+            </p>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

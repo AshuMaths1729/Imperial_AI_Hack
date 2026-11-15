@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import TutorPage from "@/app/lecture/lesson/page";
 import gd from "@/tutor/slides/decks/gradient-descent.json";
 import * as api from "./api";
@@ -51,6 +51,10 @@ let session: TutorSession;
 let stage: ShellStage | null = null;
 vi.mock("./useTutorSession", () => ({ useTutorSession: () => session }));
 
+// The page reads ?track=<id> to preselect a topic.
+let search = new URLSearchParams();
+vi.mock("next/navigation", () => ({ useSearchParams: () => search }));
+
 function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
   return {
     setStage: vi.fn((h) => {
@@ -83,12 +87,13 @@ function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
 
 beforeEach(() => {
   session = fakeSession();
+  search = new URLSearchParams();
 });
 afterEach(cleanup);
 
-/** The track picker is a listbox: open it, then click the option. */
+/** The topic (track) picker is a listbox: open it, then click the option. */
 async function pickTrack(title = "Gradient Descent") {
-  fireEvent.click(await screen.findByRole("button", { name: "Learning track" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Topic" }));
   fireEvent.click(await screen.findByRole("option", { name: title }));
 }
 
@@ -97,27 +102,75 @@ async function pickTutorAndTrack() {
   await pickTrack();
 }
 
+/** Material and slides live behind "Add your own slides". */
+const openAddMaterial = () => fireEvent.click(screen.getByRole("button", { name: /Add your own slides/ }));
+
 describe("/tutor page", () => {
-  it("lobby disables Join until tutor and track are picked", async () => {
+  it("lobby disables Start until tutor and track are picked", async () => {
     render(<TutorPage />);
-    const join = (await screen.findByRole("button", { name: "Join lesson" })) as HTMLButtonElement;
-    expect(join.disabled).toBe(true);
+    const start = (await screen.findByRole("button", { name: /^Start lesson/ })) as HTMLButtonElement;
+    expect(start.disabled).toBe(true);
 
     fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
-    expect(join.disabled).toBe(true);
+    expect(start.disabled).toBe(true);
+    expect(start.textContent).toBe("Start lesson with Kenji S");
 
     await pickTrack();
-    expect(join.disabled).toBe(false);
+    expect(start.disabled).toBe(false);
 
-    fireEvent.click(join);
+    fireEvent.click(start);
     expect(session.start).toHaveBeenCalledWith("t1", "kenji-socratic");
+  });
+
+  it("?track=<id> preselects that topic; an unknown id is ignored", async () => {
+    search = new URLSearchParams("track=t1");
+    render(<TutorPage />);
+    expect((await screen.findByRole("button", { name: "Topic" })).textContent).toBe("Gradient Descent");
+    fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Start lesson/ }));
+    expect(session.start).toHaveBeenCalledWith("t1", "kenji-socratic");
+    cleanup();
+
+    search = new URLSearchParams("track=nope");
+    render(<TutorPage />);
+    await screen.findByRole("radio", { name: /Kenji S/ });
+    expect(screen.getByRole("button", { name: "Topic" }).textContent).toBe("Choose a topic…");
+    // the student can still pick one themselves
+    await pickTrack();
+    expect(screen.getByRole("button", { name: "Topic" }).textContent).toBe("Gradient Descent");
+  });
+
+  it("the progress panel shows how the topic's knowledge points stand and where the last lesson stopped", async () => {
+    vi.mocked(api.listTracks).mockResolvedValueOnce([
+      {
+        track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [], created_at: "",
+        knowledge_points: [
+          { kp_id: "a", title: "Loss", summary: "", prereq_ids: [], status: "understood", evidence: "" },
+          { kp_id: "b", title: "Slope", summary: "", prereq_ids: ["a"], status: "introduced", evidence: "" },
+          { kp_id: "c", title: "Step", summary: "", prereq_ids: ["a"], status: "not_started", evidence: "" },
+          { kp_id: "d", title: "Momentum", summary: "", prereq_ids: ["c"], status: "not_started", evidence: "" },
+        ],
+      },
+    ]);
+    vi.mocked(api.getTrack).mockResolvedValueOnce({
+      track: { track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [], knowledge_points: [], created_at: "" },
+      lessons: [{ lesson_id: "L0", track_id: "t1", tutor_id: "kenji-visual", started_at: new Date().toISOString(), ended_at: null, summary: "", covered_kp_ids: [], struggles: [], worked: [], board_snapshot_ref: null }],
+    });
+    vi.mocked(api.getLessonState).mockResolvedValueOnce({ slide: 3, step: 0, idea: "", detours: [], concepts: [] });
+    search = new URLSearchParams("track=t1");
+    render(<TutorPage />);
+    const panel = await screen.findByRole("region", { name: "Gradient Descent" });
+    const chips = within(panel).getAllByRole("listitem").map((li) => li.textContent);
+    expect(chips).toEqual(["LossUnderstood", "SlopeRevisit", "StepNext up", "MomentumNot started"]);
+    await within(panel).findByText("Slide 3 of 7");
+    within(panel).getByText("Last lesson just now");
   });
 
   it("shows the error message when start fails", async () => {
     session = fakeSession({ status: "error", error: "Tutor didn't join — is the agent running?" });
     render(<TutorPage />);
     expect((await screen.findByRole("alert")).textContent).toContain("Tutor didn't join — is the agent running?");
-    screen.getByRole("button", { name: "Join lesson" });
+    screen.getByRole("button", { name: /^Start lesson/ });
   });
 
   it("control bar has Leave and I'm lost, and I'm lost calls sendLost", async () => {
@@ -148,6 +201,7 @@ describe("/tutor page", () => {
   it("adding a URL to a track reports the knowledge points added", async () => {
     render(<TutorPage />);
     await pickTutorAndTrack();
+    openAddMaterial();
     fireEvent.change(screen.getByLabelText("Material URL"), { target: { value: "https://arxiv.org/abs/1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add URL" }));
     await screen.findByText("Added 3 knowledge points");
@@ -158,6 +212,7 @@ describe("slides", () => {
   it("lobby shows the track's deck and Prepare slides starts generation", async () => {
     render(<TutorPage />);
     await pickTutorAndTrack();
+    openAddMaterial();
     await screen.findByText("Using the built-in 7-slide deck.");
     fireEvent.click(screen.getByRole("button", { name: /Prepare slides/ }));
     await screen.findByText(/Generating animated slides/);
