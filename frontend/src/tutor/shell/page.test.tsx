@@ -12,7 +12,7 @@ const deckView = (over = {}) => ({ status: "none", source: "fallback", deck: gd,
 vi.mock("./api", () => ({
   listTutors: vi.fn(async () => [
     { tutor_id: "kenji-visual", name: "Kenji", avatar_id: "a", voice_id: "v1", style_prompt: "visual explainer: draws first, then explains" },
-    { tutor_id: "kenji-socratic", name: "Kenji S", avatar_id: "a", voice_id: "v2", style_prompt: "Socratic coach: asks guiding questions" },
+    { tutor_id: "jenny-socratic", name: "Jenny S", avatar_id: "a", voice_id: "v2", style_prompt: "Socratic coach: asks guiding questions" },
     { tutor_id: "kenji-examples", name: "Kenji E", avatar_id: "a", voice_id: "v3", style_prompt: "worked examples: solves a similar problem" },
   ]),
   listTracks: vi.fn(async () => [
@@ -87,7 +87,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 async function pickTutorAndTrack() {
-  fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
+  fireEvent.click(await screen.findByRole("radio", { name: /Jenny S/ }));
   fireEvent.change(await screen.findByLabelText("Learning track"), { target: { value: "t1" } });
 }
 
@@ -97,14 +97,14 @@ describe("/tutor page", () => {
     const join = (await screen.findByRole("button", { name: "Join lesson" })) as HTMLButtonElement;
     expect(join.disabled).toBe(true);
 
-    fireEvent.click(await screen.findByRole("radio", { name: /Kenji S/ }));
+    fireEvent.click(await screen.findByRole("radio", { name: /Jenny S/ }));
     expect(join.disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText("Learning track"), { target: { value: "t1" } });
     expect(join.disabled).toBe(false);
 
     fireEvent.click(join);
-    expect(session.start).toHaveBeenCalledWith("t1", "kenji-socratic");
+    expect(session.start).toHaveBeenCalledWith("t1", "jenny-socratic");
   });
 
   it("shows the error message when start fails", async () => {

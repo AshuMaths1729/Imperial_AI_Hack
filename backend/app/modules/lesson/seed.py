@@ -3,18 +3,19 @@ from datetime import datetime, timezone
 from .models import KP, LearnerProfile, Material, Track, Tutor
 
 KENJI = "7572faa9-15da-400d-8227-ef1ab8932523"
-# One line per tutor: swap in Studio av_ ids here once converted.
-TUTOR_AVATARS = {"kenji-visual": KENJI, "kenji-socratic": KENJI, "kenji-examples": KENJI}
+JENNY = "8788bef1-8020-46e0-a8f4-510ea9989b25"  # same interactive avatar as main's MVP tutor
+# One line per tutor: swap in converted interactive ids here (May's goes on kenji-examples).
+TUTOR_AVATARS = {"kenji-visual": KENJI, "jenny-socratic": JENNY, "kenji-examples": KENJI}
 
 PROFILE = LearnerProfile(user_id="demo", name="Demo Student", style="visual", level="undergrad")
 
-# Voices: Eric (smooth, trustworthy), Chris (charming, down-to-earth), Bill (wise, mature): calm, friendly tutors.
+# Voices: Eric (smooth, trustworthy), Jenny's designed voice from main's MVP, Bill (wise, mature).
 TUTORS = [
     Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=TUTOR_AVATARS["kenji-visual"],
           voice_id="cjVigY5qzO86Huf0OWal",
           style_prompt="visual explainer: draws first, then explains"),
-    Tutor(tutor_id="kenji-socratic", name="Kenji — Socratic coach", avatar_id=TUTOR_AVATARS["kenji-socratic"],
-          voice_id="iP95p4xoKVk53GoZ742B",
+    Tutor(tutor_id="jenny-socratic", name="Jenny — Socratic coach", avatar_id=TUTOR_AVATARS["jenny-socratic"],
+          voice_id="1dJLMOIuKrasdg4BFQb9",
           style_prompt="Socratic coach: asks guiding questions before explaining"),
     Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=TUTOR_AVATARS["kenji-examples"],
           voice_id="pqHfZKP75CvOlQylNhV4",
@@ -61,8 +62,11 @@ def demo_tracks() -> list:
 
 
 def apply(backend) -> None:
-    """Idempotent seeding: adds seed docs that are missing, never overwrites one (live progress, edited tracks)."""
-    docs = [("tutors", t.tutor_id, t) for t in TUTORS] + [("profiles", PROFILE.user_id, PROFILE)]
+    """Idempotent seeding: adds seed docs that are missing, never overwrites one (live progress, edited tracks).
+    Tutors are code-defined, so they are always refreshed (an avatar or voice swap takes effect on restart)."""
+    for t in TUTORS:
+        backend.put("tutors", t.tutor_id, t.model_dump())
+    docs = [("profiles", PROFILE.user_id, PROFILE)]
     docs += [("tracks", t.track_id, t) for t in demo_tracks()]
     for coll, key, model in docs:
         if backend.get(coll, key) is None:
