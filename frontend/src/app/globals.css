@@ -1,10 +1,12 @@
 @import "tailwindcss";
 
 /*
- * Athena Design System: "Liquid Glass"
- * - Controls float over the content as translucent layers with a bright rim, an inner
- *   highlight and a soft specular sheen; a static colour field sits behind every screen.
- * - Okabe-Ito / CVD-safe semantic palette (distinguishable across protanopia, deuteranopia, tritanopia)
+ * Athena Design System: "Meadow Glass"
+ * - Liquid glass over nature: every screen sits on a painted landscape (components/nature/Scene),
+ *   and controls float over it as translucent layers with a bright rim, an inner highlight,
+ *   a specular light that follows the pointer and (opt-in) a refracting lens rim.
+ * - Natural, CVD-safe semantic palette: spruce teal / clay / heather / wheat / river
+ *   (distinguishable across protanopia, deuteranopia, tritanopia)
  * - Light (default), Dark, and High-Contrast themes (contrast = solid surfaces, no glass)
  *
  * Glass rules: text only sits on --bg-surface / --glass-thick (>= 0.62 opacity), never on
@@ -14,130 +16,148 @@
 :root,
 [data-theme="light"] {
   color-scheme: light;
-  --bg-canvas: #e9eef7;
-  /* Cards, panels and nodes: translucent "thick" glass so the colour field tints through. */
-  --bg-surface: rgba(255, 255, 255, 0.66);
-  --bg-surface-solid: #f7f9fd;
-  /* Wells, inputs, chips: a faint ink wash that works on top of any surface. */
-  --bg-surface-muted: rgba(96, 110, 150, 0.1);
-  --bg-glass: rgba(255, 255, 255, 0.48);
-  --bg-glass-elevated: rgba(255, 255, 255, 0.84);
-  --border-subtle: rgba(14, 19, 34, 0.09);
-  --border-strong: rgba(14, 19, 34, 0.18);
+  /* Meadow by day: warm paper ground, moss accents. The landscape (components/nature/Scene)
+     paints behind every screen and fades into --bg-canvas. */
+  --bg-canvas: #eef0e6;
+  /* Cards, panels and nodes: translucent "thick" glass so the landscape tints through. */
+  --bg-surface: rgba(250, 250, 244, 0.76);
+  --bg-surface-solid: #f8f8f2;
+  /* Wells, inputs, chips: a faint moss wash that works on top of any surface. */
+  --bg-surface-muted: rgba(58, 70, 36, 0.08);
+  --bg-glass: rgba(255, 255, 250, 0.5);
+  --bg-glass-elevated: rgba(251, 251, 246, 0.9);
+  --border-subtle: rgba(28, 33, 20, 0.1);
+  --border-strong: rgba(28, 33, 20, 0.2);
   --glass-highlight: rgba(255, 255, 255, 0.95);
   --glass-lowlight: rgba(255, 255, 255, 0.35);
-  --glass-rim: rgba(255, 255, 255, 0.72);
-  --glass-specular: rgba(255, 255, 255, 0.55);
-  --glass-specular-2: rgba(255, 255, 255, 0.18);
+  --glass-rim: rgba(255, 255, 255, 0.78);
+  --glass-specular: rgba(255, 255, 255, 0.62);
+  --glass-specular-2: rgba(255, 255, 255, 0.2);
   --glass-blur: 22px;
-  /* Glass scrollbar thumb (rest / hover / drag) */
-  --scroll-thumb: rgba(70, 84, 120, 0.26);
-  --scroll-thumb-hover: rgba(70, 84, 120, 0.42);
+  /* The lens: the thin band at a glass edge refracts brighter, like the rim of a water drop. */
+  --glass-lens: blur(2px) brightness(1.2) saturate(200%);
+  --scroll-thumb: rgba(60, 72, 40, 0.26);
+  --scroll-thumb-hover: rgba(60, 72, 40, 0.42);
   --scroll-thumb-active: color-mix(in srgb, var(--accent) 55%, transparent);
 
-  --text-primary: #0e1322;
-  --text-secondary: #333a4c;
-  /* >=4.5:1 on canvas (incl. the brightest colour-field spot), surface and surface-muted */
-  --text-muted: #4b5264;
+  --text-primary: #1c1f17;
+  --text-secondary: #333a29;
+  /* >=4.5:1 on canvas, surface and surface-muted (also over the landscape) */
+  --text-muted: #4a5140;
 
-  --accent: #0550b8;
-  --accent-hover: #04429a;
-  --accent-soft: rgba(5, 80, 184, 0.12);
-  --accent-border: rgba(5, 80, 184, 0.3);
+  /* Text that sits straight on the landscape (hero titles, page heads): ink by day. */
+  --on-scene: #1c1f17;
+  --on-scene-soft: #46552c;
+  --scene-glow: 0 1px 14px rgba(255, 255, 245, 0.72);
+
+  /* Moss: primary actions and the Live Lessons module. */
+  --accent: #46552c;
+  --accent-hover: #3a4724;
+  --accent-soft: rgba(70, 85, 44, 0.12);
+  --accent-border: rgba(70, 85, 44, 0.32);
   --accent-fg: #ffffff;
 
-  /* CVD-Safe Semantic Statuses (Okabe-Ito inspired), darkened so status text stays
-     >=4.5:1 on its own -soft tint over glass. */
-  --status-support: #006b5e;
-  --status-support-soft: rgba(0, 107, 94, 0.12);
-  --status-support-border: rgba(0, 107, 94, 0.32);
+  /* Natural, CVD-safe semantic statuses (teal vs clay vs heather stay apart for protan,
+     deutan and tritan vision), dark enough to stay >=4.5:1 on their own -soft tint. */
+  --status-support: #1f6b5f; /* spruce teal: supports, Paper Simulator */
+  --status-support-soft: rgba(31, 107, 95, 0.12);
+  --status-support-border: rgba(31, 107, 95, 0.32);
 
-  --status-contradict: #a84300;
-  --status-contradict-soft: rgba(168, 67, 0, 0.12);
-  --status-contradict-border: rgba(168, 67, 0, 0.34);
+  --status-contradict: #a8452e; /* clay */
+  --status-contradict-soft: rgba(168, 69, 46, 0.12);
+  --status-contradict-border: rgba(168, 69, 46, 0.34);
   /* Text/icons on a solid --status-contradict fill (recording / leave buttons) */
   --status-contradict-fg: #ffffff;
 
-  --status-gap: #962a77;
-  --status-gap-soft: rgba(150, 42, 119, 0.11);
-  --status-gap-border: rgba(150, 42, 119, 0.32);
+  --status-gap: #8b3a75; /* heather: open questions, Evidence Map */
+  --status-gap-soft: rgba(139, 58, 117, 0.11);
+  --status-gap-border: rgba(139, 58, 117, 0.32);
 
-  --status-warning: #974506;
-  --status-warning-soft: rgba(151, 69, 6, 0.12);
-  --status-warning-border: rgba(151, 69, 6, 0.32);
+  --status-warning: #855a0c; /* wheat */
+  --status-warning-soft: rgba(133, 90, 12, 0.12);
+  --status-warning-border: rgba(133, 90, 12, 0.32);
+
+  --status-link: #2f5d8a; /* river: prerequisite / builds-on links */
+  --status-link-soft: rgba(47, 93, 138, 0.12);
+  --status-link-border: rgba(47, 93, 138, 0.32);
 
   /* Elevation & Graph tokens */
-  --shadow-card: 0 1px 2px rgba(20, 30, 60, 0.05), 0 10px 30px -10px rgba(20, 30, 60, 0.18);
-  --shadow-card-hover: 0 4px 12px rgba(20, 30, 60, 0.08), 0 18px 40px -12px rgba(5, 80, 184, 0.22);
-  --shadow-elevated: 0 24px 60px -8px rgba(20, 30, 60, 0.26);
-  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(5, 80, 184, 0.08), transparent 70%);
+  --shadow-card: 0 1px 2px rgba(28, 36, 16, 0.06), 0 12px 32px -12px rgba(28, 36, 16, 0.26);
+  --shadow-card-hover: 0 4px 12px rgba(28, 36, 16, 0.08), 0 20px 44px -14px rgba(28, 36, 16, 0.34);
+  --shadow-elevated: 0 24px 60px -8px rgba(28, 36, 16, 0.32);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(214, 230, 163, 0.35), transparent 70%);
 
-  /* The colour field behind every screen (static, so it never distracts). */
+  /* Fallback field when the landscape is off (no canvas yet, reduced transparency). */
   --backdrop-field:
-    radial-gradient(circle at 10% 14%, rgba(80, 150, 255, 0.3), transparent 42%),
-    radial-gradient(circle at 68% 6%, rgba(60, 215, 185, 0.24), transparent 38%),
-    radial-gradient(circle at 94% 74%, rgba(245, 135, 205, 0.24), transparent 42%),
-    radial-gradient(circle at 26% 96%, rgba(255, 196, 110, 0.28), transparent 40%);
+    radial-gradient(circle at 78% 8%, rgba(214, 230, 163, 0.55), transparent 45%),
+    radial-gradient(circle at 12% 90%, rgba(170, 190, 130, 0.35), transparent 45%);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-canvas: #070910;
-  --bg-surface: rgba(30, 35, 54, 0.62);
-  --bg-surface-solid: #161a28;
+  /* Meadow at dusk. */
+  --bg-canvas: #0f120c;
+  --bg-surface: rgba(30, 35, 24, 0.7);
+  --bg-surface-solid: #181c13;
   --bg-surface-muted: rgba(255, 255, 255, 0.06);
-  --bg-glass: rgba(34, 40, 60, 0.46);
-  --bg-glass-elevated: rgba(24, 28, 44, 0.88);
+  --bg-glass: rgba(34, 40, 28, 0.5);
+  --bg-glass-elevated: rgba(22, 26, 18, 0.92);
   --border-subtle: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.2);
-  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-highlight: rgba(255, 255, 255, 0.22);
   --glass-lowlight: rgba(0, 0, 0, 0.35);
-  --glass-rim: rgba(255, 255, 255, 0.16);
-  --glass-specular: rgba(255, 255, 255, 0.12);
+  --glass-rim: rgba(255, 255, 255, 0.2);
+  --glass-specular: rgba(255, 255, 255, 0.14);
   --glass-specular-2: rgba(255, 255, 255, 0.04);
   --glass-blur: 22px;
+  --glass-lens: blur(2px) brightness(1.45) saturate(170%);
   --scroll-thumb: rgba(255, 255, 255, 0.2);
   --scroll-thumb-hover: rgba(255, 255, 255, 0.34);
   --scroll-thumb-active: color-mix(in srgb, var(--accent) 60%, transparent);
 
-  --text-primary: #f3f5fb;
-  --text-secondary: #ccd2e0;
-  --text-muted: #a0a8ba;
+  --text-primary: #eef0e6;
+  --text-secondary: #cdd3c0;
+  --text-muted: #a9b09a;
 
-  --accent: #78b4ff;
-  --accent-hover: #a3cbff;
-  --accent-soft: rgba(120, 180, 255, 0.16);
-  --accent-border: rgba(120, 180, 255, 0.38);
-  --accent-fg: #06142e;
+  --on-scene: #f3f5ea;
+  --on-scene-soft: #cfe0a6;
+  --scene-glow: 0 1px 18px rgba(8, 12, 4, 0.6);
 
-  /* CVD-Safe Semantic Statuses */
-  --status-support: #3ed6b8;
-  --status-support-soft: rgba(62, 214, 184, 0.14);
-  --status-support-border: rgba(62, 214, 184, 0.36);
+  --accent: #b5c98c;
+  --accent-hover: #c9d9a6;
+  --accent-soft: rgba(181, 201, 140, 0.16);
+  --accent-border: rgba(181, 201, 140, 0.38);
+  --accent-fg: #11150b;
 
-  --status-contradict: #ff9a52;
-  --status-contradict-soft: rgba(255, 154, 82, 0.14);
-  --status-contradict-border: rgba(255, 154, 82, 0.38);
+  --status-support: #5fc9b5;
+  --status-support-soft: rgba(95, 201, 181, 0.14);
+  --status-support-border: rgba(95, 201, 181, 0.36);
+
+  --status-contradict: #f0956f;
+  --status-contradict-soft: rgba(240, 149, 111, 0.14);
+  --status-contradict-border: rgba(240, 149, 111, 0.38);
   --status-contradict-fg: #1a0800;
 
-  --status-gap: #f08ad6;
-  --status-gap-soft: rgba(240, 138, 214, 0.14);
-  --status-gap-border: rgba(240, 138, 214, 0.36);
+  --status-gap: #e9a0d4;
+  --status-gap-soft: rgba(233, 160, 212, 0.14);
+  --status-gap-border: rgba(233, 160, 212, 0.36);
 
-  --status-warning: #fbbf24;
-  --status-warning-soft: rgba(251, 191, 36, 0.14);
-  --status-warning-border: rgba(251, 191, 36, 0.36);
+  --status-warning: #e8c066;
+  --status-warning-soft: rgba(232, 192, 102, 0.14);
+  --status-warning-border: rgba(232, 192, 102, 0.36);
 
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.32), 0 12px 32px -12px rgba(0, 0, 0, 0.5);
-  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(120, 180, 255, 0.12);
+  --status-link: #8cb8e6;
+  --status-link-soft: rgba(140, 184, 230, 0.14);
+  --status-link-border: rgba(140, 184, 230, 0.36);
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.32), 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --shadow-card-hover: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(181, 201, 140, 0.14);
   --shadow-elevated: 0 24px 60px rgba(0, 0, 0, 0.6);
-  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(120, 180, 255, 0.12), transparent 70%);
+  --hero-glow: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(181, 201, 140, 0.1), transparent 70%);
 
   --backdrop-field:
-    radial-gradient(circle at 10% 14%, rgba(40, 100, 255, 0.3), transparent 42%),
-    radial-gradient(circle at 68% 6%, rgba(0, 170, 150, 0.22), transparent 38%),
-    radial-gradient(circle at 94% 74%, rgba(200, 60, 170, 0.24), transparent 42%),
-    radial-gradient(circle at 26% 96%, rgba(255, 140, 60, 0.16), transparent 40%);
+    radial-gradient(circle at 78% 8%, rgba(120, 140, 70, 0.3), transparent 45%),
+    radial-gradient(circle at 12% 90%, rgba(60, 80, 40, 0.35), transparent 45%);
 }
 
 [data-theme="contrast"] {
@@ -156,6 +176,7 @@
   --glass-specular: transparent;
   --glass-specular-2: transparent;
   --glass-blur: 0px;
+  --glass-lens: none;
   --backdrop-field: none;
   --scroll-thumb: #a3a3a3;
   --scroll-thumb-hover: #e5e5e5;
@@ -165,11 +186,15 @@
   --text-secondary: #f3f4f6;
   --text-muted: #d1d5db;
 
+  --on-scene: #ffffff;
+  --on-scene-soft: #d9f27a;
+  --scene-glow: none;
+
   /* Maximum-Contrast CVD-Safe Palette (Okabe-Ito) */
-  --accent: #56b4e9;
-  --accent-hover: #8cd0f5;
-  --accent-soft: rgba(86, 180, 233, 0.22);
-  --accent-border: #56b4e9;
+  --accent: #d9f27a;
+  --accent-hover: #ebffa0;
+  --accent-soft: rgba(217, 242, 122, 0.2);
+  --accent-border: #d9f27a;
   --accent-fg: #000000;
 
   --status-support: #00d09c;
@@ -188,6 +213,10 @@
   --status-warning: #ffd13b;
   --status-warning-soft: rgba(255, 209, 59, 0.2);
   --status-warning-border: #ffd13b;
+
+  --status-link: #56b4e9;
+  --status-link-soft: rgba(86, 180, 233, 0.22);
+  --status-link-border: #56b4e9;
 
   --shadow-card: none;
   --shadow-card-hover: none;
@@ -435,13 +464,113 @@ body {
   background-image: var(--hero-glow);
 }
 
+/* ---------- Pointer light ----------
+ * Every glass surface carries a soft specular spot that follows the cursor. GlassLight
+ * (components/nature/Scene.tsx) writes --mx / --my on the glass element under the pointer;
+ * at rest the spot sits top-left. A background layer, so no pseudo-element or position change. */
+.apple-card,
+.apple-glass,
+.apple-glass-elevated,
+.apple-sheet,
+.glass-lens {
+  --glass-light: radial-gradient(120% 70% at var(--mx, 18%) var(--my, 0%), var(--glass-specular), transparent 48%);
+}
+
+/* ---------- The lens rim (opt-in) ----------
+ * A thin band at the edge refracts the scene brighter and more saturated, like the thick rim of a
+ * water drop. It is a backdrop-filter on the ::after pseudo-element only, so the element itself
+ * never becomes the containing block of position:fixed children (see "Glass rules" in DESIGN.md).
+ * Needs a positioned element (add `relative` unless it is already absolute / sticky / fixed), and
+ * don't combine it with another ::after effect (st-sheen). */
+.glass-lens {
+  isolation: isolate;
+}
+.glass-lens::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 5px;
+  pointer-events: none;
+  backdrop-filter: var(--glass-lens);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ---------- Landscape and the text that sits on it ---------- */
+/* z-index -1 in the root stacking context: above the body background, below all app content,
+   so no screen needs a z-index of its own and portalled fixed popovers are untouched. */
+.st-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.st-scene canvas {
+  position: absolute;
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+}
+.st-scene canvas[data-layer="motes"] {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* The ground: the landscape fades into the canvas colour toward the bottom, so dense panels
+   always sit on calm paper. `calm` (module pages) starts the fade higher. */
+.st-scene::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 46%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--bg-canvas) 80%, transparent) 70%, var(--bg-canvas));
+}
+.st-scene[data-calm="true"]::after {
+  height: 74%;
+}
+.on-scene {
+  color: var(--on-scene);
+  text-shadow: var(--scene-glow);
+}
+.on-scene-soft {
+  color: var(--on-scene-soft);
+}
+/* Large, light, two-tone display headings (ink line, then moss line). */
+.st-display {
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+/* ---------- Liquid segmented control (components/glass/Segmented.tsx) ----------
+ * The selected option is a glass drop that slides, squashing a little while it moves. */
+.st-seg-drop {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  transition:
+    left 420ms cubic-bezier(0.3, 1.4, 0.5, 1),
+    width 420ms cubic-bezier(0.3, 1.4, 0.5, 1),
+    transform 420ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  pointer-events: none;
+}
+.st-seg-drop[data-moving="true"] {
+  transform: scaleY(0.84);
+}
+
 /* ---------- Liquid Glass materials ----------
  * Recipe: translucent fill + backdrop blur/saturation + bright rim + inner top highlight
  * and bottom lowlight + a diagonal specular sheen (a background layer, so no pseudo-element
  * and no position change is needed on the element). Text-bearing layers use the thick
  * fills (--bg-surface, --bg-glass-elevated). */
 .apple-card {
-  background: linear-gradient(140deg, var(--glass-specular), transparent 34%, transparent 70%, var(--glass-specular-2)),
+  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 34%, transparent 70%, var(--glass-specular-2)),
     var(--bg-surface);
   /* No backdrop-filter on cards/sheets: it would make them the containing block of any
      position:fixed child (peeks, popovers) and clip them. The field behind is already soft. */
@@ -457,7 +586,7 @@ body {
 
 /* Chrome: bars, floating legends, chips over content (thin glass). */
 .apple-glass {
-  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
     var(--bg-glass);
   backdrop-filter: blur(22px) saturate(190%);
   border-color: var(--glass-rim);
@@ -466,7 +595,7 @@ body {
 
 /* Popovers, bubbles, dialogs (thick glass, highest elevation). */
 .apple-glass-elevated {
-  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
     var(--bg-glass-elevated);
   backdrop-filter: blur(28px) saturate(190%);
   border-color: var(--glass-rim);
@@ -475,7 +604,7 @@ body {
 
 /* Floating side sheets / panels that hold lists of text (thick glass, card elevation). */
 .apple-sheet {
-  background: linear-gradient(160deg, var(--glass-specular), transparent 28%, transparent 76%, var(--glass-specular-2)),
+  background: var(--glass-light), linear-gradient(160deg, var(--glass-specular), transparent 28%, transparent 76%, var(--glass-specular-2)),
     var(--bg-surface);
   border: 1px solid var(--glass-rim);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card);
@@ -705,6 +834,25 @@ input[type="range"]:focus-visible {
     background: var(--bg-surface-solid) !important;
     backdrop-filter: none !important;
   }
+  /* No landscape behind solid surfaces, no lens rim, no pointer light. */
+  .st-scene,
+  .glass-lens::after {
+    display: none;
+  }
+  .apple-card,
+  .apple-glass,
+  .apple-glass-elevated,
+  .apple-sheet,
+  .glass-lens {
+    --glass-light: linear-gradient(transparent, transparent);
+  }
+}
+[data-theme="contrast"] .st-scene,
+[data-theme="contrast"] .glass-lens::after {
+  display: none;
+}
+[data-theme="contrast"] :is(.apple-card, .apple-glass, .apple-glass-elevated, .apple-sheet, .glass-lens) {
+  --glass-light: linear-gradient(transparent, transparent);
 }
 
 /* High-contrast theme: no translucency, blur or ambient glows; solid surfaces with strong borders. */
@@ -763,5 +911,8 @@ input[type="range"]:focus-visible {
     background: var(--bg-surface-solid) !important;
     backdrop-filter: none !important;
     border-width: 1.5px;
+  }
+  .glass-lens::after {
+    display: none;
   }
 }

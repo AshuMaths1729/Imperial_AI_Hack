@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { SceneProvider } from "../components/nature/Scene";
 
 // Self-hosted at build time; exposed as CSS variables that globals.css puts first in the stacks.
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {THEME_BOOTSTRAP}
         </Script>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <SceneProvider>{children}</SceneProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -61,8 +61,8 @@ export function AppHeader({
       style={toneVars}
       // A floating glass capsule, inset from the window edges; it stays in normal flow, so
       // nothing below it is ever covered or clipped.
-      className={`apple-glass st-fade-down z-30 mx-2 mt-2 flex min-h-14 shrink-0 items-center justify-between gap-2 rounded-[28px] sm:gap-3 border px-2.5 py-2 sm:mx-3 sm:px-3 lg:px-4 ${
-        sticky ? "sticky top-2" : ""
+      className={`apple-glass glass-lens st-fade-down z-30 mx-2 mt-2 flex min-h-14 shrink-0 items-center justify-between gap-2 rounded-[28px] sm:gap-3 border px-2.5 py-2 sm:mx-3 sm:px-3 lg:px-4 ${
+        sticky ? "sticky top-2" : "relative"
       }`}
     >
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">

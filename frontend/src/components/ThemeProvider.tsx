@@ -2,6 +2,7 @@
 
 import React, { useEffect, useSyncExternalStore } from "react";
 import { Contrast, Moon, Sun } from "lucide-react";
+import { Segmented } from "./glass/Segmented";
 
 export type ThemeMode = "light" | "dark" | "contrast";
 
@@ -81,34 +82,26 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div
-      role="group"
-      aria-label="Color theme"
-      className="apple-seg inline-flex shrink-0 items-center gap-0.5 rounded-full p-0.5"
-    >
-      {THEME_OPTIONS.map((opt) => {
+    <Segmented
+      label="Color theme"
+      value={theme}
+      onChange={setTheme}
+      buttonClassName="px-2 py-1 text-[11px] sm:px-2.5"
+      options={THEME_OPTIONS.map((opt) => {
         const Icon = opt.icon;
-        const active = theme === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => setTheme(opt.id)}
-            aria-pressed={active}
-            aria-label={`${opt.label} theme`}
-            title={`${opt.label} theme`}
-            className={`apple-press apple-focus flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] sm:px-2.5 font-medium transition ${
-              active
-                ? "apple-seg-on border-[var(--glass-rim)] text-[var(--text-primary)]"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            <Icon className={`h-3.5 w-3.5 ${active ? "text-[var(--accent)]" : ""}`} />
-            {/* Labels only on wide screens so crowded headers don't overflow at 768-1279px */}
-            <span className="hidden whitespace-nowrap xl:inline">{opt.label}</span>
-          </button>
-        );
+        return {
+          value: opt.id,
+          ariaLabel: `${opt.label} theme`,
+          title: `${opt.label} theme`,
+          label: (
+            <>
+              <Icon className={`h-3.5 w-3.5 ${theme === opt.id ? "text-[var(--accent)]" : ""}`} />
+              {/* Labels only on wide screens so crowded headers don't overflow at 768-1279px */}
+              <span className="hidden whitespace-nowrap xl:inline">{opt.label}</span>
+            </>
+          ),
+        };
       })}
-    </div>
+    />
   );
 }
