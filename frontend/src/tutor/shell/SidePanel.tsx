@@ -285,12 +285,24 @@ function Materials({ trackId, data, onTrack, deck, lessonId }: { trackId: string
         </ul>
       </section>
       <AddMaterial trackId={trackId} onAdded={onTrack} />
+      <p className="text-[11px] text-[var(--st-muted)]">Slides prepared now open in your next lesson.</p>
       {review && <Review deck={deck} data={data} lessonId={lessonId} onClose={() => setReview(false)} />}
     </div>
   );
 }
 
 const TABS = ["Key points", "Check yourself", "Materials"] as const;
+
+/** Where the tutor's explanation pop-up opens: on the slide (stage bottom-right) or docked at the top of this panel. */
+type Placement = "slide" | "panel";
+const PLACEMENT_KEY = "st.explanations";
+function savedPlacement(): Placement {
+  try {
+    return localStorage.getItem(PLACEMENT_KEY) === "panel" ? "panel" : "slide";
+  } catch {
+    return "slide";
+  }
+}
 
 type Props = {
   trackId: string;
@@ -306,12 +318,49 @@ type Props = {
   onTrack: (t: Track) => void;
   deck: Deck | null;
   onAnswer: (t: string) => void;
+  /** Gets the panel's explanation slot element (null while explanations open on the slide); goes to SlidesStage. */
+  explanationRef?: (el: HTMLDivElement | null) => void;
 };
 
-export function SidePanel(p: Props) {
+export function SidePanel({ explanationRef, ...p }: Props) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Key points");
+  const [placement, setPlacementState] = useState<Placement>(savedPlacement);
+  const setPlacement = (v: Placement) => {
+    setPlacementState(v);
+    try {
+      localStorage.setItem(PLACEMENT_KEY, v);
+    } catch {} // private mode: the choice lasts this lesson only
+  };
   return (
     <section aria-label="Side panel" className="st-glass flex min-h-80 flex-1 flex-col rounded-[20px] lg:min-h-0">
+      <div className="mx-3 mt-2.5 flex shrink-0 items-center justify-between gap-2">
+        <span id="explanations-label" className={label}>
+          Explanations
+        </span>
+        <div role="radiogroup" aria-labelledby="explanations-label" className="flex gap-0.5 rounded-full bg-black/5 p-0.5">
+          {(
+            [
+              ["slide", "On slide"],
+              ["panel", "In panel"],
+            ] as const
+          ).map(([v, text]) => (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={placement === v}
+              onClick={() => setPlacement(v)}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 ${
+                placement === v ? "bg-[var(--st-surface)] text-[var(--st-text)] shadow-sm" : "text-[var(--st-muted)] hover:text-[var(--st-text)]"
+              }`}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* The pop-up portals in here; :empty keeps it from taking space while no explanation is open. */}
+      {placement === "panel" && <div ref={explanationRef} className="mx-2 mt-2 shrink-0 empty:hidden" />}
       <div role="tablist" aria-label="Lesson" className="m-2 flex shrink-0 gap-1 rounded-full bg-black/5 p-1">
         {TABS.map((t) => (
           <button

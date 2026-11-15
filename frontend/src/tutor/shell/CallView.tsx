@@ -90,6 +90,7 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
   const state = useLessonState(s.lessonId, live);
   const pos = useDeckPosition(slidesRef);
   const elapsed = useElapsed(live);
+  const [explanationSlot, setExplanationSlot] = useState<HTMLElement | null>(null); // set while the side panel docks explanations
 
   // The deck prepared before the lesson (or the track's shipped fallback); never blocks joining.
   useEffect(() => {
@@ -203,6 +204,7 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
           deck={deck}
           deckLoading={deckLoading}
           slidesRef={slidesRef}
+          explanationSlot={explanationSlot}
         >
           {captionsOn && <CaptionsOverlay captions={s.captions} tutorName={tutorName} />}
         </Stage>
@@ -230,6 +232,7 @@ export function CallView({ session: s, boardRef, tutorName, trackId, trackTitle,
             onTrack={(track) => setData((d) => (d ? { ...d, track } : d))}
             deck={deck}
             onAnswer={s.sendText}
+            explanationRef={setExplanationSlot}
           />
         </aside>
       </main>
