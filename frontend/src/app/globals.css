@@ -4,7 +4,7 @@
  * Athena Design System: "Meadow Glass"
  * - Liquid glass over nature: every screen sits on a painted landscape (components/nature/Scene),
  *   and controls float over it as translucent layers with a bright rim, an inner highlight,
- *   a specular light that follows the pointer and (opt-in) a refracting lens rim.
+ *   a static diagonal sheen and (opt-in) a refracting lens rim. No hover light.
  * - Natural, CVD-safe semantic palette: spruce teal / clay / heather / wheat / river
  *   (distinguishable across protanopia, deuteranopia, tritanopia)
  * - Light (default), Dark, and High-Contrast themes (contrast = solid surfaces, no glass)
@@ -357,12 +357,22 @@ html {
   pointer-events: none;
 }
 
-/* Retired: the sheen used to sweep a band of light across the whole card or button on hover.
-   Hover light is now the small pointer spot on glass (see "Pointer light"), which stays local.
-   The class is kept as a no-op so existing markup needs no change. */
+/* Light sheen sweeping across cards and buttons on hover (the only hover light on glass). */
 .st-sheen::after {
-  content: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 9%, transparent),
+    transparent
+  );
+  transform: translateX(-120%) skewX(-20deg);
+  pointer-events: none;
 }
+.st-sheen:hover::after { animation: st-sheen 0.9s ease-out; }
 
 /* SVG motion: draw a path in (needs pathLength="1"), marching dashes, node pop-in, ping ring. */
 @keyframes st-draw {
@@ -452,24 +462,6 @@ body {
 /* Subtle Apple-style ambient hero glow */
 .apple-hero-glow {
   background-image: var(--hero-glow);
-}
-
-/* ---------- Pointer light ----------
- * A small specular spot that follows the cursor across glass. GlassLight
- * (components/nature/Scene.tsx) writes --mx / --my (px) on the glass element under the pointer
- * and clears them when the pointer leaves, so at rest there is no spot (the static diagonal sheen
- * remains). The spot has a fixed radius, so it stays a local highlight on a small button and on a
- * large card alike. A background layer, so no pseudo-element or position change. */
-.apple-card,
-.apple-glass,
-.apple-glass-elevated,
-.apple-sheet,
-.glass-lens {
-  --glass-light: radial-gradient(
-    circle var(--glass-light-size, 44px) at var(--mx, -999px) var(--my, -999px),
-    var(--glass-specular),
-    transparent 100%
-  );
 }
 
 /* ---------- The lens rim (opt-in) ----------
@@ -566,7 +558,7 @@ body {
  * and no position change is needed on the element). Text-bearing layers use the thick
  * fills (--bg-surface, --bg-glass-elevated). */
 .apple-card {
-  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 34%, transparent 70%, var(--glass-specular-2)),
+  background: linear-gradient(140deg, var(--glass-specular), transparent 34%, transparent 70%, var(--glass-specular-2)),
     var(--bg-surface);
   /* No backdrop-filter on cards/sheets: it would make them the containing block of any
      position:fixed child (peeks, popovers) and clip them. The field behind is already soft. */
@@ -582,7 +574,7 @@ body {
 
 /* Chrome: bars, floating legends, chips over content (thin glass). */
 .apple-glass {
-  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
     var(--bg-glass);
   backdrop-filter: blur(22px) saturate(190%);
   border-color: var(--glass-rim);
@@ -591,7 +583,7 @@ body {
 
 /* Popovers, bubbles, dialogs (thick glass, highest elevation). */
 .apple-glass-elevated {
-  background: var(--glass-light), linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
+  background: linear-gradient(140deg, var(--glass-specular), transparent 32%, transparent 72%, var(--glass-specular-2)),
     var(--bg-glass-elevated);
   backdrop-filter: blur(28px) saturate(190%);
   border-color: var(--glass-rim);
@@ -600,7 +592,7 @@ body {
 
 /* Floating side sheets / panels that hold lists of text (thick glass, card elevation). */
 .apple-sheet {
-  background: var(--glass-light), linear-gradient(160deg, var(--glass-specular), transparent 28%, transparent 76%, var(--glass-specular-2)),
+  background: linear-gradient(160deg, var(--glass-specular), transparent 28%, transparent 76%, var(--glass-specular-2)),
     var(--bg-surface);
   border: 1px solid var(--glass-rim);
   box-shadow: inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), var(--shadow-card);
@@ -843,25 +835,15 @@ input[type="range"]:focus-visible {
     background: var(--bg-surface-solid) !important;
     backdrop-filter: none !important;
   }
-  /* No landscape behind solid surfaces, no lens rim, no pointer light. */
+  /* No landscape behind solid surfaces, no lens rim. */
   .st-scene,
   .glass-lens::after {
     display: none;
-  }
-  .apple-card,
-  .apple-glass,
-  .apple-glass-elevated,
-  .apple-sheet,
-  .glass-lens {
-    --glass-light: linear-gradient(transparent, transparent);
   }
 }
 [data-theme="contrast"] .st-scene,
 [data-theme="contrast"] .glass-lens::after {
   display: none;
-}
-[data-theme="contrast"] :is(.apple-card, .apple-glass, .apple-glass-elevated, .apple-sheet, .glass-lens) {
-  --glass-light: linear-gradient(transparent, transparent);
 }
 
 /* High-contrast theme: no translucency, blur or ambient glows; solid surfaces with strong borders. */

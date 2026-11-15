@@ -21,7 +21,7 @@ export function useScene(kind: SceneKind, calm = true) {
   }, [set, kind, calm]);
 }
 
-/** Wraps the app once (layout.tsx): the landscape behind everything, plus the pointer light. */
+/** Wraps the app once (layout.tsx): the landscape behind everything. */
 export function SceneProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SceneState>({ kind: "meadow", calm: false });
   const set = useCallback(
@@ -31,62 +31,9 @@ export function SceneProvider({ children }: { children: React.ReactNode }) {
   return (
     <SceneCtx.Provider value={set}>
       <Scene kind={state.kind} calm={state.calm} />
-      <GlassLight />
       {children}
     </SceneCtx.Provider>
   );
-}
-
-const GLASS = ".apple-card, .apple-glass, .apple-glass-elevated, .apple-sheet, .glass-lens";
-
-/**
- * Moves a small specular spot (--mx / --my, in px) to the pointer on the glass surface under it,
- * and removes it from a surface as soon as the pointer leaves that surface (or the window).
- */
-function GlassLight() {
-  useEffect(() => {
-    let frame = 0;
-    let last: PointerEvent | null = null;
-    let lit: HTMLElement | null = null;
-    const clear = () => {
-      lit?.style.removeProperty("--mx");
-      lit?.style.removeProperty("--my");
-      lit = null;
-    };
-    const apply = () => {
-      frame = 0;
-      const e = last;
-      const el = e && e.target instanceof Element ? e.target.closest<HTMLElement>(GLASS) : null;
-      if (el !== lit) clear();
-      if (!e || !el) return;
-      const r = el.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      lit = el;
-      el.style.setProperty("--mx", `${Math.round(e.clientX - r.left)}px`);
-      el.style.setProperty("--my", `${Math.round(e.clientY - r.top)}px`);
-    };
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return; // touch has no hover light
-      last = e;
-      if (!frame) frame = requestAnimationFrame(apply);
-    };
-    const onOut = (e: PointerEvent) => {
-      if (!e.relatedTarget) {
-        // left the window
-        last = null;
-        clear();
-      }
-    };
-    document.addEventListener("pointermove", onMove, { passive: true });
-    document.addEventListener("pointerout", onOut, { passive: true });
-    return () => {
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerout", onOut);
-      if (frame) cancelAnimationFrame(frame);
-      clear();
-    };
-  }, []);
-  return null;
 }
 
 function Scene({ kind, calm }: SceneState) {
