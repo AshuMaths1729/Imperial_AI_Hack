@@ -307,8 +307,12 @@ async def test_board_write_tool_clears_a_board_circle_and_asks_to_explain_line_b
     out = await tool(raw_arguments={"ops": ops})
     assert io.rpcs[0] == ("ui.clear_circle", {"circle_id": "c7"})  # the explanation starts: the circle goes
     assert out.startswith("ok: drew s1, s2") and "line by line" in out and "[[s1]]" in out
-    await tool(raw_arguments={"ops": ops[:1]})
+    assert "one line per board_write" in out and 'show_tab("slides")' in out
+    io.replies["board.apply"] = {"ok": True, "ids": ["s1"], "errors": []}
+    out = await tool(raw_arguments={"ops": ops[:1]})
     assert [m for m, _ in io.rpcs].count("ui.clear_circle") == 1
+    # v3.2 G6: one line, explained with the laser, then the next line; back to the slides when done
+    assert "starting with [[s1]]" in out and "the next line" in out and 'show_tab("slides")' in out
 
 
 def test_tutor_board_writes_are_always_visible():

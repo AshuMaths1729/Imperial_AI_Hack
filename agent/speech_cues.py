@@ -15,6 +15,8 @@ from typing import AsyncIterable, AsyncIterator, Awaitable, Callable
 
 from livekit.agents.voice.io import TimedString
 
+from speech_maths import MathsSpeech
+
 logger = logging.getLogger("tutor.cues")
 
 TAG = re.compile(r"\[\[([^\[\]]{1,64})\]\]")
@@ -23,13 +25,15 @@ CUE_WAIT_S = 1.5  # captions wait at most this long for the speech text to finis
 
 
 class TagStripper:
-    """Streaming tag remover: feed() chunks, then flush(). `cues` lists {word, id}, word = index in the output."""
+    """Streaming tag remover: feed() chunks, then flush(). `cues` lists {word, id}, word = index in the output.
+    The text between tags is spoken maths-free (v3.2 G5: speech_maths), so cue word indexes count the spoken words."""
 
     def __init__(self):
         self.pending = ""  # text that may be the start of a tag
         self.said = ""  # everything let through so far
         self.cues: list[dict] = []
         self._after_tag = False
+        self.maths = MathsSpeech()
 
     def _out(self, text: str) -> str:
         if self._after_tag and text:
@@ -43,9 +47,10 @@ class TagStripper:
         self.pending += chunk
         out = ""
         while (i := self.pending.find("[")) >= 0:
-            out += self._out(self.pending[:i])
+            out += self._out(self.maths.feed(self.pending[:i]))
             rest = self.pending[i:]
             if m := TAG.match(rest):
+                out += self._out(self.maths.flush())  # a tag is a word boundary: what precedes it is spoken now
                 self.cues.append({"word": len(self.said.split()), "id": m[1].strip()})
                 self._after_tag = True
                 self.pending = rest[m.end():]
@@ -53,15 +58,15 @@ class TagStripper:
                 self.pending = rest  # wait for the next chunk
                 return out
             else:
-                out += self._out("[")
+                out += self._out(self.maths.feed("["))
                 self.pending = rest[1:]
-        out += self._out(self.pending)
+        out += self._out(self.maths.feed(self.pending))
         self.pending = ""
         return out
 
     def flush(self) -> str:
         rest, self.pending = self.pending, ""
-        return self._out(rest)  # an unfinished "[[..." is not a tag
+        return self._out(self.maths.feed(rest) + self.maths.flush())  # an unfinished "[[..." is not a tag
 
 
 class _Segment:

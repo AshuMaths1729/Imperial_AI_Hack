@@ -41,9 +41,9 @@ def test_greeting_mentions_last_lesson_when_absent():
 
 
 def test_rules_write_board_working_visibly_then_explain():
-    # v3.1: no hidden steps revealed while talking; write it all, then explain line by line with the laser
+    # v3.1: no hidden steps revealed while talking; each line is explained with the laser
     text = build_instructions(CTX)
-    assert "reveal_step" not in text and "all visible" in text and "starting each sentence with that line's tag" in text
+    assert "reveal_step" not in text and "(visible, no steps)" in text and "starting with its tag" in text
 
 
 def test_rules_speak_before_drawing_and_keep_board_calls_small():
@@ -144,10 +144,25 @@ def test_slower_pace():
     assert "1-2 short sentences, then the step" in RULES and "after each reveal" in RULES
 
 
-def test_board_working_is_written_first_then_explained_line_by_line():
-    # v3.1 F6: explaining while the board writes was confusing
+def test_board_working_is_one_line_then_its_explanation():
+    # v3.2 G6: write a line, explain it with the laser, then write the next line
     from prompting import RULES
-    assert "write the whole working first" in RULES and "line by line" in RULES and "let me write it out" in RULES
+    assert "one line at a time" in RULES and "board_write ONE line" in RULES and "then write the next line" in RULES
+    assert "write the whole working first" not in RULES
+
+
+def test_rules_tag_lines_curves_and_arrows_not_just_numbers():
+    # v3.2 G1: the laser only ever pointed at numbers
+    from prompting import RULES
+    for thing in ("lines", "curves", "chords", "tangents", "arrows", "axes", "labels"):
+        assert thing in RULES
+    assert "pop-up" in RULES
+
+
+def test_rules_speak_maths_in_words():
+    # v3.2 G5: the TTS garbles symbols; the normaliser catches most, the rule the rest
+    from prompting import RULES
+    assert "Say maths in words" in RULES and '"d y by d x"' in RULES and "zero point zero zero one" in RULES
 
 
 def test_reacts_only_to_what_is_literally_written():

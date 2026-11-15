@@ -214,7 +214,7 @@ async def entrypoint(ctx: JobContext) -> None:
         chat.add_message(role="system", content=text)
         await agent.update_chat_ctx(chat)
 
-    circle = PendingCircle(io)  # the student's open circle; slide_edit / board_write clear it as they start explaining
+    circle = PendingCircle(io)  # the student's open circle; slide_explain / board_write clear it as they start explaining
     tools = TutorTools(io, lesson_id, on_note=add_note, circle=circle)
     rolling = RollingSummary(haiku_summarize)
     ender = LessonEnder(io.post, lesson_id)
@@ -261,10 +261,10 @@ async def entrypoint(ctx: JobContext) -> None:
         # code owns the pace: a mid-slide stop with no question asked must not leave the student in silence
         if not (nudge := deck.continue_instruction(said)):
             return
-        step = deck.step
+        where = deck.progress
         await asyncio.sleep(CONTINUE_AFTER_S)
-        if session.agent_state == "listening" and session.user_state != "speaking" and deck.step == step:
-            logger.info("tutor stopped mid-slide; nudging on to step %s", (step or 0) + 1)
+        if session.agent_state == "listening" and session.user_state != "speaking" and deck.progress == where:
+            logger.info("tutor stopped mid-slide; nudging on: %s", nudge)
             session.generate_reply(instructions=nudge)
 
     def after_tutor_turn(said: str) -> None:
