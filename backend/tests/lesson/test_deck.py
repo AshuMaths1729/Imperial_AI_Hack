@@ -199,7 +199,7 @@ def test_seed_apply_adds_missing_docs_and_keeps_live_ones(tmp_path):
     assert old.get("tracks", "gradient-descent")["knowledge_points"][0]["status"] == "understood"
     assert old.get("lessons", "l1") == {"lesson_id": "l1"} and len(old.all("tutors")) == len(seed.TUTORS)
     assert old.get("profiles", "demo")
-    assert {t["avatar_id"] for t in old.all("tutors")} == set(seed.TUTOR_AVATARS.values())  # tutors refresh
+    assert {t["avatar_id"] for t in old.all("tutors")} == {t.avatar_id for t in seed.TUTORS}  # tutors refresh
 
 
 # --- router ---------------------------------------------------------------

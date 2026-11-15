@@ -1,23 +1,25 @@
 from datetime import datetime, timezone
 
+from app.modules.tutor.tutors import JENNY, KENJI, MEI, MEI_VOICE
+
 from .models import KP, LearnerProfile, Material, Track, Tutor
 
-KENJI = "7572faa9-15da-400d-8227-ef1ab8932523"
-JENNY = "8788bef1-8020-46e0-a8f4-510ea9989b25"  # same interactive avatar as main's MVP tutor
-# One line per tutor: swap in converted interactive ids here (May's goes on kenji-examples).
-TUTOR_AVATARS = {"kenji-visual": KENJI, "jenny-socratic": JENNY, "kenji-examples": KENJI}
+# Avatar ids live in the tutor module (single source of truth); Mei takes the worked-examples slot once hers is set.
 
 PROFILE = LearnerProfile(user_id="demo", name="Demo Student", style="visual", level="undergrad")
 
-# Voices: Eric (smooth, trustworthy), Jenny's designed voice from main's MVP, Bill (wise, mature).
+# Voices: Eric (smooth, trustworthy), Jenny's and Mei's designed voices (Bill stands in until Mei's avatar is set).
 TUTORS = [
-    Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=TUTOR_AVATARS["kenji-visual"],
+    Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=KENJI,
           voice_id="cjVigY5qzO86Huf0OWal",
           style_prompt="visual explainer: draws first, then explains"),
-    Tutor(tutor_id="jenny-socratic", name="Jenny — Socratic coach", avatar_id=TUTOR_AVATARS["jenny-socratic"],
+    Tutor(tutor_id="jenny-socratic", name="Jenny — Socratic coach", avatar_id=JENNY,
           voice_id="1dJLMOIuKrasdg4BFQb9",
           style_prompt="Socratic coach: asks guiding questions before explaining"),
-    Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=TUTOR_AVATARS["kenji-examples"],
+    Tutor(tutor_id="mei-examples", name="Mei — worked examples", avatar_id=MEI, voice_id=MEI_VOICE,
+          style_prompt="worked examples: solves a similar problem step by step, then lets you try")
+    if MEI else
+    Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=KENJI,
           voice_id="pqHfZKP75CvOlQylNhV4",
           style_prompt="worked examples: solves a similar problem step by step, then lets you try"),
 ]

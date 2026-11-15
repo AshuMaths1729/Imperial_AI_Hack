@@ -18,8 +18,12 @@ class Tutor(BaseModel):
 
 
 JENNY = "8788bef1-8020-46e0-a8f4-510ea9989b25"
+# Mei's interactive-avatar id: create her in Synthesia Studio, convert her av_ id with
+# POST /api/interactive-avatars/avatars {"sourceId": ...}, paste the result here. Hidden until set.
+MEI = ""
+MEI_VOICE = "La6HkiVKIU5Gyg1k9VIV"  # ElevenLabs Voice Design: British maths tutor
 
-TUTORS: list[Tutor] = [
+_ALL: list[Tutor] = [
     Tutor(
         tutor_id="kenji-visual",
         name="Kenji",
@@ -43,6 +47,18 @@ TUTORS: list[Tutor] = [
             "they're stuck."
         ),
     ),
+    Tutor(
+        tutor_id="mei-examples",
+        name="Mei",
+        tagline="Worked examples",
+        avatar_id=MEI,
+        voice_id=MEI_VOICE,
+        style_prompt=(
+            "You are Mei, a friendly worked-examples tutor. Solve a similar problem step by step, "
+            "saying why each step works, then hand the student their own to try and guide them through it."
+        ),
+    ),
 ]
+TUTORS: list[Tutor] = [t for t in _ALL if t.avatar_id]
 
 BY_ID = {t.tutor_id: t for t in TUTORS}

@@ -58,3 +58,9 @@ def test_session_token_dispatches_agent_with_all_tutors(lk_client):
     meta = json.loads(dispatch["metadata"])
     assert meta["tutor_id"] == "jenny-socratic"
     assert [t["tutor_id"] for t in meta["tutors"]] == ["kenji-visual", "jenny-socratic"]
+
+
+def test_mei_stays_hidden_until_her_avatar_is_set():
+    from app.modules.tutor import tutors
+    assert all(t.avatar_id for t in tutors.TUTORS)
+    assert ("mei-examples" in tutors.BY_ID) == bool(tutors.MEI)
