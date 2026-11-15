@@ -5,7 +5,6 @@
 // snaps to the true state. Moving geometry (dots, tangents, step arrows, morphing curves) is painted by
 // `paint`, both after every render and per frame while a step plays, so there is one copy of that maths.
 import katex from "katex";
-import { PenLine } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   CANVAS,
@@ -37,8 +36,8 @@ const MUTED = "#7d8494";
 const INK = PALETTE.white;
 const SERIF = "KaTeX_Main, 'Latin Modern Roman', 'Times New Roman', serif";
 const MASK = "linear-gradient(90deg, #000 42%, transparent 58%)";
-const HAND = "cubic-bezier(.35,.05,.6,1)"; // the pen starts gently and keeps going, like writing
-// Written left to right: the clip's right edge runs from -5% to 105% of the box; the pen tip rides on it.
+const HAND = "cubic-bezier(.35,.05,.6,1)"; // starts gently and keeps going, like writing
+// Written left to right (no pen icon): the clip's right edge runs from -5% to 105% of the box.
 const WRITE_CLIP = ["inset(-30% 105% -30% -5%)", "inset(-30% -5% -30% -5%)"];
 
 type CurveY = (curveId: string, x: number) => number;
@@ -98,7 +97,7 @@ function ArrowHead({ id, color }: { id: string; color: string }) {
   );
 }
 
-function Html({ slide, o, children, visible, pen }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean; pen?: boolean }) {
+function Html({ slide, o, children, visible }: { slide: Slide; o: SlideObject & { x: number; y: number; axes?: string | null; align?: string }; children: React.ReactNode; visible: boolean }) {
   const p = place(slide, o);
   return (
     <div
@@ -108,11 +107,6 @@ function Html({ slide, o, children, visible, pen }: { slide: Slide; o: SlideObje
       style={{ left: p.x, top: p.y, transform: o.align === "left" ? "translate(0,-50%)" : "translate(-50%,-50%)", opacity: visible ? 1 : 0 }}
     >
       <div data-inner style={{ transformOrigin: "center" }}>{children}</div>
-      {pen && (
-        <span data-pen className="pointer-events-none absolute" style={{ left: 0, top: "50%", width: 30, height: 30, margin: "-26px 0 0 -3px", opacity: 0, color: "#cbd5e1", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.5))" }}>
-          <PenLine width={30} height={30} aria-hidden />
-        </span>
-      )}
     </div>
   );
 }
@@ -228,14 +222,8 @@ export function SlideView({ slide, step, motion }: Props) {
       if (!o || !node) return;
       const dur = entranceMs(o);
       if (o.kind === "text" || o.kind === "math") {
-        // written in by pen, left to right
+        // written in left to right at speaking pace
         play(node.querySelector("[data-inner]"), [{ clipPath: WRITE_CLIP[0] }, { clipPath: WRITE_CLIP[1] }], at, dur, HAND);
-        play(node.querySelector("[data-pen]"), [
-          { left: "-5%", opacity: 0 },
-          { left: "-0.6%", opacity: 1, offset: 0.04 },
-          { left: "100.6%", opacity: 1, offset: 0.96 },
-          { left: "105%", opacity: 0 },
-        ], at, dur, HAND);
       } else if (o.kind === "slider") {
         const inner = node.querySelector("[data-inner]");
         const m = { maskImage: MASK, WebkitMaskImage: MASK, maskSize: "260% 100%", WebkitMaskSize: "260% 100%" };
@@ -460,14 +448,14 @@ export function SlideView({ slide, step, motion }: Props) {
       }
       case "text":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} pen>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
             <span style={{ fontFamily: SERIF, fontSize: o.size ?? 32, color: c, whiteSpace: "pre" }}>{o.text}</span>
           </Html>
         );
         break;
       case "math":
         html.push(
-          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)} pen>
+          <Html key={o.id} slide={slide} o={o} visible={vis(o.id)}>
             <span style={{ fontSize: o.size ?? 40, color: c }} dangerouslySetInnerHTML={{ __html: katexHtml(state.latex[o.id] ?? o.latex) }} />
           </Html>
         );

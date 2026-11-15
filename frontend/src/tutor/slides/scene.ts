@@ -133,13 +133,21 @@ export const STAGGER = slow(110);
 export const hopMs = (hops: number) => slow(Math.min(520, Math.max(110, 3600 / Math.max(1, hops))));
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-/** Rough visible-glyph count of a LaTeX string (commands count as one glyph; braces, ^ and _ aren't written). */
-const latexChars = (latex: string) => latex.replace(/\\[a-zA-Z]+|[{}^_\s]/g, "").length + (latex.match(/\\[a-zA-Z]+/g)?.length ?? 0);
+/** Rough rendered-glyph count of a LaTeX string: colour arguments, layout commands, spacing, braces, ^ and _ aren't written. */
+const latexChars = (latex: string) => {
+  const t = latex
+    .replace(/\\(?:textcolor|color)\{[^}]*\}/g, "")
+    .replace(/\\(?:frac|dfrac|tfrac|text|mathrm|mathbf|operatorname|left|right|quad|qquad)(?![a-zA-Z])|\\[,;:! ]/g, "");
+  return t.replace(/\\[a-zA-Z]+|[{}^_\s]/g, "").length + (t.match(/\\[a-zA-Z]+/g)?.length ?? 0);
+};
 
-/** Equations and text are written in by pen at a handwriting pace: 1.5-2.5 s, longer for longer ones. */
+/** Speaking pace (v3.1): ~20 rendered characters take 4 s; at least 1.5 s per item. */
+const WRITE_MS_PER_CHAR = 200;
+/** Equations and text are written in left to right at the pace the tutor speaks. */
 export function writeMs(o: SlideObject): number {
   const chars = o.kind === "math" ? latexChars(o.latex) : o.kind === "text" ? o.text.replace(/\s/g, "").length : 0;
-  return clamp(1100 + 70 * chars, 1500, 2500);
+  // shortcut: capped at 10 s so one very long line can't stall the lesson; split such lines in the deck instead
+  return clamp(WRITE_MS_PER_CHAR * chars, 1500, 10_000);
 }
 
 export function entranceMs(o: SlideObject | undefined): number {

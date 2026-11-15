@@ -12,6 +12,7 @@ import type { Deck, Slide, SlidesHandle, SlidesReply } from "./types";
 
 const EASE = "cubic-bezier(0.65, 0, 0.35, 1)";
 const FADE_MS = 700; // slide-to-slide cross-fade
+const LASER_PX = 12; // laser dot diameter on screen
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -63,6 +64,7 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
   const [laser, setLaser] = useState<Laser>(() => parked({ id: null, x: 0, y: 0, nonce: 0 }));
   const [marks, setMarksState] = useState<Mark[]>([]);
   const marksRef = useRef<Mark[]>(marks);
+  const clearedRef = useRef(new Set<string>()); // circles an edit already cleared: a later ui.clear_circle for them is a no-op
   const setMarks = (next: Mark[]) => {
     marksRef.current = next;
     setMarksState(next);
@@ -104,11 +106,19 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
     current: () => stRef.current.slides[stRef.current.index] ?? null,
     push: (raw) => reply(pushSlide(stRef.current, raw)),
     edit: (patch) => {
+      // the tutor starts explaining on this slide: the student's circles on it have done their job
+      const open = stRef.current.slides[stRef.current.index];
+      const done = marksRef.current.filter((m) => m.slideId === open?.id);
+      if (done.length) {
+        done.forEach((m) => clearedRef.current.add(m.id));
+        setMarks(marksRef.current.filter((m) => m.slideId !== open?.id));
+      }
       const r = editSlide(stRef.current, patch);
       const out = reply(r);
       return out.ok ? { ...out, steps_added: r.newSteps.length, new_steps: r.newSteps } : out;
     },
     clearCircle: (id) => {
+      if (clearedRef.current.has(id)) return { ok: true, errors: [] };
       if (!marksRef.current.some((m) => m.id === id)) return { ok: false, errors: [`no circle ${id} on the slides`] };
       setMarks(marksRef.current.filter((m) => m.id !== id));
       return { ok: true, errors: [] };
@@ -185,7 +195,6 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
         @keyframes slide-leave { to { opacity: 0; transform: scale(0.985); filter: blur(2px); } }
         @keyframes slide-enter { from { opacity: 0; transform: scale(1.01); } }
         @keyframes circle-badge { from { opacity: 0; transform: translate(-50%,-50%) scale(.4); } }
-        @keyframes laser-ring { from { transform: translate(-50%,-50%) scale(0.6); opacity: .7; } to { transform: translate(-50%,-50%) scale(2.4); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { [data-slide-root] { animation: none !important; } }
       `}</style>
       <div ref={fitRef} className="relative min-h-0 flex-1">
@@ -250,10 +259,8 @@ export function SlidesStage({ deck, loading, circleMode = false, onCircle, ref }
               className="pointer-events-none absolute left-0 top-0"
               style={{ transform: `translate(${laser.x}px, ${laser.y}px)`, transition: reduced ? "none" : `transform 450ms ${EASE}`, opacity: 1 }}
             >
-              <span className="absolute left-0 top-0 h-7 w-7 rounded-full" style={{ transform: "translate(-50%,-50%)", background: "#ff3b3b", boxShadow: "0 0 18px 6px rgba(255,59,59,.55), 0 0 2px 1px #fff inset" }} />
-              {!reduced && laser.id && (
-                <span key={laser.nonce} className="absolute left-0 top-0 h-7 w-7 rounded-full border-2 border-red-400" style={{ animation: "laser-ring 1.1s ease-out 3" }} />
-              )}
+              {/* one small solid dot with a soft glow, ~12 px on screen whatever the canvas scale; no ring */}
+              <span className="absolute left-0 top-0 rounded-full" style={{ width: LASER_PX / k, height: LASER_PX / k, transform: "translate(-50%,-50%)", background: "#ff3131", boxShadow: `0 0 ${10 / k}px ${3 / k}px rgba(255,49,49,.45)` }} />
             </div>
             {circleMode && (
               <svg
