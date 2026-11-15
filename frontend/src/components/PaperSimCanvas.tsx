@@ -8,15 +8,8 @@ import { formatParam, paramsLatex, slug, toCsv } from "./papersim/simulation/for
 import { useReducedMotion, usePopover, useTweenedFrame } from "./papersim/simulation/hooks";
 import { ParamCard } from "./papersim/simulation/ParamCard";
 import { PresetBar, defaultsOf, matches } from "./papersim/simulation/PresetBar";
-import { Readouts } from "./papersim/simulation/Readouts";
-import {
-  DataTable,
-  Legend,
-  SimChart,
-  buildFrame,
-  type PinnedRun,
-  type TrailRun,
-} from "./papersim/simulation/SimChart";
+import { DataTable, SimChart, buildFrame, type PinnedRun, type TrailRun } from "./papersim/simulation/SimChart";
+import { SeriesLegend } from "./papersim/simulation/SeriesLegend";
 import { SweepPanel, useSweep } from "./papersim/simulation/SweepPanel";
 
 interface PaperSimCanvasProps {
@@ -50,10 +43,10 @@ function ToolButton({
       disabled={disabled}
       title={title}
       aria-pressed={active}
-      className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:border-dashed disabled:border-[var(--border-strong)] disabled:bg-transparent disabled:text-[var(--text-muted)] ${
         active
           ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]"
-          : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+          : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-primary)] hover:border-[var(--border-strong)]"
       }`}
     >
       {children}
@@ -61,7 +54,20 @@ function ToolButton({
   );
 }
 
-/** The Interactive Simulation workspace: scenarios, explained sliders, a live chart and tools. */
+/** True when two titles name the same thing (ignoring case, punctuation and a parenthetical). */
+function sameTitle(a: string, b: string): boolean {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const x = norm(a);
+  const y = norm(b);
+  return !!x && !!y && (x === y || x.includes(y) || y.includes(x));
+}
+
+/** The Simulate tab: scenarios, a live chart with its legend and key numbers, explained sliders and tools. */
 export function PaperSimCanvas({
   simulation,
   paramValues,
@@ -199,39 +205,31 @@ export function PaperSimCanvas({
       return next;
     });
 
-  const title = simulation.sim_title?.trim() || `${simulation.y_label} vs ${simulation.x_label}`;
-  const fromPaper = simulation.paper_title && simulation.paper_title !== title ? simulation.paper_title : null;
+  // The paper's title is the workspace header's; the card names the simulated model only when it is
+  // something else (a model the paper cites), so the same words never appear twice on screen.
+  const modelTitle = simulation.sim_title?.trim() ?? "";
+  const title = modelTitle && !sameTitle(modelTitle, simulation.paper_title ?? "") ? modelTitle : null;
   const callouts = annotations.filter((a) => a.type === "callout_box");
   const hasHowTo = Boolean(docs?.x_meaning || docs?.y_meaning || docs?.series?.some((s) => s.how_to_read));
   const empty = simulation.x.length === 0 || simulation.series.length === 0;
 
   return (
-    // Transparent page; cards float as glass with ~10px gutters. (The Live Tutor button sits in
-    // its own lane below the tab content, so no extra bottom clearance is needed.)
-    <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-2.5 px-2 pb-2 pt-2.5 sm:px-3 md:gap-3">
-      {params.length > 0 && (
-        <PresetBar params={params} presets={docs?.presets ?? []} values={values} onApply={setMany} />
-      )}
-
-      <div className="grid min-w-0 gap-2.5 md:gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-        {/* ---------------- chart column ---------------- */}
-        <section className="flex min-w-0 flex-col gap-2.5 md:gap-3">
+    // Transparent page; two thick glass panels float over the landscape: the chart card (scenarios,
+    // model, chart, legend with the key numbers) and the Parameters panel.
+    <div className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col px-2 pb-3 pt-1 sm:px-3">
+      <div className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+        {/* ---------------- chart card ---------------- */}
+        <section aria-label="Simulation" className="flex min-w-0 flex-col">
           <div
-            className="apple-sheet st-fade-up relative min-w-0 rounded-[22px] p-4 md:p-5"
+            className="apple-sheet st-fade-up relative min-w-0 rounded-[26px] p-4 md:p-5 ![animation-fill-mode:backwards]"
             style={{ animationDelay: "60ms" }}
           >
-            {/* relative: the "How to read" popover anchors to the header's right edge, so it can
-                never run off the left of a narrow screen. */}
-            <header className="relative flex flex-wrap items-start justify-between gap-3">
-              {/* Basis 14rem: below that the action buttons wrap under the title instead of squeezing it. */}
-              <div className="min-w-0 flex-[1_1_14rem]">
-                <h2 className="apple-heading text-base font-semibold text-[var(--text-primary)] md:text-lg">
-                  <RichText text={title} />
-                </h2>
-                {fromPaper && (
-                  <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]" title={fromPaper}>
-                    Model from <span className="italic">{fromPaper}</span>
-                  </p>
+            {/* Scenarios on the left, chart tools on the right. relative: the "How to read" popover
+                anchors to this row's right edge, so it can never run off a narrow screen. */}
+            <header className="relative flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5">
+              <div className="min-w-0 flex-[1_1_18rem]">
+                {params.length > 0 && (
+                  <PresetBar params={params} presets={docs?.presets ?? []} values={values} onApply={setMany} />
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -294,6 +292,12 @@ export function PaperSimCanvas({
               </div>
             </header>
 
+            {title && (
+              <h2 className="mt-4 text-[22px] font-normal leading-tight tracking-[-0.025em] text-[var(--text-primary)]">
+                <RichText text={title} />
+              </h2>
+            )}
+
             {simulation.equation_latex?.trim() && (
               // Tex display blocks scroll horizontally inside this well instead of clipping.
               <div className="mt-3 min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1 text-[var(--text-primary)]">
@@ -302,18 +306,8 @@ export function PaperSimCanvas({
             )}
 
             <div className="mt-3">
-              <Legend
-                names={names}
-                docs={seriesDocs}
-                hidden={hidden}
-                onToggle={toggleSeries}
-                onEmphasis={setEmphasis}
-              />
-            </div>
-
-            <div className="mt-3">
               {empty ? (
-                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] px-4 text-center text-xs text-[var(--text-muted)]">
+                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-[var(--border-strong)] px-4 text-center text-xs text-[var(--text-secondary)]">
                   The simulation returned no data for these parameters.
                 </div>
               ) : (
@@ -336,9 +330,27 @@ export function PaperSimCanvas({
               )}
             </div>
 
+            {/* The one legend: swatch + name per series, with its key numbers on the same row. */}
+            {!empty && (
+              <div className="mt-3">
+                <SeriesLegend
+                  frame={shown}
+                  exact={target}
+                  names={names}
+                  docs={seriesDocs}
+                  hidden={hidden}
+                  xLabel={simulation.x_label}
+                  hoverX={hoverX}
+                  pin={lastPin}
+                  onToggle={toggleSeries}
+                  onEmphasis={setEmphasis}
+                />
+              </div>
+            )}
+
             {pins.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-3">
-                <span className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">Pinned</span>
+                <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">Pinned</span>
                 {pins.map((p) => (
                   <div
                     key={p.id}
@@ -346,13 +358,13 @@ export function PaperSimCanvas({
                     onMouseLeave={() => setHotPin(null)}
                     onFocus={() => setHotPin(p.id)}
                     onBlur={() => setHotPin(null)}
-                    className={`st-fade-up flex items-center gap-1 rounded-full border py-0.5 pl-2.5 pr-1 text-[11px] ${
+                    className={`st-fade-up flex items-center gap-1 rounded-full border py-0.5 pl-2.5 pr-1 text-xs ${
                       hotPin === p.id
                         ? "border-[var(--accent-border)] bg-[var(--accent-soft)]"
                         : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]"
                     }`}
                   >
-                    <span className="font-semibold text-[var(--text-primary)]">Pin {p.n}</span>
+                    <span className="font-medium text-[var(--text-primary)]">Pin {p.n}</span>
                     <span className="text-[var(--text-secondary)]">
                       <Tex latex={p.latex} />
                     </span>
@@ -361,7 +373,7 @@ export function PaperSimCanvas({
                       onClick={() => setMany({ ...defaults, ...p.params })}
                       title="Restore these parameters"
                       aria-label={`Restore parameters of pin ${p.n}`}
-                      className="apple-press apple-focus ml-1 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--accent)]"
+                      className="apple-press apple-focus ml-1 rounded-full p-1 text-[var(--text-secondary)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--accent)]"
                     >
                       <RotateCcw className="h-3 w-3" />
                     </button>
@@ -372,13 +384,13 @@ export function PaperSimCanvas({
                         setHotPin(null);
                       }}
                       aria-label={`Remove pin ${p.n}`}
-                      className="apple-press apple-focus rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--status-contradict)]"
+                      className="apple-press apple-focus rounded-full p-1 text-[var(--text-secondary)] hover:bg-[var(--bg-surface-solid)] hover:text-[var(--status-contradict)]"
                     >
                       <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}
-                <span className="text-[10px] text-[var(--text-muted)]">Faint curves behind the live ones; hover a pin to spotlight it.</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Faint curves behind the live ones; hover a pin to spotlight it.</span>
               </div>
             )}
 
@@ -388,36 +400,29 @@ export function PaperSimCanvas({
               </div>
             )}
           </div>
-
-          {!empty && (
-            <Readouts
-              frame={shown}
-              exact={target}
-              names={names}
-              hidden={hidden}
-              xLabel={simulation.x_label}
-              hoverX={hoverX}
-              pin={lastPin}
-              onEmphasis={setEmphasis}
-            />
-          )}
         </section>
 
-        {/* ---------------- controls column ---------------- */}
-        <aside className="flex min-w-0 flex-col gap-2.5" aria-label="Simulation parameters">
-          <div className="flex items-center justify-between px-2 pt-0.5">
-            <h3 className="apple-label flex items-center gap-1.5 text-[11px] font-semibold uppercase text-[var(--text-muted)]">
-              <SlidersHorizontal className="h-3.5 w-3.5" />
+        {/* ---------------- Parameters panel ---------------- */}
+        <aside
+          className="apple-sheet st-fade-up flex min-w-0 flex-col gap-1 rounded-[26px] p-2 md:p-2.5 ![animation-fill-mode:backwards]"
+          style={{ animationDelay: "100ms" }}
+          aria-labelledby="ps-params-heading"
+        >
+          <div className="flex items-baseline justify-between gap-3 px-3 pb-1 pt-2.5">
+            <h2 id="ps-params-heading" className="flex items-center gap-2 text-[19px] font-normal tracking-[-0.02em] text-[var(--text-primary)]">
+              <SlidersHorizontal className="h-4 w-4 text-[var(--accent)]" aria-hidden />
               Parameters
-            </h3>
-            <span className="text-[11px] text-[var(--text-muted)]">{params.length} adjustable</span>
+            </h2>
+            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">
+              {params.length} {params.length === 1 ? "slider" : "sliders"}
+            </span>
           </div>
           {params.length === 0 ? (
-            <p className="apple-card rounded-2xl border border-dashed p-4 text-xs text-[var(--text-muted)]">
+            <p className="m-1 rounded-2xl border border-dashed border-[var(--border-strong)] p-4 text-xs text-[var(--text-secondary)]">
               This model has no adjustable parameters.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-1">
               {params.map((p, i) => (
                 <ParamCard
                   key={p.key}
@@ -426,26 +431,28 @@ export function PaperSimCanvas({
                   value={values[p.key]}
                   sweeping={sweep.running && sweep.key === p.key}
                   onChange={(v) => setOne(p.key, v)}
-                  style={{ animationDelay: `${100 + i * 55}ms` }}
+                  style={{ animationDelay: `${140 + i * 55}ms` }}
                 />
               ))}
             </div>
           )}
           {params.length > 0 && (
-            <SweepPanel
-              params={params}
-              docs={paramDocs}
-              selected={sweepKey}
-              onSelect={setSweepKey}
-              sweep={sweep}
-              values={values}
-              keepTrace={keepTrace}
-              onKeepTrace={setKeepTrace}
-              traceCount={trail.length}
-              onClearTrace={() => setTrail([])}
-              reducedMotion={reducedMotion}
-              style={{ animationDelay: `${100 + params.length * 55}ms` }}
-            />
+            <div className="mt-1 p-1">
+              <SweepPanel
+                params={params}
+                docs={paramDocs}
+                selected={sweepKey}
+                onSelect={setSweepKey}
+                sweep={sweep}
+                values={values}
+                keepTrace={keepTrace}
+                onKeepTrace={setKeepTrace}
+                traceCount={trail.length}
+                onClearTrace={() => setTrail([])}
+                reducedMotion={reducedMotion}
+                style={{ animationDelay: `${140 + params.length * 55}ms` }}
+              />
+            </div>
           )}
         </aside>
       </div>

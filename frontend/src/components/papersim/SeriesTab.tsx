@@ -13,7 +13,7 @@ import { computeSeriesStats } from "./series/stats";
 
 const norm = (s: string) => s.trim().toLowerCase();
 
-/** "Series Breakdown" tab: live statistics, milestones, comparisons and raw data. */
+/** "Results" tab: live statistics, milestones, comparisons and raw data. */
 export function SeriesTab({ simulation, paramValues }: PaperSimTabProps) {
   const x = simulation.x;
   const xAxis = useMemo(() => parseAxisLabel(simulation.x_label), [simulation.x_label]);

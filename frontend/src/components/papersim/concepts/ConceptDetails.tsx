@@ -33,7 +33,7 @@ function Section({
 }) {
   return (
     <section className="st-fade-up" style={{ animationDelay: `${delay}ms` }}>
-      <h4 className="apple-label mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase" style={{ color: tone }}>
+      <h4 className="mb-2 flex items-center gap-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em]" style={{ color: tone }}>
         <Icon className="h-3 w-3" style={{ color: tone }} />
         {title}
       </h4>
@@ -52,7 +52,7 @@ function NodeChip({ node, onClick, current }: { node: CNode; onClick?: () => voi
     </>
   );
   const cls =
-    "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 align-middle text-[11.5px] font-semibold text-[var(--text-primary)]";
+    "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 align-middle text-xs font-medium text-[var(--text-primary)]";
   const style = { borderColor: mix(m.color, current ? 20 : 40), background: mix(m.color, current ? 6 : 12) };
   if (!onClick || current) {
     return (
@@ -65,7 +65,7 @@ function NodeChip({ node, onClick, current }: { node: CNode; onClick?: () => voi
     <button
       type="button"
       onClick={onClick}
-      className={`${cls} apple-press apple-focus hover:brightness-110`}
+      className={`${cls} apple-press apple-focus hover:shadow-[var(--shadow-card)]`}
       style={style}
       title={`Go to ${node.label}`}
     >
@@ -109,8 +109,7 @@ function LinkSentence({
       <button
         type="button"
         onClick={() => onSelect(other.id)}
-        className="apple-focus mt-1 rounded-full text-[10.5px] font-semibold opacity-80 hover:opacity-100"
-        style={{ color: meta.color }}
+        className="apple-focus mt-1 rounded-full text-[11px] font-medium text-[var(--text-secondary)] underline-offset-2 hover:text-[var(--text-primary)] hover:underline"
       >
         Explore {other.id === graph.rootId ? "the paper" : "it"} →
       </button>
@@ -153,7 +152,7 @@ export function ConceptDetails({
       <header className="st-fade-up space-y-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase"
+            className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-medium uppercase"
             // Text pulled 20% toward the primary text colour so the small caps clear 4.5:1 in every theme.
             style={{
               color: `color-mix(in srgb, ${color} 80%, var(--text-primary))`,
@@ -172,7 +171,7 @@ export function ConceptDetails({
             </span>
           )}
         </div>
-        <h3 className="apple-heading break-words text-[19px] font-bold text-[var(--text-primary)]">
+        <h3 className="break-words text-[23px] font-normal leading-tight tracking-[-0.025em] text-[var(--text-primary)]">
           <RichText text={node.label} />
         </h3>
         {/* where am I: breadcrumb from the paper */}
@@ -233,15 +232,15 @@ export function ConceptDetails({
               </span>
             )}
             <div className="min-w-0 flex-1">
-              <p className="apple-label text-[9.5px] font-bold uppercase" style={{ color }}>
+              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                 Current value
               </p>
-              <p className="font-mono text-[17px] font-bold tabular-nums text-[var(--text-primary)]">
+              <p className="font-mono text-[17px] font-medium tabular-nums text-[var(--text-primary)]">
                 {formatParamValue(value, p.unit)}
               </p>
             </div>
           </div>
-          {/* Read-only: this view can't show the plot, so values are changed on the Interactive Simulation tab. */}
+          {/* Read-only: this view can't show the plot, so values are changed on the Simulate tab. */}
           <div className="px-4 pb-3.5 pt-2">
             <dl className="grid grid-cols-3 gap-2 text-center font-mono text-[10.5px]">
               {[
@@ -250,13 +249,13 @@ export function ConceptDetails({
                 ["max", p.max_val],
               ].map(([label, v]) => (
                 <div key={label as string} className="min-w-0 rounded-xl bg-[var(--bg-surface-muted)] px-2 py-1.5">
-                  <dt className="text-[9.5px] uppercase text-[var(--text-muted)]">{label}</dt>
-                  <dd className="break-words font-semibold text-[var(--text-primary)]">{formatParamValue(v as number, p.unit)}</dd>
+                  <dt className="text-[10px] uppercase text-[var(--text-muted)]">{label}</dt>
+                  <dd className="break-words font-medium text-[var(--text-primary)]">{formatParamValue(v as number, p.unit)}</dd>
                 </div>
               ))}
             </dl>
             <p className="mt-2 text-[11px] text-[var(--text-muted)]">
-              Change it on the Interactive Simulation tab to see its effect on the plot.
+              Change it on the Simulate tab to see its effect on the plot.
             </p>
           </div>
           {(pd?.meaning || pd?.effect || pd?.typical) && (
@@ -372,7 +371,7 @@ export function ConceptDetails({
               const forward = l.source === from.id;
               return (
                 <li key={id} className="flex gap-2 text-[12px] leading-snug text-[var(--text-secondary)]">
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--bg-surface-muted)] font-mono text-[9.5px] font-bold text-[var(--text-muted)]">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--bg-surface-muted)] font-mono text-[10px] font-medium text-[var(--text-secondary)]">
                     {i + 1}
                   </span>
                   <span>
@@ -395,10 +394,10 @@ export function ConceptDetails({
             type="button"
             onClick={onToggleTrace}
             aria-pressed={tracing}
-            className={`apple-press apple-focus mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full px-3.5 py-1.5 text-left text-[11.5px] font-semibold ${
+            className={`apple-press apple-focus relative mt-3 inline-flex max-w-full items-center gap-1.5 overflow-hidden rounded-full px-3.5 py-1.5 text-left text-xs font-semibold ${
               tracing
                 ? "apple-seg-on border border-[var(--status-support-border)] text-[var(--status-support)]"
-                : "apple-tint"
+                : "apple-tint st-sheen"
             }`}
             style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
           >
@@ -414,7 +413,7 @@ export function ConceptDetails({
           <div className="space-y-3">
             {incoming.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold text-[var(--text-muted)]">Comes from</p>
+                <p className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">Comes from</p>
                 <ul className="space-y-1.5">
                   {incoming.map((l) => (
                     <LinkSentence key={l.id} link={l} graph={graph} currentId={node.id} onSelect={onSelect} />
@@ -424,7 +423,7 @@ export function ConceptDetails({
             )}
             {outgoing.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold text-[var(--text-muted)]">Leads to</p>
+                <p className="mb-1.5 text-xs font-medium text-[var(--text-secondary)]">Leads to</p>
                 <ul className="space-y-1.5">
                   {outgoing.map((l) => (
                     <LinkSentence key={l.id} link={l} graph={graph} currentId={node.id} onSelect={onSelect} />

@@ -16,8 +16,8 @@ function Tile({ label, value, sub, i }: { label: string; value: string; sub?: st
       className="st-rise min-w-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
       style={stagger(i, 40, 100)}
     >
-      <p className="text-[10px] font-medium text-[var(--text-muted)]">{label}</p>
-      <p className="break-all font-mono text-sm font-semibold text-[var(--text-primary)]">{value}</p>
+      <p className="text-[10.5px] text-[var(--text-muted)]">{label}</p>
+      <p className="break-all font-mono text-sm font-medium tabular-nums text-[var(--text-primary)]">{value}</p>
       {sub && <p className="break-words text-[10px] leading-snug text-[var(--text-muted)]"><RichText text={sub} /></p>}
     </div>
   );
@@ -77,69 +77,80 @@ export function ComparisonPanel({
 
   const cmp = useMemo(() => compareSeries(x, A.y, B.y), [x, A.y, B.y]);
 
+  // The overlay's one legend, ranked by final value (series without finite data go last).
   const ranking = useMemo(
     () =>
-      views
-        .filter((v) => v.stats)
-        .map((v) => ({ v, final: v.stats!.final }))
-        .sort((p, q) => q.final - p.final),
+      [
+        ...views
+          .filter((v) => v.stats)
+          .map((v) => ({ v, final: v.stats!.final as number | null }))
+          .sort((p, q) => (q.final as number) - (p.final as number)),
+        ...views.filter((v) => !v.stats).map((v) => ({ v, final: null })),
+      ],
     [views],
   );
+  const ranked = ranking.filter((r) => r.final !== null).length >= 2;
 
   const setA = (name: string) => setPicked([name, name === pair[1] ? pair[0] : pair[1]]);
   const setB = (name: string) => setPicked([name === pair[0] ? pair[1] : pair[0], name]);
 
   return (
-    <section className="st-fade-up space-y-4" style={stagger(0, 0, 200)} aria-labelledby="compare-heading">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="st-fade-up space-y-4 ![animation-fill-mode:backwards]" style={stagger(0, 0, 200)} aria-labelledby="compare-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-1">
         <div>
-          <p className="apple-label flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[var(--accent)]">
+          <p className="on-scene-soft flex items-center gap-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.12em]">
             <GitCompareArrows className="h-3.5 w-3.5" /> Comparison
           </p>
-          <h2 id="compare-heading" className="apple-heading mt-1 text-lg font-semibold text-[var(--text-primary)]">
+          <h2 id="compare-heading" className="on-scene st-display mt-1.5 text-[26px]">
             How the series differ
           </h2>
         </div>
       </div>
 
-      {/* Overlay of every series */}
-      <div className="apple-card min-w-0 rounded-2xl border p-4">
-        <p className="mb-2 text-xs font-semibold text-[var(--text-primary)]">All series, overlaid</p>
-        <LineChart
-          x={x}
-          series={views.map((v) => ({ name: v.name, color: v.color, dash: v.dash, y: v.y }))}
-          height={280}
-          legend
-          xLabel={xLabel}
-          ariaLabel={`Overlay of ${views.length} series against ${xAxis.name}`}
-        />
-        {ranking.length >= 2 && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-3">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)]">
-              <Trophy className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-              Ranking at <RichText text={atX(xAxis, x[x.length - 1] ?? 0)} />
-            </span>
-            {ranking.map(({ v, final }, i) => (
-              <span
-                key={v.name}
-                className="st-rise flex max-w-full items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-0.5 text-[11px]"
-                style={stagger(i, 60, 300)}
-                title={v.name}
-              >
-                <span className="font-mono text-[var(--text-muted)]">{i + 1}</span>
-                <SeriesSwatch color={v.color} dash={v.dash} width={16} />
-                <RichText className="min-w-0 truncate text-[var(--text-secondary)]" text={v.name} />
-                <span className="font-mono font-semibold text-[var(--text-primary)]">{fmtNum(final)}</span>
+      {/* Overlay of every series. Its one legend is ranked by final value, so the series are
+          named once here (the ranking used to repeat them in a second row). */}
+      <div className="apple-card st-sheen relative min-w-0 overflow-hidden rounded-[22px] border p-4 sm:p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 className="text-[17px] font-normal tracking-[-0.015em] text-[var(--text-primary)]">All series, overlaid</h3>
+          {ranked && (
+            <p className="flex items-start gap-1.5 text-[11px] text-[var(--text-muted)]">
+              <Trophy className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span>
+                Ranked by value at <RichText text={atX(xAxis, x[x.length - 1] ?? 0)} />
               </span>
-            ))}
-          </div>
-        )}
+            </p>
+          )}
+        </div>
+        <ol className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5" aria-label="Series, ranked by final value">
+          {ranking.map(({ v, final }, i) => (
+            <li
+              key={v.name}
+              className="st-rise flex min-w-0 max-w-full items-center gap-1.5 text-xs"
+              style={stagger(i, 60, 300)}
+              title={v.name}
+            >
+              {ranked && <span className="font-mono text-[11px] text-[var(--text-muted)]">{final === null ? "–" : i + 1}</span>}
+              <SeriesSwatch color={v.color} dash={v.dash} width={18} />
+              <RichText className="min-w-0 truncate text-[var(--text-secondary)]" text={v.name} />
+              <span className="font-mono font-medium tabular-nums text-[var(--text-primary)]">{fmtNum(final)}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3">
+          <LineChart
+            x={x}
+            series={views.map((v) => ({ name: v.name, color: v.color, dash: v.dash, y: v.y }))}
+            height={280}
+            xLabel={xLabel}
+            ariaLabel={`Overlay of ${views.length} series against ${xAxis.name}`}
+          />
+        </div>
       </div>
 
       {/* Pairwise */}
-      <div className="apple-card min-w-0 rounded-2xl border p-4">
+      <div className="apple-card st-sheen relative min-w-0 overflow-hidden rounded-[22px] border p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto text-xs font-semibold text-[var(--text-primary)]">Head to head</p>
+          <h3 className="mr-auto text-[17px] font-normal tracking-[-0.015em] text-[var(--text-primary)]">Head to head</h3>
           <PairSelect label="A" value={pair[0]} onChange={setA} views={views} />
           <button
             type="button"
@@ -159,7 +170,7 @@ export function ComparisonPanel({
           <>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-                <p className="text-[11px] font-semibold text-[var(--text-primary)]">Difference A − B</p>
+                <p className="text-xs font-medium text-[var(--text-primary)]">Difference A − B</p>
                 <p className="mb-1 text-[10px] text-[var(--text-muted)]">
                   Shaded with A&apos;s colour where A leads, B&apos;s where B leads
                 </p>
@@ -175,7 +186,7 @@ export function ComparisonPanel({
                 />
               </div>
               <div className="min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-                <p className="text-[11px] font-semibold text-[var(--text-primary)]">Ratio A ÷ B</p>
+                <p className="text-xs font-medium text-[var(--text-primary)]">Ratio A ÷ B</p>
                 <p className="mb-1 text-[10px] text-[var(--text-muted)]">Above 1 means A is larger by that factor</p>
                 {cmp.ratioValid ? (
                   <LineChart
@@ -210,7 +221,7 @@ export function ComparisonPanel({
             </div>
 
             <div className="mt-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3">
-              <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-primary)]">
+              <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[var(--text-primary)]">
                 <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" /> What this means
               </p>
               <ul className="space-y-1">

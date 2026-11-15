@@ -1,4 +1,4 @@
-/** Data shaping for the Model & Equations tab, with graceful fallbacks when docs are absent. */
+/** Data shaping for the Equations tab, with graceful fallbacks when docs are absent. */
 import type {
   EquationDoc,
   EquationVar,

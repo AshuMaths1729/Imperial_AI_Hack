@@ -4,7 +4,7 @@ import React from "react";
 import { PaperSimCanvas } from "../PaperSimCanvas";
 import type { PaperSimTabProps } from "./types";
 
-/** "Interactive Simulation" tab. Keyed by sim so pins / trace / hidden series reset per paper. */
+/** "Simulate" tab. Keyed by sim so pins / trace / hidden series reset per paper. */
 export function SimulationTab({ simulation, paramValues, annotations, onParamChange, onSetParams }: PaperSimTabProps) {
   return (
     <PaperSimCanvas

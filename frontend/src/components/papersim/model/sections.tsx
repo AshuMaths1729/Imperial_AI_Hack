@@ -9,14 +9,14 @@ import { CopyButton, stagger } from "../series/kit";
 import { eqAnchor, locLabel, paramAnchor, type ParamRow, type SourceGroup } from "./derive";
 import { scrollToSection } from "./SectionNav";
 
-const card = "apple-card min-w-0 rounded-2xl border";
+const card = "apple-card min-w-0 rounded-[22px] border";
 /** Recessed well for display maths: Tex display blocks scroll sideways inside it, never clip. */
 const mathWell = "min-w-0 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]";
 
 function SourceBadge({ label }: { label: string }) {
   if (!label) return null;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-0.5 font-mono text-[10px] text-[var(--text-secondary)]">
+    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2 py-0.5 font-mono text-[11px] text-[var(--text-secondary)]">
       <MapPin className="h-3 w-3 text-[var(--text-muted)]" />
       {label}
     </span>
@@ -31,7 +31,7 @@ function QuoteBlock({ quote, where }: { quote: string; where?: string }) {
         <div className="text-xs italic leading-relaxed text-[var(--text-secondary)]">
           <RichText text={quote} />
         </div>
-        {where && <div className="mt-1 text-[10px] text-[var(--text-muted)]">Found in the paper, {where}</div>}
+        {where && <div className="mt-1 text-[11px] text-[var(--text-muted)]">Found in the paper, {where}</div>}
       </div>
     </blockquote>
   );
@@ -46,7 +46,7 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
     <div className={`${card} relative overflow-hidden p-5`}>
       <div aria-hidden className="apple-hero-glow pointer-events-none absolute inset-0" />
       <div className="relative">
-        <div className="apple-display break-words text-xl font-semibold text-[var(--text-primary)]">
+        <div className="break-words text-[24px] font-light leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
           {sim.sim_title || sim.paper_title || "Simulated model"}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -88,8 +88,8 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
                 className="st-rise rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-2"
                 style={stagger(i, 50, 200)}
               >
-                <dt className="text-[10px] text-[var(--text-muted)]">{f.label}</dt>
-                <dd className="text-lg font-semibold text-[var(--text-primary)]">{f.value}</dd>
+                <dt className="text-[11px] text-[var(--text-muted)]">{f.label}</dt>
+                <dd className="text-[22px] font-light tabular-nums tracking-[-0.03em] text-[var(--text-primary)]">{f.value}</dd>
               </div>
             ))}
           </dl>
@@ -110,7 +110,7 @@ export function FindingsBody({ findings }: { findings: string[] }) {
           className={`${card} st-rise flex gap-3 p-4`}
           style={stagger(i, 60, 120)}
         >
-          <span className="apple-display font-mono text-2xl font-semibold text-[var(--accent)] opacity-80">
+          <span className="font-mono text-2xl font-light text-[var(--accent)]">
             {String(i + 1).padStart(2, "0")}
           </span>
           <div className="min-w-0 text-xs leading-relaxed text-[var(--text-secondary)]">
@@ -131,8 +131,8 @@ export function VariablesTable({ vars }: { vars: EquationVar[] }) {
       <table className="w-full text-left text-xs">
         <thead className="bg-[var(--bg-surface-muted)]">
           <tr>
-            <th scope="col" className="w-28 px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">Symbol</th>
-            <th scope="col" className="px-3 py-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">Meaning</th>
+            <th scope="col" className="w-28 px-3 py-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">Symbol</th>
+            <th scope="col" className="px-3 py-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">Meaning</th>
           </tr>
         </thead>
         <tbody>
@@ -156,9 +156,9 @@ export function EquationsBody({ equations, derived }: { equations: EquationDoc[]
   return (
     <div className="space-y-4">
       {derived && (
-        <div className="text-[11px] text-[var(--text-muted)]">
+        <p className="apple-sheet rounded-2xl px-3.5 py-2 text-xs text-[var(--text-secondary)]">
           No equation breakdown was extracted for this paper, so this shows the governing equation used by the simulation.
-        </div>
+        </p>
       )}
       {equations.map((e, i) => {
         const where = locLabel(e.source);
@@ -170,10 +170,10 @@ export function EquationsBody({ equations, derived }: { equations: EquationDoc[]
             style={stagger(i, 80, 100)}
           >
             <header className="flex flex-wrap items-center gap-2">
-              <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--accent)]">
+              <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 font-mono text-[11px] font-medium text-[var(--accent)]">
                 Eq. {i + 1}
               </span>
-              <h3 className="apple-heading min-w-0 break-words text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="min-w-0 break-words text-[17px] font-normal tracking-[-0.015em] text-[var(--text-primary)]">
                 <RichText text={e.title || `Equation ${i + 1}`} />
               </h3>
               <span className="ml-auto flex flex-wrap items-center gap-2">
@@ -191,7 +191,7 @@ export function EquationsBody({ equations, derived }: { equations: EquationDoc[]
             )}
             {e.variables && e.variables.length > 0 && (
               <div className="mt-3">
-                <div className="apple-label mb-1.5 text-[10px] font-semibold uppercase text-[var(--text-muted)]">Where</div>
+                <div className="mb-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">Where</div>
                 <VariablesTable vars={e.variables} />
               </div>
             )}
@@ -212,11 +212,11 @@ export function DerivationBody({ steps }: { steps: DerivationStep[] }) {
       {steps.map((s, i) => (
         <li key={i} className="st-rise relative flex gap-4" style={stagger(i, 90, 120)}>
           {/* Solid fill: the timeline rule runs behind this dot. */}
-          <span className="relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--bg-surface-solid)] font-mono text-xs font-semibold text-[var(--accent)]">
+          <span className="relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--bg-surface-solid)] font-mono text-xs font-medium text-[var(--accent)]">
             {i + 1}
           </span>
           <div className={`${card} min-w-0 flex-1 p-4`}>
-            <h3 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
+            <h3 className="text-[15px] font-normal tracking-[-0.01em] text-[var(--text-primary)]">
               <RichText text={s.title} />
             </h3>
             {s.latex && (
@@ -259,7 +259,7 @@ export function ParametersBody({ rows, paramValues }: { rows: ParamRow[]; paramV
       <div className="overflow-x-auto">
         <table className="w-full min-w-[46rem] text-left text-xs" style={{ fontVariantNumeric: "tabular-nums" }}>
           <thead className="bg-[var(--bg-surface-muted)]">
-            <tr className="text-[10px] uppercase text-[var(--text-muted)]">
+            <tr className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-muted)]">
               <th scope="col" className="px-3 py-2 font-semibold">Symbol</th>
               <th scope="col" className="px-3 py-2 font-semibold">Parameter</th>
               <th scope="col" className="px-3 py-2 font-semibold">Range</th>
@@ -286,8 +286,8 @@ export function ParametersBody({ rows, paramValues }: { rows: ParamRow[]; paramV
                     {doc?.symbol_latex ? <Tex latex={doc.symbol_latex} /> : <span className="font-mono text-xs">{p.key}</span>}
                   </td>
                   <td className="max-w-[22rem] px-3 py-3">
-                    <div className="font-semibold text-[var(--text-primary)]">
-                      {p.name} <span className="font-mono text-[10px] font-normal text-[var(--text-muted)]">{p.key}</span>
+                    <div className="font-medium text-[var(--text-primary)]">
+                      {p.name} <span className="font-mono text-[11px] font-normal text-[var(--text-muted)]">{p.key}</span>
                     </div>
                     {doc?.meaning && (
                       <div className="mt-0.5 leading-relaxed text-[var(--text-secondary)]">
@@ -347,7 +347,7 @@ export function ParametersBody({ rows, paramValues }: { rows: ParamRow[]; paramV
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] px-3 py-2 text-[10px] text-[var(--text-muted)]">
+      <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border-subtle)] px-3 py-2 text-[11px] text-[var(--text-muted)]">
         <span className="inline-flex items-center gap-1">
           <span className="h-3 w-0.5 rounded bg-[var(--text-muted)]" /> default
         </span>
@@ -396,8 +396,8 @@ export function CaveatsBody({ assumptions, limitations }: { assumptions: string[
                 <Icon className="h-3.5 w-3.5" />
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{c.title}</h3>
-                <div className="text-[10px] text-[var(--text-muted)]">{c.blurb}</div>
+                <h3 className="text-[15px] font-normal tracking-[-0.01em] text-[var(--text-primary)]">{c.title}</h3>
+                <div className="text-[11px] text-[var(--text-muted)]">{c.blurb}</div>
               </div>
             </div>
             <ul className="mt-3 space-y-2">
@@ -423,7 +423,7 @@ export function GlossaryBody({ items, derived }: { items: EquationVar[]; derived
   return (
     <div>
       {derived && (
-        <div className="mb-2 text-[11px] text-[var(--text-muted)]">Collected from the equation variables and parameters above.</div>
+        <p className="apple-sheet mb-2 inline-block rounded-2xl px-3.5 py-2 text-xs text-[var(--text-secondary)]">Collected from the equation variables and parameters above.</p>
       )}
       <dl className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {items.map((g, i) => (
@@ -454,7 +454,7 @@ export function SourcesBody({ groups }: { groups: SourceGroup[] }) {
         <div key={g.page ?? "none"} className="st-rise grid gap-3 p-4 sm:grid-cols-[5.5rem_minmax(0,1fr)]" style={stagger(gi, 60, 100)}>
           <div className="flex items-start gap-1.5">
             <BookOpen className="mt-0.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
-            <span className="font-mono text-sm font-semibold text-[var(--text-primary)]">
+            <span className="font-mono text-sm font-medium text-[var(--text-primary)]">
               {g.page == null ? "No page" : `p. ${g.page}`}
             </span>
           </div>
@@ -462,7 +462,7 @@ export function SourcesBody({ groups }: { groups: SourceGroup[] }) {
             {g.items.map((it, i) => {
               const content = (
                 <>
-                  <span className="rounded-full bg-[var(--bg-surface-muted)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                  <span className="rounded-full bg-[var(--bg-surface-muted)] px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)]">
                     {it.kind}
                   </span>
                   <span className="font-medium text-[var(--text-primary)]">{it.label}</span>
@@ -471,7 +471,7 @@ export function SourcesBody({ groups }: { groups: SourceGroup[] }) {
                       <Tex latex={it.latex} />
                     </span>
                   )}
-                  {it.section && <span className="text-[10px] text-[var(--text-muted)]">{locLabel({ section: it.section })}</span>}
+                  {it.section && <span className="text-[11px] text-[var(--text-muted)]">{locLabel({ section: it.section })}</span>}
                 </>
               );
               return (

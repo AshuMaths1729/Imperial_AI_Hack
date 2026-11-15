@@ -125,29 +125,30 @@ export function SweepPanel({
   const progress = sweep.running ? ((sweep.frame + 1) / Math.max(1, sweep.total)) * 100 : 0;
 
   return (
+    // A recessed well at the foot of the Parameters panel.
     <div
       style={style}
-      className="apple-card st-fade-up rounded-2xl border p-3.5"
+      className="st-fade-up rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-3.5"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-[var(--text-primary)]">Sweep a parameter</p>
-          <p className="text-[11px] leading-snug text-[var(--text-muted)]">
+          <h3 className="text-sm font-medium text-[var(--text-primary)]">Sweep a parameter</h3>
+          <p className="text-xs leading-snug text-[var(--text-secondary)]">
             Re-runs the model across the full range
             {reducedMotion ? " (slowed for reduced motion)" : ""}.
           </p>
         </div>
-        {/* The view's one tinted primary action (PaperSim hue). */}
+        {/* The view's one tinted primary action (Paper Simulator hue). */}
         <button
           type="button"
           onClick={() => (sweep.running ? sweep.stop() : sweep.start(p))}
           aria-label={sweep.running ? "Stop sweep" : `Sweep ${paramLabel(p)}`}
           title={sweep.running ? "Stop sweep" : `Sweep ${paramLabel(p)}`}
           style={{ "--tint": "var(--status-support)" } as React.CSSProperties}
-          className={`apple-press apple-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+          className={`apple-press apple-focus relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full ${
             sweep.running
               ? "border border-[var(--status-support-border)] bg-[var(--status-support-soft)] text-[var(--status-support)]"
-              : "apple-tint"
+              : "apple-tint st-sheen"
           }`}
         >
           {sweep.running ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
@@ -163,7 +164,7 @@ export function SweepPanel({
           value={p.key}
           disabled={sweep.running}
           onChange={(e) => onSelect(e.target.value)}
-          className="apple-focus min-w-0 flex-1 cursor-pointer rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="apple-focus min-w-0 flex-1 cursor-pointer rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface-solid)] px-3 py-1.5 text-xs text-[var(--text-primary)] disabled:cursor-not-allowed"
         >
           {params.map((pp) => (
             <option key={pp.key} value={pp.key} className="bg-[var(--bg-surface-solid)] text-[var(--text-primary)]">
@@ -178,7 +179,7 @@ export function SweepPanel({
       </div>
 
       <div
-        className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]"
+        className="mt-2.5 h-1.5 overflow-hidden rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)]"
         role="progressbar"
         aria-label="Sweep progress"
         aria-valuemin={0}
@@ -190,14 +191,14 @@ export function SweepPanel({
           style={{ width: `${progress}%` }}
         />
       </div>
-      <div className="mt-1 flex justify-between font-mono text-[10px] tabular-nums text-[var(--text-muted)]">
+      <div className="mt-1.5 flex justify-between font-mono text-[11px] tabular-nums text-[var(--text-muted)]">
         <span>{formatParam(p.min_val, p)}</span>
         <span>{sweep.running ? `step ${sweep.frame + 1} / ${sweep.total}` : `${sweepValues(p).length} steps`}</span>
         <span>{formatParam(p.max_val, p)}</span>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">
-        <label className="flex cursor-pointer items-center gap-2 text-[11px] text-[var(--text-secondary)]">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--text-secondary)]">
           <input
             type="checkbox"
             checked={keepTrace}

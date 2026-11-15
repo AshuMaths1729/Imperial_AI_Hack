@@ -181,7 +181,7 @@ export function LineChart({
       {legend && series.length >= 2 && (
         <ul className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="Legend">
           {series.map((s) => (
-            <li key={s.name} className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)]">
+            <li key={s.name} className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
               <SeriesSwatch color={s.color} dash={s.dash} />
               <RichText text={s.name} />
             </li>
@@ -332,8 +332,8 @@ export function LineChart({
                 const area = `${line}L${sx(geom.xMax).toFixed(1)} ${zeroY.toFixed(1)}L${sx(geom.xMin).toFixed(1)} ${zeroY.toFixed(1)}Z`;
                 return (
                   <g className="st-reveal-x">
-                    <path d={area} fill={diverging.pos} opacity={0.16} clipPath={`url(#pos-${uid})`} />
-                    <path d={area} fill={diverging.neg} opacity={0.16} clipPath={`url(#neg-${uid})`} />
+                    <path d={area} opacity={0.16} clipPath={`url(#pos-${uid})`} style={{ fill: diverging.pos }} />
+                    <path d={area} opacity={0.16} clipPath={`url(#neg-${uid})`} style={{ fill: diverging.neg }} />
                   </g>
                 );
               })()}
@@ -342,7 +342,7 @@ export function LineChart({
                 if (!line) return null;
                 const base = pad.t + plotH;
                 const area = `${line}L${sx(geom.xMax).toFixed(1)} ${base}L${sx(geom.xMin).toFixed(1)} ${base}Z`;
-                return <path className="st-reveal-x" d={area} fill={series[0].color} opacity={0.1} />;
+                return <path className="st-reveal-x" d={area} opacity={0.1} style={{ fill: series[0].color }} />;
               })()}
 
               {/* Lines */}
@@ -352,11 +352,11 @@ export function LineChart({
                     key={s.name}
                     d={buildPath(x, s.y, sx, sy)}
                     fill="none"
-                    stroke={s.color}
                     strokeWidth={2}
                     strokeDasharray={s.dash}
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    style={{ stroke: s.color }}
                   />
                 ))}
               </g>
@@ -365,7 +365,7 @@ export function LineChart({
             {/* Markers (surface ring keeps them legible over lines) */}
             {markers.map((m, i) => (
               <g key={`m${i}`}>
-                <circle cx={sx(m.x)} cy={sy(m.y)} r={4.5} fill={m.color} stroke="var(--bg-surface-solid)" strokeWidth={2} />
+                <circle cx={sx(m.x)} cy={sy(m.y)} r={4.5} strokeWidth={2} style={{ fill: m.color, stroke: "var(--bg-surface-solid)" }} />
                 {m.label && (
                   <text
                     x={sx(m.x)}
@@ -401,9 +401,8 @@ export function LineChart({
                       cx={sx(x[hoverIdx])}
                       cy={sy(v)}
                       r={4}
-                      fill={s.color}
-                      stroke="var(--bg-surface-solid)"
                       strokeWidth={2}
+                      style={{ fill: s.color, stroke: "var(--bg-surface-solid)" }}
                     />
                   );
                 })}
@@ -439,12 +438,11 @@ export function LineChart({
               {xLabel ? `${xLabel}: ` : "x = "}
               <span className="font-mono text-[var(--text-primary)]">{fmtNum(x[hoverIdx], 4)}</span>
             </p>
+            {/* Keyed by swatch only: the series is already named in the card / legend. */}
             {tipRows.map(({ s, v }) => (
               <p key={s.name} className="flex items-center justify-between gap-3">
-                <span className="flex min-w-0 items-center gap-1.5 text-[var(--text-secondary)]">
-                  <SeriesSwatch color={s.color} dash={s.dash} width={16} />
-                  <RichText className="min-w-0 max-w-[10rem] truncate" text={s.name} />
-                </span>
+                <SeriesSwatch color={s.color} dash={s.dash} width={16} />
+                <span className="sr-only">{s.name}</span>
                 <span className="font-mono font-semibold text-[var(--text-primary)]">{fmtNum(v as number, 4)}</span>
               </p>
             ))}

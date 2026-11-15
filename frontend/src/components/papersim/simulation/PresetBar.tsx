@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, RotateCcw, Sparkle } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import type { SimPreset, SimulationParam } from "../../../types/scholartwin";
 import { RichText } from "../../math/MathTex";
 import { clampSnap } from "./format";
@@ -36,7 +36,16 @@ export function matches(a: Record<string, number>, b: Record<string, number>, pa
   });
 }
 
-/** Scenario chips from the paper (docs.presets) + "Paper defaults". Active chip = current values. */
+/** Ink-filled when chosen (Meadow Glass: the chosen scenario reads as solid ink on paper). */
+const CHIP_ON =
+  "border-transparent bg-[var(--text-primary)] text-[var(--bg-surface-solid)] shadow-[var(--shadow-card)]";
+const CHIP_OFF =
+  "apple-glass border-[var(--glass-rim)] text-[var(--text-primary)] hover:border-[var(--accent-border)]";
+
+/**
+ * Scenario chips from the paper (docs.presets) + "Paper defaults", at the top of the chart card.
+ * The active chip matches the current values; hovering a chip explains it.
+ */
 export function PresetBar({ params, presets, values, onApply }: PresetBarProps) {
   const [hovered, setHovered] = useState<number | null>(null);
   const defaults = defaultsOf(params);
@@ -47,23 +56,18 @@ export function PresetBar({ params, presets, values, onApply }: PresetBarProps) 
   const described = describeIdx !== null ? presets[describeIdx] : null;
 
   return (
-    <div className="apple-sheet st-fade-up rounded-[22px] px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="apple-label mr-1 flex items-center gap-1.5 pl-1 text-[10px] font-semibold uppercase text-[var(--text-muted)]">
-          <Sparkle className="h-3 w-3" />
-          Scenarios
-        </span>
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Scenarios">
         <button
           type="button"
           onClick={() => onApply(defaults)}
           aria-pressed={atDefaults}
-          className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium ${
-            atDefaults
-              ? "border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]"
-              : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+          title={atDefaults ? "The paper's own parameter values" : "Back to the paper's own parameter values"}
+          className={`apple-press apple-focus flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium ${
+            atDefaults ? CHIP_ON : CHIP_OFF
           }`}
         >
-          {atDefaults ? <Check className="h-3 w-3" /> : <RotateCcw className="h-3 w-3" />}
+          {atDefaults ? <Check className="h-3 w-3" aria-hidden /> : <RotateCcw className="h-3 w-3" aria-hidden />}
           {atDefaults ? "Paper defaults" : "Reset all"}
         </button>
         {presets.map((preset, i) => {
@@ -79,31 +83,29 @@ export function PresetBar({ params, presets, values, onApply }: PresetBarProps) 
               onBlur={() => setHovered(null)}
               aria-pressed={active}
               title={preset.description}
-              className={`apple-press apple-focus flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-left text-xs ${
-                active
-                  ? "apple-seg-on border-[var(--accent-border)] font-semibold text-[var(--accent)]"
-                  : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--text-primary)]"
+              className={`apple-press apple-focus flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-left text-xs font-medium ${
+                active ? CHIP_ON : CHIP_OFF
               }`}
             >
-              {active && <Check className="h-3 w-3 shrink-0" />}
+              {active && <Check className="h-3 w-3 shrink-0" aria-hidden />}
               {preset.name}
             </button>
           );
         })}
       </div>
       {described?.description && (
-        <p key={describeIdx} className="st-fade-down mt-2 px-1 text-[11px] leading-snug text-[var(--text-muted)]">
-          <span className="font-semibold text-[var(--text-secondary)]">{described.name}: </span>
+        <p key={describeIdx} className="st-fade-down mt-2 px-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+          <span className="font-medium text-[var(--text-primary)]">{described.name}: </span>
           <RichText text={described.description} />
           {described.expected && (
             <>
               {" "}
-              <span className="font-semibold text-[var(--accent)]">What to look for: </span>
+              <span className="font-medium text-[var(--accent)]">What to look for: </span>
               <RichText text={described.expected} />
             </>
           )}
           {described.source?.page != null && (
-            <span className="ml-1 font-mono text-[10px] text-[var(--text-muted)]">
+            <span className="ml-1 font-mono text-[11px] text-[var(--text-muted)]">
               ({described.source.section ? `${described.source.section}, ` : ""}p.{described.source.page})
             </span>
           )}
