@@ -1,6 +1,6 @@
-# ScholarTwin — System & UI Design
+# Athena — System & UI Design
 
-ScholarTwin is a multimodal AI research and learning workspace. It has three modules, **LectureUnderstanding**, **PaperSim** and **HypothesisGraph**, plus **Circle-to-Ask** spatial tutoring and a live **Synthesia + LiveKit** avatar tutor.
+Athena is a multimodal AI research and learning workspace. It has three modules, **LectureUnderstanding**, **PaperSim** and **HypothesisGraph**, plus **Circle-to-Ask** spatial tutoring and a live **Synthesia + LiveKit** avatar tutor.
 
 ---
 
@@ -9,7 +9,7 @@ ScholarTwin is a multimodal AI research and learning workspace. It has three mod
 ```mermaid
 flowchart LR
   subgraph Client["Frontend (Next.js 16 · :3000)"]
-    Home["HomeHub<br/>(ScholarTwin landing)"]
+    Home["HomeHub<br/>(Athena landing)"]
     Lib["LibraryView<br/>(Lecture / PaperSim libraries)"]
     LW["Lecture workspace<br/>(AvatarDock · GraphCanvas · Circle-to-Ask)"]
     PS["PaperSim workspace<br/>(4 analysis tabs)"]
@@ -150,7 +150,7 @@ Evidence counts always appear as coloured dot plus number, using the same three 
 - **Actions:** screen actions use `HeaderAction`, whose labels collapse to icons below `lg`; an active action is `apple-tint` in the module hue. Theme labels hide below `xl`.
 - **Live Tutor is not in the header.** It is the floating `LiveTutorFab` inside each screen's content (§2.1).
 - **Overflow:** the bar must never overflow, down to 390 px.
-- **Landing page:** the header carries only the global controls. The **ScholarTwin** wordmark sits centre stage in the hero instead.
+- **Landing page:** the header carries only the global controls. The **Athena** wordmark sits centre stage in the hero instead.
 
 **Hero screens** (home, libraries, HypothesisGraph before a search):
 - A centred column (`max-w-2xl`–`5xl`), vertically centred with `my-auto`, not `justify-center`, so tall content scrolls instead of clipping.
@@ -179,7 +179,7 @@ All custom animations use the `st-` prefix, so one global rule switches them off
 | `st-aurora`, `st-aurora-slow`, `st-grid` | Slow ambient blobs, masked grid | Hero backdrops |
 | `st-glow-border` | Rotating conic ring; recolour with `--st-glow-a` / `--st-glow-b` | Hero input panels |
 | `st-sheen` | Light sweep on hover | Cards, primary buttons |
-| `st-pan` | Panning gradient | The ScholarTwin wordmark |
+| `st-pan` | Panning gradient | The Athena wordmark |
 | `st-progress` | Indeterminate bar | Uploads, topic search |
 | `st-shake` | Short shake | Error messages |
 | `st-draw`, `st-march`, `st-node-in`, `st-ping` | SVG path draw-in, marching dashes, node pop, pulse ring | Evidence glyph, small illustrations |
@@ -253,7 +253,7 @@ The root route `/` ([page.tsx](frontend/src/app/page.tsx)) switches between clie
 type Screen = "home" | "library" | "lecture-workspace" | "papersim-workspace" | "hypothesis-chat"
 ```
 
-1. **Home** ([HomeHub.tsx](frontend/src/components/HomeHub.tsx)): the ScholarTwin wordmark and tagline, then three module cards.
+1. **Home** ([HomeHub.tsx](frontend/src/components/HomeHub.tsx)): the Athena wordmark and tagline, then three module cards.
 2. **Library** ([LibraryView.tsx](frontend/src/components/LibraryView.tsx)): one per module (lecture or PaperSim). The hero New Conversation panel sits above the saved topics, which are kept in `localStorage` under `scholartwin.library.v1` via `useSyncExternalStore` to avoid hydration mismatches.
 3. **Lecture workspace** ([page.tsx](frontend/src/app/page.tsx)): two panes.
    - **Left, 310 px:** `AvatarDock` with `LiveAvatarTile`, ask input, voice and TTS toggle.

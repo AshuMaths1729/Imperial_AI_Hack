@@ -20,7 +20,7 @@ try {
     Wait-Process -Id $backendProc.Id, $frontendProc.Id
 }
 finally {
-    Write-Host "Stopping ScholarTwin..."
+    Write-Host "Stopping Athena..."
     foreach ($p in @($backendProc, $frontendProc)) {
         if ($p -and -not $p.HasExited) {
             # /T also stops child processes (uvicorn reloader, next dev workers)

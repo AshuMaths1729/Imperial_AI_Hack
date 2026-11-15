@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Hackathon project (Imperial AI Hack): **ScholarTwin**. There is a working Phase-1 skeleton (FastAPI backend + Next.js frontend running on cached demo data and heuristic stubs) but no tests, and none of the LLM / sponsor-tool integrations from the guide are wired up yet. Docs:
+Hackathon project (Imperial AI Hack): **Athena**. There is a working Phase-1 skeleton (FastAPI backend + Next.js frontend running on cached demo data and heuristic stubs) but no tests, and none of the LLM / sponsor-tool integrations from the guide are wired up yet. Docs:
 
 - `idea.md` — the three source ideas being merged (LectureGraph, Paper2Sim, CiteCheck/HypothesisGraph) plus an interactive digital avatar.
 - `implementation_guide.md` — the authoritative plan: master idea prompt (§1), positioning vs. DeepTutor (§2), implementation-agnostic architecture, design principles and shared contracts (§3), the phased 24–36h build plan plus stretch goals (§4), and a risk register (§5). Read it before designing anything. The product concept (§1–2: three modules + avatar, 3-pane workspace, demo flow) is fixed; change implementation details, not the concept.
@@ -49,7 +49,7 @@ npm run lint                    # eslint
 
 ## Intended architecture (summary of guide §3 and the Phase 2.0 recommended implementation)
 
-ScholarTwin is **one unified 3-pane workspace**, not four separate apps. Every node/graphic can be *Explained* (avatar + Circle-to-Ask + quiz), *Simulated* (Paper2Sim), or *Fact-Checked* (HypothesisGraph).
+Athena is **one unified 3-pane workspace**, not four separate apps. Every node/graphic can be *Explained* (avatar + Circle-to-Ask + quiz), *Simulated* (Paper2Sim), or *Fact-Checked* (HypothesisGraph).
 
 - **Left pane:** Anam avatar, voice/mic controls, source uploader.
 - **Center pane:** React Flow graph / Plotly sim plot / contradiction graph with a transparent `<canvas>`/SVG "Circle-to-Ask" lasso overlay.

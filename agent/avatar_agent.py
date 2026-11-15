@@ -1,4 +1,4 @@
-"""ScholarTwin live avatar tutor: ElevenLabs STT -> Claude Haiku -> ElevenLabs TTS -> Synthesia avatar.
+"""Athena live avatar tutor: ElevenLabs STT -> Claude Haiku -> ElevenLabs TTS -> Synthesia avatar.
 
 The backend (`POST /api/tutor/session`) dispatches this worker with metadata
 `{tutor_id, tutors: [{tutor_id, name, avatar_id, voice_id, style_prompt, ...}]}`.

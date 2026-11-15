@@ -1,7 +1,7 @@
 [project]
 name = "scholartwin-backend"
 version = "0.2.0"
-description = "ScholarTwin API: PDF/graph pipeline, Paper2Sim, platform services"
+description = "Athena API: PDF/graph pipeline, Paper2Sim, platform services"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

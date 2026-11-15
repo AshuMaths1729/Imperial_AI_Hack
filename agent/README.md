@@ -1,6 +1,6 @@
 # Live avatar tutor (LiveKit + Synthesia)
 
-A live, face-to-face AI tutor inside ScholarTwin. The student talks; the tutor answers by voice
+A live, face-to-face AI tutor inside Athena. The student talks; the tutor answers by voice
 with a lip-synced Synthesia avatar, and you can switch tutor mid-call.
 
 ```

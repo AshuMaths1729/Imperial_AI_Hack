@@ -143,7 +143,7 @@ export function LibraryView({
         back={{ label: "Home", onClick: onBackHome }}
         icon={MODE_META[mode].icon}
         title={copy.title}
-        subtitle="ScholarTwin Library"
+        subtitle="Athena Library"
       />
 
       <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 pb-12 pt-8 sm:px-6 sm:pt-10">

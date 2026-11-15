@@ -1,4 +1,4 @@
-# ScholarTwin — Imperial AI Hackathon
+# Athena — Imperial AI Hackathon
 
 An interactive multimodal AI research & learning workspace with a 3-mode entry hub (**LectureUnderstanding**, **PaperSim**, and **HypothesisGraph**), **Circle-to-Ask** spatial tutoring, and a reactive **LiveKit + Synthesia** digital avatar.
 

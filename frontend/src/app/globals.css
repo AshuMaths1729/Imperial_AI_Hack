@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * ScholarTwin Design System: "Liquid Glass"
+ * Athena Design System: "Liquid Glass"
  * - Controls float over the content as translucent layers with a bright rim, an inner
  *   highlight and a soft specular sheen; a static colour field sits behind every screen.
  * - Okabe-Ito / CVD-safe semantic palette (distinguishable across protanopia, deuteranopia, tritanopia)
@@ -230,7 +230,7 @@ html {
   font-size: 17.5px;
 }
 
-/* ---------- ScholarTwin motion utilities (st-*) ---------- */
+/* ---------- Athena motion utilities (st-*) ---------- */
 @keyframes st-fade-up {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

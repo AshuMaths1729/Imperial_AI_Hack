@@ -9,7 +9,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "sw
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "ScholarTwin — Spatial AI Research & Learning Workspace",
+  title: "Athena — Spatial AI Research & Learning Workspace",
   description: "Interactive concept graphs, live paper simulations, and cross-paper contradiction maps.",
 };
 

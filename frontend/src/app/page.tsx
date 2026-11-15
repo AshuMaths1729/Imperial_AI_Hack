@@ -75,7 +75,7 @@ function getServerLibrarySnapshot(): LibraryTopic[] {
 
 type Screen = "home" | "library" | "papersim-workspace" | "hypothesis-chat";
 
-export default function ScholarTwinWorkspace() {
+export default function AthenaWorkspace() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>("home");
   const libraryTopics = useSyncExternalStore(

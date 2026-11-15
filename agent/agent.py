@@ -1,4 +1,4 @@
-"""ScholarTwin live tutor worker: ElevenLabs STT -> Claude Haiku -> ElevenLabs TTS (+ Synthesia avatar),
+"""Athena live tutor worker: ElevenLabs STT -> Claude Haiku -> ElevenLabs TTS (+ Synthesia avatar),
 driving the shared whiteboard over RPC and writing lesson memory to the backend.
 
 Run: uv run agent.py dev   (TUTOR_AVATAR=0 for voice only)

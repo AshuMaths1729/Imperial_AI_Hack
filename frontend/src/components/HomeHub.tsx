@@ -106,7 +106,7 @@ export function HomeHub({ onSelectMode }: HomeHubProps) {
                     "linear-gradient(90deg, var(--accent), var(--status-support), var(--status-gap), var(--accent))",
                 }}
               >
-                ScholarTwin
+                Athena
               </h1>
             </div>
             <p

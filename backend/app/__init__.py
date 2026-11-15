@@ -1,1 +1,1 @@
-"""ScholarTwin backend package."""
+"""Athena backend package."""

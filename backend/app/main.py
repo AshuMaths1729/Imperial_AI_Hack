@@ -58,7 +58,7 @@ def _custom_openapi(app: FastAPI) -> dict[str, Any]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
-    app = FastAPI(title="ScholarTwin API", version="0.2.0")
+    app = FastAPI(title="Athena API", version="0.2.0")
 
     app.add_middleware(
         CORSMiddleware,
