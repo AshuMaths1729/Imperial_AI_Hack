@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from schemas import WorkspaceDataset
 
 from . import deck as decks
 from . import pdf
@@ -17,9 +16,11 @@ from .models import KP, Lesson, LessonCheckpoint, Material, Struggle, Track, Wor
 from .livekit_token import mint_token
 from .store import Store, make_store
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+# keys: the repo-root .env (main's convention), then backend/.env if present
+load_dotenv(Path(__file__).resolve().parents[4] / ".env")
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
-tutor_router = APIRouter(prefix="/api/tutor")
+tutor_router = APIRouter(prefix="/lesson", tags=["lesson"])  # mounted under /api by app.main: /api/lesson/...
 
 _store: Optional[Store] = None
 # Sync endpoints run in a threadpool; read-modify-write endpoints hold this for their whole body.
@@ -60,10 +61,29 @@ class SessionIn(BaseModel):
     user_id: str = "demo"
 
 
+class MaterialNode(BaseModel):
+    id: str
+    label: str
+    summary: str = ""
+
+
+class MaterialEdge(BaseModel):
+    source: str
+    target: str
+    type: str = "prerequisite"
+
+
+class MaterialDataset(BaseModel):
+    """The concept graph of an ingested material (only what a track needs: KPs and their prerequisites)."""
+    title: str
+    nodes: List[MaterialNode] = []
+    edges: List[MaterialEdge] = []
+
+
 class MaterialIn(BaseModel):
     kind: Literal["pdf", "url", "demo"]
     ref: str
-    dataset: WorkspaceDataset
+    dataset: MaterialDataset
 
 
 class KPUpdate(BaseModel):

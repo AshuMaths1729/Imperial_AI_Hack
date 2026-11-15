@@ -6,11 +6,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from tutor import deck as decks
-from tutor.router import get_deck_llm, get_store, tutor_router
-from tutor import seed
-from tutor.seed import demo_track, differentiation_track
-from tutor.store import JsonBackend, make_store
+from app.modules.lesson import deck as decks
+from app.modules.lesson.router import get_deck_llm, get_store, tutor_router
+from app.modules.lesson import seed
+from app.modules.lesson.seed import demo_track, differentiation_track
+from app.modules.lesson.store import JsonBackend, make_store
 
 FALLBACK = decks.fallback_deck("gradient-descent")
 GD_KPS = ["gd1", "gd2", "gd3", "gd4"]
@@ -172,9 +172,9 @@ def test_materials_text_resolves_demo_dataset():
 
 
 def test_differentiation_material_is_a_workspace_dataset():
-    from schemas import WorkspaceDataset
+    from app.modules.lesson.router import MaterialDataset
     tr = differentiation_track()
-    ds = WorkspaceDataset.model_validate_json((decks.DEMO_DIR / f"{tr.materials[0].ref}.json").read_text())
+    ds = MaterialDataset.model_validate_json((decks.DEMO_DIR / f"{tr.materials[0].ref}.json").read_text())
     assert ds.nodes and "gradient" in decks.materials_text(tr).lower()
 
 
@@ -210,7 +210,7 @@ def env(tmp_path, monkeypatch):
     store = make_store()
     llm = FakeLLM()
     app = FastAPI()
-    app.include_router(tutor_router)
+    app.include_router(tutor_router, prefix="/api")
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_deck_llm] = lambda: llm
     return TestClient(app), store, llm
@@ -218,24 +218,24 @@ def env(tmp_path, monkeypatch):
 
 def test_get_deck_serves_fallback_before_generation(env):
     client, _, _ = env
-    body = client.get("/api/tutor/tracks/gradient-descent/deck").json()
+    body = client.get("/api/lesson/tracks/gradient-descent/deck").json()
     assert body["status"] == "none" and body["source"] == "fallback" and body["deck"]["slides"]
-    assert client.get("/api/tutor/tracks/nope/deck").status_code == 404
+    assert client.get("/api/lesson/tracks/nope/deck").status_code == 404
 
 
 def test_track_without_fallback_has_no_deck(env):
     client, _, _ = env
-    tid = client.post("/api/tutor/tracks", json={"title": "X"}).json()["track_id"]
-    body = client.get(f"/api/tutor/tracks/{tid}/deck").json()
+    tid = client.post("/api/lesson/tracks", json={"title": "X"}).json()["track_id"]
+    body = client.get(f"/api/lesson/tracks/{tid}/deck").json()
     assert body["deck"] is None and body["source"] is None
 
 
 def test_post_generates_in_background_and_caches(env):
     client, store, llm = env
     llm.replies.append(tool_reply(tiny_deck()))
-    started = client.post("/api/tutor/tracks/gradient-descent/deck").json()
+    started = client.post("/api/lesson/tracks/gradient-descent/deck").json()
     assert started["status"] == "generating"
-    body = client.get("/api/tutor/tracks/gradient-descent/deck").json()  # TestClient ran the background task
+    body = client.get("/api/lesson/tracks/gradient-descent/deck").json()  # TestClient ran the background task
     assert body["status"] == "ready" and body["source"] == "generated" and body["deck"]["slides"][0]["id"] == "s1"
     assert store.get_deck("gradient-descent")["status"] == "ready"
 
@@ -243,9 +243,9 @@ def test_post_generates_in_background_and_caches(env):
 def test_failed_regeneration_keeps_previous_deck(env):
     client, store, llm = env
     llm.replies += [tool_reply(tiny_deck()), RuntimeError("API down")]
-    client.post("/api/tutor/tracks/gradient-descent/deck")
-    client.post("/api/tutor/tracks/gradient-descent/deck")
-    body = client.get("/api/tutor/tracks/gradient-descent/deck").json()
+    client.post("/api/lesson/tracks/gradient-descent/deck")
+    client.post("/api/lesson/tracks/gradient-descent/deck")
+    body = client.get("/api/lesson/tracks/gradient-descent/deck").json()
     assert body["status"] == "failed" and "API down" in body["error"]
     assert body["source"] == "generated" and body["deck"]["slides"][0]["id"] == "s1"
 
@@ -253,7 +253,7 @@ def test_failed_regeneration_keeps_previous_deck(env):
 def test_post_while_generating_does_not_start_another(env):
     client, store, llm = env
     store.save_deck("gradient-descent", {"status": "generating", "updated_at": decks.now()})
-    assert client.post("/api/tutor/tracks/gradient-descent/deck").json()["status"] == "generating"
+    assert client.post("/api/lesson/tracks/gradient-descent/deck").json()["status"] == "generating"
     assert llm.bodies == []
 
 
@@ -261,5 +261,5 @@ def test_stale_generating_doc_is_restarted(env):
     client, store, llm = env
     store.save_deck("gradient-descent", {"status": "generating", "updated_at": "2020-01-01T00:00:00+00:00"})
     llm.replies.append(tool_reply(tiny_deck()))
-    client.post("/api/tutor/tracks/gradient-descent/deck")
+    client.post("/api/lesson/tracks/gradient-descent/deck")
     assert len(llm.bodies) == 1

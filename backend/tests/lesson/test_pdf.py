@@ -3,12 +3,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from tutor import deck as decks
-from tutor import pdf
-from tutor.router import get_deck_llm, get_store, tutor_router
-from tutor.store import make_store
+from app.modules.lesson import deck as decks
+from app.modules.lesson import pdf
+from app.modules.lesson.router import get_deck_llm, get_store, tutor_router
+from app.modules.lesson.store import make_store
 
-from test_deck import FakeLLM, tiny_deck, tool_reply
+from tests.lesson.test_deck import FakeLLM, tiny_deck, tool_reply
 
 PAGES = [
     "Differentiation notes\nThe gradient of a straight line is rise over run.\nFor y = 3x + 1 the gradient is 3.",
@@ -38,16 +38,16 @@ def env(tmp_path, monkeypatch):
     store = make_store()
     llm = FakeLLM()
     app = FastAPI()
-    app.include_router(tutor_router)
+    app.include_router(tutor_router, prefix="/api")
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_deck_llm] = lambda: llm
     client = TestClient(app)
-    tid = client.post("/api/tutor/tracks", json={"title": "Diff"}).json()["track_id"]
+    tid = client.post("/api/lesson/tracks", json={"title": "Diff"}).json()["track_id"]
     return client, store, llm, tid
 
 
 def upload(client, tid, data, name="notes.pdf"):
-    return client.post(f"/api/tutor/tracks/{tid}/materials/pdf", files={"file": (name, data, "application/pdf")})
+    return client.post(f"/api/lesson/tracks/{tid}/materials/pdf", files={"file": (name, data, "application/pdf")})
 
 
 def test_upload_stores_text_material_and_llm_kps(env):
@@ -112,10 +112,10 @@ def test_deck_prompt_uses_pdf_text(env):
     upload(client, tid, make_pdf())
     kp_ids = [k.kp_id for k in store.get_track(tid).knowledge_points]
     llm.replies.append(tool_reply(tiny_deck(kp_ids)))
-    client.post(f"/api/tutor/tracks/{tid}/deck")
+    client.post(f"/api/lesson/tracks/{tid}/deck")
     prompt = llm.bodies[1]["messages"][0]["content"]
     assert "A chord joins (1, 1) and (3, 9)" in prompt and "As h tends to 0" in prompt
-    assert client.get(f"/api/tutor/tracks/{tid}/deck").json()["status"] == "ready"
+    assert client.get(f"/api/lesson/tracks/{tid}/deck").json()["status"] == "ready"
 
 
 def test_pdf_excerpt_keeps_kp_pages_in_order():

@@ -21,10 +21,10 @@ from .models import Track
 log = logging.getLogger("tutor.deck")
 
 MODEL = "claude-sonnet-5-5"
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[4]  # repo root (backend/app/modules/lesson/deck.py)
 SLIDES_DIR = ROOT / "frontend/src/tutor/slides"
 FALLBACK_DIR = SLIDES_DIR / "decks"
-DEMO_DIR = Path(__file__).resolve().parents[1] / "demo_data"
+DEMO_DIR = Path(__file__).resolve().parent / "demo"  # the lesson module's own demo materials
 STALE_S = 600  # a "generating" doc older than this was orphaned (e.g. server restart): allow a new run
 
 Id = Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")]

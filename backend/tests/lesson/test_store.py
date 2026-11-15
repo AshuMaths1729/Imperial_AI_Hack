@@ -1,6 +1,6 @@
 import pytest
 
-from tutor.store import make_store
+from app.modules.lesson.store import make_store
 
 
 @pytest.fixture
