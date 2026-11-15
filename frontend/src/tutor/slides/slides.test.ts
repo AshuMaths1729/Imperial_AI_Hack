@@ -180,7 +180,7 @@ describe("deck navigation", () => {
     expect(d.slides.map((s) => s.title)).toContain("Momentum: a heavy ball");
     expect(d.current!.objects.find((o) => o.id === "tan")).toEqual({ id: "tan", kind: "tangent" });
     expect(d.current!.narration).toHaveLength(byId("gradient").steps!.length);
-    expect(d.current).not.toHaveProperty("idea");
+    expect(d.current!.idea).toBe(byId("gradient").idea); // the demo deck carries the lesson plan
     const planned = { ...emptyDeck(deck.slides), slides: [{ ...tiny, idea: "One idea.", check: "What happens next?" }] };
     expect(describeDeck(planned).current).toMatchObject({ idea: "One idea.", check: "What happens next?" });
     const small = describeDeck(goTo(st(), 3).state, 1500);
