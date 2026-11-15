@@ -16,6 +16,8 @@ export const MAX_ZOOM = 1.35;
 /** Following frames at least this much page width, so a short line keeps some context. */
 const MIN_FRAME_W = 600;
 const PAD = 20; // page units around the framed region
+/** Near the page top, zoom out at most to this fraction to show the page from its top rather than slice its first lines. */
+const TOP_SNAP_ZOOM = 0.8;
 export const FOLLOW_PAUSE_MS = 6000;
 
 /**
@@ -42,18 +44,22 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
  * tldraw camera (screen = (page + camera) · z) that frames `region` (page units) in the clear area of the viewport.
  * Zoom comes from the region's width (readable, never past the page width or MAX_ZOOM); `anchor` (default: the region)
  * must fit in height. A region taller than the screen is scrolled so the anchor — the newest line — sits at the bottom.
- * Null while the viewport is too small to frame anything (the same crash guard as fitBoardCamera).
+ * Near the page top the view starts at the page top instead (zooming out a little if needed), so the first lines are
+ * never sliced under the top bar. Null while the viewport is too small to frame anything (same guard as fitBoardCamera).
  */
 export function cameraFor(viewport: { w: number; h: number }, region: Box, anchor: Box = region): { x: number; y: number; z: number } | null {
   if (!usable(viewport)) return null;
   const availW = viewport.w - INSETS.left - INSETS.right;
   const availH = viewport.h - INSETS.top - INSETS.bottom;
   const frameW = clamp(region.w + 2 * PAD, MIN_FRAME_W, BOARD_W);
-  const z = Math.min(MAX_ZOOM, availW / frameW, availH / (anchor.h + 2 * PAD));
+  const fitZ = Math.min(MAX_ZOOM, availW / frameW, availH / (anchor.h + 2 * PAD));
+  const topZ = Math.min(fitZ, availH / (Math.max(region.y + region.h, anchor.y + anchor.h) + PAD));
+  const fromTop = topZ >= fitZ * TOP_SNAP_ZOOM;
+  const z = fromTop ? topZ : fitZ;
   const viewW = availW / z, viewH = availH / z;
 
   const left = clamp(region.x + region.w / 2 - viewW / 2, 0, Math.max(0, BOARD_W - viewW));
-  const top = (region.h + 2 * PAD) * z <= availH
+  const top = fromTop ? 0 : (region.h + 2 * PAD) * z <= availH
     ? region.y + region.h / 2 - viewH / 2
     : anchor.y + anchor.h + PAD - viewH;
   const topClamped = clamp(top, 0, Math.max(0, BOARD_H - viewH));
@@ -63,3 +69,10 @@ export function cameraFor(viewport: { w: number; h: number }, region: Box, ancho
 /** True while the student's recent pan/zoom/drawing should keep the camera still. */
 export const followPaused = (lastUserInputAt: number | undefined, now: number) =>
   lastUserInputAt !== undefined && now - lastUserInputAt < FOLLOW_PAUSE_MS;
+
+/** Is `b` (page units) fully in the part of the viewport not covered by tldraw's bars? */
+export function inClearView(viewport: Box, zoom: number, b: Box): boolean {
+  const x = viewport.x + INSETS.left / zoom, y = viewport.y + INSETS.top / zoom;
+  const r = viewport.x + viewport.w - INSETS.right / zoom, btm = viewport.y + viewport.h - INSETS.bottom / zoom;
+  return b.x >= x && b.y >= y && b.x + b.w <= r && b.y + b.h <= btm;
+}

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Editor, TLShapeId } from "tldraw";
-import { BoardFx } from "./fx";
+import { BoardFx, GLIDE_MS, glowMs } from "./fx";
 
 const fakeEditor = () => ({ on: vi.fn(), off: vi.fn() }) as unknown as Editor;
 
@@ -16,6 +16,69 @@ describe("laser", () => {
     expect(fx.laser.get()).toEqual({ x: 100, y: 200 });
     fx.point(300, 50);
     expect(fx.laser.get()).toEqual({ x: 300, y: 50 });
+    fx.dispose();
+  });
+});
+
+describe("laser trace and highlight", () => {
+  afterEach(() => vi.useRealTimers());
+  const row = [[{ x: 0, y: 30 }, { x: 300, y: 30 }]];
+  const mark = { path: [[{ x: 0, y: 15 }, { x: 300, y: 15 }]], width: 30 };
+
+  it("glides to the line's start, then travels along it and stays parked at its end", () => {
+    vi.useFakeTimers();
+    const fx = new BoardFx(fakeEditor());
+    fx.trace(row, mark);
+    expect(fx.laser.get()).toMatchObject({ x: 0, y: 30 });
+    vi.advanceTimersByTime(GLIDE_MS + 500);
+    const mid = fx.laser.get()!;
+    expect(mid.x).toBeGreaterThan(0);
+    expect(mid.x).toBeLessThan(300);
+    expect(mid.travel).toBe(true); // no CSS glide while travelling: it moves with the voice, frame by frame
+    vi.advanceTimersByTime(10_000);
+    expect(fx.laser.get()).toEqual({ x: 300, y: 30, travel: false });
+    fx.dispose();
+  });
+
+  it("the pointed item glows while the laser travels, then the glow goes (it is never stored)", () => {
+    vi.useFakeTimers();
+    const fx = new BoardFx(fakeEditor());
+    fx.trace(row, mark);
+    expect(fx.glow.get()).toBeNull();
+    vi.advanceTimersByTime(GLIDE_MS);
+    expect(fx.glow.get()).toMatchObject({ path: mark.path, width: 30 });
+    const life = glowMs(fx.glow.get()!.ms);
+    expect(life).toBeGreaterThanOrEqual(1500);
+    vi.advanceTimersByTime(life + 10);
+    expect(fx.glow.get()).toBeNull();
+    fx.dispose();
+  });
+
+  it("a new point takes over: the old travel stops and the old glow cannot clear the new one", () => {
+    vi.useFakeTimers();
+    const fx = new BoardFx(fakeEditor());
+    fx.trace(row, mark);
+    vi.advanceTimersByTime(GLIDE_MS + 300);
+    const other = { path: [[{ x: 0, y: 500 }, { x: 100, y: 500 }]], width: 30 };
+    fx.trace([[{ x: 0, y: 515 }, { x: 100, y: 515 }]], other);
+    expect(fx.laser.get()).toMatchObject({ x: 0, y: 515 });
+    vi.advanceTimersByTime(GLIDE_MS + 50);
+    expect(fx.glow.get()?.path).toBe(other.path);
+    vi.advanceTimersByTime(10_000);
+    expect(fx.laser.get()).toMatchObject({ x: 100, y: 515 });
+    expect(fx.glow.get()).toBeNull();
+    fx.dispose();
+  });
+
+  it("reduced motion: the laser jumps to the item, no travel and no glow", () => {
+    vi.useFakeTimers();
+    const mm = vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true } as MediaQueryList);
+    const fx = new BoardFx(fakeEditor());
+    fx.trace(row, mark);
+    vi.advanceTimersByTime(10_000);
+    expect(fx.laser.get()).toEqual({ x: 0, y: 30 });
+    expect(fx.glow.get()).toBeNull();
+    mm.mockRestore();
     fx.dispose();
   });
 });

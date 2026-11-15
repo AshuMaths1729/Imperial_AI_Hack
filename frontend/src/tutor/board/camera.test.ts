@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { cameraFor, fitBoardCamera, followPaused, INSETS, MAX_ZOOM, type CameraEditor } from "./camera";
+import { cameraFor, fitBoardCamera, followPaused, inClearView, INSETS, MAX_ZOOM, type CameraEditor } from "./camera";
 
 function fakeEditor(w: number, h: number) {
   const container = {} as HTMLElement;
@@ -97,6 +97,13 @@ describe("cameraFor", () => {
     expect(br.y).toBeGreaterThan(vp.h - INSETS.bottom - 60);
   });
 
+  it("near the top of the page the view starts at the page top: the first line is never cut by the top bar", () => {
+    // the question at y=20, then a derivation under it is followed (the real case: q sat half under the toolbar)
+    const c = cameraFor(vp, { x: 20, y: 104, w: 548, h: 314 }, { x: 20, y: 169, w: 213, h: 67 });
+    expect(toScreen(c, 0, 0).y).toBeCloseTo(INSETS.top, 5);
+    expect(toScreen(c, 0, 418).y).toBeLessThanOrEqual(vp.h - INSETS.bottom + 0.01);
+  });
+
   it("a short region is centred vertically in the clear area", () => {
     const c = cameraFor(vp, { x: 300, y: 1500, w: 400, h: 100 });
     const mid = toScreen(c, 500, 1550);
@@ -115,5 +122,23 @@ describe("followPaused", () => {
     expect(followPaused(undefined, 1000)).toBe(false);
     expect(followPaused(10_000, 12_000)).toBe(true);
     expect(followPaused(10_000, 16_100)).toBe(false);
+  });
+});
+
+describe("inClearView", () => {
+  // viewport in page units at zoom 2: the bars cover INSETS / 2 page units of it
+  const vp = { x: 0, y: 100, w: 500, h: 400 };
+
+  it("an item well inside the screen is in view", () => {
+    expect(inClearView(vp, 2, { x: 100, y: 200, w: 200, h: 40 })).toBe(true);
+  });
+
+  it("an item tucked under the top bar or bottom toolbar is not (the camera pans to it)", () => {
+    expect(inClearView(vp, 2, { x: 100, y: 105, w: 200, h: 30 })).toBe(false);
+    expect(inClearView(vp, 2, { x: 100, y: 480, w: 200, h: 15 })).toBe(false);
+  });
+
+  it("an item off screen is not", () => {
+    expect(inClearView(vp, 2, { x: 100, y: 900, w: 200, h: 40 })).toBe(false);
   });
 });
