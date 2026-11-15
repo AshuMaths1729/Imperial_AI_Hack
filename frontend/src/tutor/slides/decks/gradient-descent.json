@@ -7,6 +7,8 @@
    "kp_ids": [
     "gd1"
    ],
+   "idea": "Training a model means finding the lowest point of a loss landscape that we can only feel locally.",
+   "check": "Why can't training just look at the whole landscape and jump to the bottom?",
    "objects": [
     {
      "kind": "axes",
@@ -122,6 +124,9 @@
    "kp_ids": [
     "gd1"
    ],
+   "idea": "The loss is one number that measures how wrong the model is; every setting w gives one loss value.",
+   "builds_on": "landscape",
+   "check": "If the line went exactly through every data point, what would the loss be?",
    "objects": [
     {
      "kind": "axes",
@@ -296,7 +301,7 @@
     {
      "kind": "math",
      "id": "loss_eq",
-     "latex": "L(w)=\\frac{1}{n}\\sum_i \\big(\\color{#FC6255}{y_i - w x_i}\\big)^2",
+     "latex": "L(w)=\\frac{1}{n}\\sum_i \\big(\\textcolor{#FC6255}{y_i - w x_i}\\big)^2",
      "x": 430,
      "y": 790,
      "size": 46
@@ -430,6 +435,9 @@
    "kp_ids": [
     "gd2"
    ],
+   "idea": "The slope of the loss shows which way is uphill, so minus the gradient points downhill.",
+   "builds_on": "loss",
+   "check": "If the slope where you stand is positive, which way should you step?",
    "objects": [
     {
      "kind": "axes",
@@ -475,7 +483,7 @@
     {
      "kind": "math",
      "id": "deriv",
-     "latex": "\\text{slope} = \\color{#FFE45C}{\\frac{dL}{d\\theta}}",
+     "latex": "\\text{slope} = \\textcolor{#FFE45C}{\\frac{dL}{d\\theta}}",
      "x": 1300,
      "y": 250,
      "size": 48
@@ -483,7 +491,7 @@
     {
      "kind": "math",
      "id": "neg",
-     "latex": "\\color{#FFE45C}{\\frac{dL}{d\\theta}} < 0 \\;\\Rightarrow\\; \\text{downhill is right}",
+     "latex": "\\textcolor{#FFE45C}{\\frac{dL}{d\\theta}} < 0 \\;\\Rightarrow\\; \\text{downhill is right}",
      "x": 1300,
      "y": 390,
      "size": 34
@@ -491,7 +499,7 @@
     {
      "kind": "math",
      "id": "pos",
-     "latex": "\\color{#FFE45C}{\\frac{dL}{d\\theta}} > 0 \\;\\Rightarrow\\; \\text{downhill is left}",
+     "latex": "\\textcolor{#FFE45C}{\\frac{dL}{d\\theta}} > 0 \\;\\Rightarrow\\; \\text{downhill is left}",
      "x": 1300,
      "y": 390,
      "size": 34
@@ -529,7 +537,7 @@
     {
      "kind": "math",
      "id": "rule",
-     "latex": "\\color{#FFE45C}{\\nabla L} \\text{ points uphill}",
+     "latex": "\\textcolor{#FFE45C}{\\nabla L} \\text{ points uphill}",
      "x": 1300,
      "y": 530,
      "size": 36
@@ -537,7 +545,7 @@
     {
      "kind": "math",
      "id": "rule2",
-     "latex": "\\color{#83C167}{-\\nabla L} \\text{ points downhill}",
+     "latex": "\\textcolor{#83C167}{-\\nabla L} \\text{ points downhill}",
      "x": 1300,
      "y": 600,
      "size": 36
@@ -630,11 +638,14 @@
    "kp_ids": [
     "gd3"
    ],
+   "idea": "One gradient-descent step moves against the slope, by the learning rate times the slope.",
+   "builds_on": "gradient",
+   "check": "Why do the steps get smaller near the bottom, even though the learning rate stays the same?",
    "objects": [
     {
      "kind": "math",
      "id": "rule",
-     "latex": "\\color{#F0AC5F}{\\theta}_{\\text{new}} = \\color{#F0AC5F}{\\theta} - \\color{#E072C8}{\\eta}\\,\\color{#FFE45C}{\\nabla L}(\\color{#F0AC5F}{\\theta})",
+     "latex": "\\textcolor{#F0AC5F}{\\theta}_{\\text{new}} = \\textcolor{#F0AC5F}{\\theta} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}(\\textcolor{#F0AC5F}{\\theta})",
      "x": 800,
      "y": 215,
      "size": 62
@@ -642,7 +653,7 @@
     {
      "kind": "math",
      "id": "legend",
-     "latex": "\\color{#E072C8}{\\eta}:\\ \\text{step size (learning rate)} \\qquad \\color{#FFE45C}{\\nabla L}:\\ \\text{slope}",
+     "latex": "\\textcolor{#E072C8}{\\eta}:\\ \\text{step size (learning rate)} \\qquad \\textcolor{#FFE45C}{\\nabla L}:\\ \\text{slope}",
      "x": 800,
      "y": 305,
      "size": 30
@@ -770,6 +781,9 @@
    "kp_ids": [
     "gd3"
    ],
+   "idea": "The learning rate must be neither too small (slow) nor too big (overshoots).",
+   "builds_on": "update",
+   "check": "What would you see if the learning rate were far too big?",
    "objects": [
     {
      "kind": "axes",
@@ -814,7 +828,7 @@
     {
      "kind": "math",
      "id": "e_small",
-     "latex": "\\color{#E072C8}{\\eta} = 0.15",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 0.15",
      "x": 300,
      "y": 255,
      "size": 32
@@ -862,7 +876,7 @@
     {
      "kind": "math",
      "id": "e_good",
-     "latex": "\\color{#E072C8}{\\eta} = 0.9",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 0.9",
      "x": 820,
      "y": 255,
      "size": 32
@@ -910,7 +924,7 @@
     {
      "kind": "math",
      "id": "e_big",
-     "latex": "\\color{#E072C8}{\\eta} = 2.7",
+     "latex": "\\textcolor{#E072C8}{\\eta} = 2.7",
      "x": 1340,
      "y": 255,
      "size": 32
@@ -1014,6 +1028,9 @@
    "kp_ids": [
     "gd4"
    ],
+   "idea": "Momentum keeps a velocity, so the ball rolls through small dips instead of stopping in them.",
+   "builds_on": "learning_rate",
+   "check": "Why does plain gradient descent stop in the small dip?",
    "objects": [
     {
      "kind": "axes",
@@ -1062,7 +1079,7 @@
     {
      "kind": "math",
      "id": "mv",
-     "latex": "\\color{#B08CD9}{v} \\leftarrow \\beta\\,\\color{#B08CD9}{v} - \\color{#E072C8}{\\eta}\\,\\color{#FFE45C}{\\nabla L}(\\color{#F0AC5F}{\\theta})",
+     "latex": "\\textcolor{#B08CD9}{v} \\leftarrow \\beta\\,\\textcolor{#B08CD9}{v} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}(\\textcolor{#F0AC5F}{\\theta})",
      "x": 1310,
      "y": 300,
      "size": 44
@@ -1070,7 +1087,7 @@
     {
      "kind": "math",
      "id": "mt",
-     "latex": "\\color{#F0AC5F}{\\theta} \\leftarrow \\color{#F0AC5F}{\\theta} + \\color{#B08CD9}{v}",
+     "latex": "\\textcolor{#F0AC5F}{\\theta} \\leftarrow \\textcolor{#F0AC5F}{\\theta} + \\textcolor{#B08CD9}{v}",
      "x": 1310,
      "y": 390,
      "size": 44
@@ -1242,11 +1259,14 @@
     "gd3",
     "gd4"
    ],
+   "idea": "Loss, gradient, step size and momentum together make the training loop.",
+   "builds_on": "momentum",
+   "check": "What would a negative learning rate do?",
    "objects": [
     {
      "kind": "math",
      "id": "r1m",
-     "latex": "L(\\color{#F0AC5F}{\\theta})",
+     "latex": "L(\\textcolor{#F0AC5F}{\\theta})",
      "x": 420,
      "y": 220,
      "size": 40
@@ -1263,7 +1283,7 @@
     {
      "kind": "math",
      "id": "r2m",
-     "latex": "\\color{#FFE45C}{\\nabla L}",
+     "latex": "\\textcolor{#FFE45C}{\\nabla L}",
      "x": 420,
      "y": 350,
      "size": 40
@@ -1280,7 +1300,7 @@
     {
      "kind": "math",
      "id": "r3m",
-     "latex": "\\color{#F0AC5F}{\\theta} \\leftarrow \\color{#F0AC5F}{\\theta} - \\color{#E072C8}{\\eta}\\,\\color{#FFE45C}{\\nabla L}",
+     "latex": "\\textcolor{#F0AC5F}{\\theta} \\leftarrow \\textcolor{#F0AC5F}{\\theta} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}",
      "x": 420,
      "y": 480,
      "size": 40
@@ -1297,7 +1317,7 @@
     {
      "kind": "math",
      "id": "r4m",
-     "latex": "\\color{#B08CD9}{v} \\leftarrow \\beta \\color{#B08CD9}{v} - \\color{#E072C8}{\\eta}\\,\\color{#FFE45C}{\\nabla L}",
+     "latex": "\\textcolor{#B08CD9}{v} \\leftarrow \\beta \\textcolor{#B08CD9}{v} - \\textcolor{#E072C8}{\\eta}\\,\\textcolor{#FFE45C}{\\nabla L}",
      "x": 420,
      "y": 610,
      "size": 40

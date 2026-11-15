@@ -301,13 +301,20 @@ def slide_errors(s: Slide) -> List[str]:
 
 
 def deck_errors(deck: Deck) -> List[str]:
+    """Renderability plus the lesson-plan chain: every slide has an idea and a check and builds on the one before."""
     errs = []
     seen = set()
+    prev = None
     for s in deck.slides:
         if s.id in seen:
             errs.append(f"duplicate slide id {s.id}")
         seen.add(s.id)
         errs += slide_errors(s)
+        errs += [f"slide {s.id}: needs a {f} (one sentence)" for f in ("idea", "check") if not (getattr(s, f) or "").strip()]
+        if s.builds_on != prev:
+            errs.append(f"slide {s.id}: builds_on must be {prev} (the previous slide's id)" if prev
+                        else f"slide {s.id}: builds_on must be empty on the first slide")
+        prev = s.id
     return errs
 
 
@@ -351,38 +358,61 @@ def materials_text(track: Track, limit: int = 12000) -> str:
     return "\n".join(parts)[:limit]
 
 
-SYSTEM = """You design short animated lesson decks in the style of 3Blue1Brown: every slide builds intuition \
-with a picture that moves, before any formula. A live voice tutor presents your deck, stepping through the \
-animation while speaking, and points a laser at objects by id.
+SYSTEM = """You plan and draw a short animated lesson deck that a live voice tutor teaches from, in the style of \
+3Blue1Brown. The tutor steps through each slide's animation while speaking your narration hints, points a laser \
+at objects by id, and asks your check question before moving on. The deck IS the lesson plan.
 
-Principles:
-- Intuition first: open with a concrete picture or analogy, then name it, then the equation. One idea per slide.
-- Show, don't write: few words on screen (titles of 2-6 words, labels of 1-4 words); the tutor says the rest.
-- Motion carries meaning: a dot rolling down a curve, a tangent riding along, an equation appearing piece by piece.
-- Consistent colour = consistent meaning across the deck (e.g. blue for parameters, yellow for the gradient, \
-green for the goal, red for warnings).
-- 3 to 6 steps per slide. Each step's narration is one short spoken sentence for the tutor (a hint, not a script).
-- Cover every required knowledge point (list its id in kp_ids of the slide that teaches it), in prerequisite order. \
-5 to 8 slides; the last slide recaps.
+Who it is for: pitch it at UK A-level maths (age 16-18) unless the materials are clearly at a different level; \
+then pitch it one notch gentler than the materials. Assume nothing beyond GCSE unless an earlier slide taught it. \
+Prefer whole numbers and simple fractions; no jargon without a picture first.
 
-Palette (`color` names; use the hex in latex as \\color{#hex}{...}): blue #58C4DD, teal #5CD0B3, green #83C167, \
-yellow #FFE45C, gold #F0AC5F, red #FC6255, purple #B08CD9, pink #E072C8, white #ECECEC, grey #8A8F98.
+Teaching contract (follow every rule):
+1. Question first. Each concept opens with a question the student can feel, before any definition.
+2. Concrete before abstract. A specific example with numbers or a picture first; the general formula comes last, \
+as a name for what the student has already seen.
+3. One idea per step. At most one new term or symbol per step. A step's narration is a spoken hint of at most \
+2 short sentences, concrete (actual numbers, "this yellow line"), what the tutor says while that step animates.
+4. Let them predict. At least once per slide, a step asks "what do you think happens if...?" BEFORE the step that \
+reveals the answer.
+5. One visual anchor per concept. Reuse the same picture (same curve, same points, same axes) across the slides \
+of a concept; never switch analogy mid-concept.
+6. Colour means something. A quantity keeps its colour on every slide and in every formula (e.g. the curve blue, \
+a chord yellow, a tangent red, a small change green). Say the colour in the narration when it helps.
+7. Bridge every slide. Each slide's first narration starts from the previous slide ("We just saw X; now...").
+8. End every slide with a check: one short question with a definite answer the student can work out from that \
+slide (e.g. a number to compute), stored in `check`.
+
+The lesson-plan fields are required on every slide:
+- idea: the one idea the slide teaches, one sentence.
+- builds_on: the previous slide's id (leave it out on the first slide only), so slides form one chain.
+- check: the check question asked before moving on.
+- kp_ids: the knowledge points the slide teaches. Cover every required knowledge point, in prerequisite order. \
+5 to 7 slides, 4 to 8 steps each; the last slide recaps the chain and gives one practice question.
+
+Screen: few words on screen (titles of 2-6 words, labels of 1-5 words); the tutor says the rest. Motion carries \
+meaning: a dot sliding along a curve, a chord swinging into a tangent, an equation written line by line.
+
+Palette (`color` names; in latex colour one part with \\textcolor{#hex}{...}, never \\color, which also recolours \
+everything after it): blue #58C4DD, teal #5CD0B3, green #83C167, yellow #FFE45C, gold #F0AC5F, red #FC6255, \
+purple #B08CD9, pink #E072C8, white #ECECEC, grey #8A8F98.
 Canvas: 1600 x 900 units, origin top-left, dark background. The slide title is drawn for you at the top \
-(keep content below y=150). Leave 60 units of margin. Text sizes: 28-40; math 36-64.
+(keep content below y=150). Leave 60 units of margin. Text sizes: 28-40; math 36-64. Text may contain \\n line breaks.
 Objects (all need a unique id per slide):
 - text/math: x,y = centre (or left edge with align=left). With `axes`, x,y are in that axes' maths units.
 - axes: x,y,w,h = box on the canvas; x_range/y_range in maths units. Draw curves, dots, vectors inside it.
-- curve: expr in x (and slider params), operators + - * / ^, functions sin cos tan exp log sqrt abs, PI, E.
+- curve: expr in x (and slider params), operators + - * / ^, functions sin cos tan exp log sqrt abs, PI, E. \
+A straight line (a chord) is a curve too, e.g. "4*x-3".
 - dot: on a curve at x (y follows the curve), or at (x, y). Animate with move (to x) or path (hop through xs, \
 e.g. successive gradient-descent iterates you computed exactly).
 - tangent: tangent line of a curve at a dot; follows the dot. step_arrow: horizontal arrow from a dot of length \
 -scale*slope (one gradient step with learning rate = scale); follows the dot.
-- vector/polyline/shape: in canvas units, or axes units with `axes`.
+- vector/polyline/shape: in canvas units, or axes units with `axes` (a polyline makes a rise/run triangle).
 - slider: a draggable control for a one-letter parameter used in curve exprs (makes the slide interactive).
 Actions per step (run in order; with_prev=true runs with the previous action): show (draws/writes objects in), \
-hide, move, path, morph (math -> new latex, or curve -> new expr), indicate (briefly highlight).
+hide, move, path, morph (math -> new latex, or curve -> new expr; e.g. move a dot and morph the chord with_prev \
+so the chord follows it), indicate (briefly highlight).
 Objects never named by a show action are visible as soon as the slide opens, so show most objects in steps.
-Compute any numbers (iterates, function values) exactly; make sure dots and labels sit inside their axes."""
+Compute every number exactly and check it; make sure dots and labels sit inside their axes and do not overlap."""
 
 
 def build_prompt(track: Track) -> str:
@@ -393,7 +423,9 @@ def build_prompt(track: Track) -> str:
     return (
         f"Topic: {track.title}\n\nRequired knowledge points:\n{kps or '(none listed)'}\n\n"
         f"Student's materials:\n{materials_text(track) or '(none)'}\n\n"
-        "Make the deck. Call make_deck once."
+        "Plan the lesson first: one concrete visual anchor, the question each slide answers, and how each slide "
+        "bridges from the last. Then make the deck: every slide sets idea, builds_on (except the first) and check, "
+        "and every narration hint is at most 2 short sentences. Call make_deck once."
     )
 
 
