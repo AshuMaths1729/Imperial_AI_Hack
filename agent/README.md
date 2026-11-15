@@ -1,22 +1,25 @@
-# Live avatar tutor (LiveKit + Synthesia)
+# Live lesson tutor (LiveKit + Synthesia)
 
-A live, face-to-face AI tutor inside Athena. The student talks; the tutor answers by voice
-with a lip-synced Synthesia avatar, and you can switch tutor mid-call.
+A live, face-to-face AI tutor inside Athena's Live Lessons. The student talks; the tutor answers by
+voice with a lip-synced Synthesia avatar, teaches from the track's animated slides and a shared
+whiteboard, and remembers progress across lessons.
 
 ```
-Browser (Next.js)                     FastAPI backend                  This agent worker (LiveKit Agents)
-───────────────────                   ───────────────                  ──────────────────────────────────
-tutor box / /tutor ── POST /api/tutor/session ──▶ mints a LiveKit token that dispatches the agent
-        │                                                                   │
-        └──────────── LiveKit Cloud room (audio, video, captions) ◀─────────┘
-                                                     ElevenLabs STT → Claude Haiku → ElevenLabs TTS → Synthesia avatar
+Browser (Next.js)                         FastAPI backend                      This agent worker (LiveKit Agents)
+─────────────────                         ───────────────                      ──────────────────────────────────
+/lecture/lesson ── POST /api/lesson/session ──▶ mints a LiveKit token that dispatches the agent
+       │                                        with {track_id, lesson_id, tutor_id}       │
+       │                                  GET /api/lesson/context/{lesson_id} ◀────────────┤
+       └──────────── LiveKit Cloud room (audio, video, captions, board RPC) ◀──────────────┘
+                                                       ElevenLabs STT → Claude Haiku → ElevenLabs TTS → Synthesia avatar
 ```
 
-- **Tutors**: Kenji (visual explainer) and Jenny (Socratic coach), defined once in
-  `backend/app/modules/tutor/tutors.py` (avatar id, ElevenLabs voice id, persona). The backend
-  sends that list to the agent, so you only edit tutors there.
-- **Where it shows up**: the avatar box in the workspace's left pane (`/`), and the full lesson
-  page with a whiteboard at `/tutor` (header button **Live Tutor**).
+- **Tutors**: Kenji, Jenny and Mei, defined once in `backend/app/modules/lesson/seed.py` (avatar id,
+  ElevenLabs voice id, personality). The agent reads its tutor, the learning track and the student's
+  progress from the lesson context, so you only edit tutors there.
+- **Where it shows up**: the Live Lesson page `/lecture/lesson` (LectureUnderstanding), and the
+  **Ask a tutor about this** button in the Paper Simulator and Evidence Map screens, which turns the
+  paper or map on screen into a learning track and opens the lesson lobby on it.
 
 ## 1. What you need
 
@@ -60,12 +63,12 @@ uv sync                              # backend deps (repo root)
 
 # every time: two terminals
 ./start.sh                           # backend :8000 + frontend :3000
-cd agent && uv run avatar_agent.py dev
+cd agent && uv run agent.py dev
 ```
 
 Wait for the agent to print `registered worker {"agent_name": "tutor-yourname", ...}`. Then
-open http://localhost:3000, click **Start live tutor** in the left tutor box, and allow the
-microphone. The tutor joins in about 10–20 s.
+open http://localhost:3000/lecture/lesson, pick a tutor and a learning track, click **Join lesson**
+and allow the microphone. The tutor joins in about 10–20 s.
 
 - Ignore the `dev mode is deprecated` warning; it still works.
 - `TUTOR_AVATAR=0` runs voice only (no Synthesia session), handy when you're only changing prompts.
@@ -74,10 +77,11 @@ microphone. The tutor joins in about 10–20 s.
 
 - **Talk** normally. Background voices are filtered (LiveKit BVC), and only real speech
   (about a second, two or more words) interrupts the tutor.
-- **Switch tutor** with the Kenji/Jenny chips; the face, voice and teaching style change mid-call.
-- **Expand** (top-right of the video) pops the avatar out to 512 px, the stream's native size, so it stays sharp.
-- **Type** a question in `/tutor` if you can't use a mic.
-- **Leave** ends the Synthesia session, so it stops using credits.
+- **Choose the tutor** in the lobby; each has their own face, voice and personality.
+- **Board**, **Circle** and **I'm lost** in the control bar share the whiteboard, point at something
+  on screen, or ask the tutor to slow down and re-explain.
+- **Type** to the tutor in the control bar if you can't use a mic.
+- **Leave** ends the Synthesia session, so it stops using credits; the tutor then writes the recap.
 
 ## 5. Deploy the agent to LiveKit Cloud (optional, not yet tried by the team)
 
@@ -99,7 +103,7 @@ the deployed agent's calls (or each other's).
 | Symptom | Cause / fix |
 |---|---|
 | "Tutor is joining…" forever | No agent running under the backend's `TUTOR_AGENT_NAME`. Start the agent and check both use the same name. |
-| Tutor box shows "Couldn't reach the tutor service" | Backend not running, or `NEXT_PUBLIC_API_BASE` points at the wrong port. Click **Retry** once it's up. |
+| Lesson lobby says it couldn't load tutors and tracks | Backend not running, or `NEXT_PUBLIC_API_URL` points at the wrong port. Reload once it's up. |
 | Tutor hears you but never finishes a reply | Something is interrupting it (speakers feeding the mic, people talking). Use headphones. |
 | Chrome won't use the mic | Use Safari, or allow the mic for localhost in Chrome's site settings. |
 | `UNKNOWN_AVATAR` in the agent log | The avatar id isn't available to the Synthesia workspace. Only Synthesia's interactive (Express) avatars work, e.g. Kenji `7572faa9-…`, Jenny `8788bef1-…` and Mei `519674df-…` (a Studio avatar converted with `POST /api/interactive-avatars/avatars`). |
@@ -109,10 +113,11 @@ the deployed agent's calls (or each other's).
 
 | File | What it does |
 |---|---|
-| `agent/avatar_agent.py` | The worker: voice pipeline, Synthesia avatar, mid-call switch on the `tutor.switch` text stream |
-| `backend/app/modules/tutor/` | `GET /api/tutor/tutors`, `POST /api/tutor/session` (LiveKit token + agent dispatch) |
-| `frontend/src/tutor/` | `useAvatarCall` (LiveKit room hook), `LiveAvatarTile` (workspace box), shared media helpers |
-| `frontend/src/app/tutor/page.tsx` | `/tutor` lobby and lesson view |
+| `agent/agent.py` | The worker: voice pipeline, Synthesia avatar, slides and whiteboard tools, lesson memory |
+| `backend/app/modules/lesson/` | `/api/lesson/*`: tutors, learning tracks, materials, slide decks, `POST /api/lesson/session` (LiveKit token + agent dispatch), lesson context, progress and recap |
+| `frontend/src/app/lecture/lesson/page.tsx` | `/lecture/lesson`: lobby, live call and recap |
+| `frontend/src/tutor/shell/` | Lobby, call view, LiveKit session hook and the lesson API client |
+| `frontend/src/tutor/AskTutorButton.tsx` | **Ask a tutor about this**: makes a track from the paper or evidence map on screen and opens the lobby on it |
 | `frontend/public/tutors/` | Tutor portraits (frames from the live avatars) and ElevenLabs voice samples |
 
-Tests: `cd agent && uv run pytest`, and `cd backend && uv run pytest tests/test_tutor.py`.
+Tests: `cd agent && uv run pytest`, and `cd backend && uv run pytest tests/lesson`.

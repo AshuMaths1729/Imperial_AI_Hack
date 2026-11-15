@@ -213,6 +213,20 @@
         "title": "AvatarClipSession",
         "type": "object"
       },
+      "Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post",
+        "type": "object"
+      },
       "Body_generate_from_pdf_api_sim_generate_pdf_post": {
         "properties": {
           "file": {
@@ -801,6 +815,53 @@
         "title": "ConceptLink",
         "type": "object"
       },
+      "ConceptMark": {
+        "properties": {
+          "anchor": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Anchor",
+            "type": "string"
+          },
+          "concept": {
+            "maxLength": 200,
+            "title": "Concept",
+            "type": "string"
+          },
+          "evidence": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_yet",
+                  "shaky",
+                  "got_it"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "tries": {
+            "default": 0,
+            "title": "Tries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "concept"
+        ],
+        "title": "ConceptMark",
+        "type": "object"
+      },
       "DerivationStep": {
         "additionalProperties": false,
         "properties": {
@@ -824,6 +885,42 @@
           "explanation"
         ],
         "title": "DerivationStep",
+        "type": "object"
+      },
+      "Detour": {
+        "properties": {
+          "from_idea": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "From Idea",
+            "type": "string"
+          },
+          "from_slide": {
+            "default": 0,
+            "title": "From Slide",
+            "type": "integer"
+          },
+          "from_step": {
+            "default": 0,
+            "title": "From Step",
+            "type": "integer"
+          },
+          "topic": {
+            "maxLength": 300,
+            "title": "Topic",
+            "type": "string"
+          },
+          "why": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "title": "Detour",
         "type": "object"
       },
       "DocInfo": {
@@ -1005,6 +1102,38 @@
           "confidence"
         ],
         "title": "Edge",
+        "type": "object"
+      },
+      "EndIn": {
+        "properties": {
+          "board_snapshot_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Board Snapshot Ref"
+          },
+          "covered_kp_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Covered Kp Ids",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary"
+        ],
+        "title": "EndIn",
         "type": "object"
       },
       "Equation": {
@@ -1610,6 +1739,218 @@
         "title": "JobEvent",
         "type": "object"
       },
+      "KP": {
+        "properties": {
+          "evidence": {
+            "default": "",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "kp_id": {
+            "title": "Kp Id",
+            "type": "string"
+          },
+          "prereq_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Prereq Ids",
+            "type": "array"
+          },
+          "status": {
+            "default": "not_started",
+            "enum": [
+              "not_started",
+              "introduced",
+              "understood"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kp_id",
+          "title"
+        ],
+        "title": "KP",
+        "type": "object"
+      },
+      "KPUpdate": {
+        "properties": {
+          "evidence": {
+            "default": "",
+            "title": "Evidence",
+            "type": "string"
+          },
+          "kp_id": {
+            "title": "Kp Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_started",
+              "introduced",
+              "understood"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kp_id",
+          "status"
+        ],
+        "title": "KPUpdate",
+        "type": "object"
+      },
+      "Lesson": {
+        "properties": {
+          "board_snapshot_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Board Snapshot Ref"
+          },
+          "covered_kp_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Covered Kp Ids",
+            "type": "array"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "lesson_id": {
+            "title": "Lesson Id",
+            "type": "string"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LessonCheckpoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "struggles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Struggle"
+            },
+            "title": "Struggles",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "tutor_id": {
+            "title": "Tutor Id",
+            "type": "string"
+          },
+          "worked": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Worked"
+            },
+            "title": "Worked",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lesson_id",
+          "track_id",
+          "tutor_id",
+          "started_at"
+        ],
+        "title": "Lesson",
+        "type": "object"
+      },
+      "LessonCheckpoint": {
+        "description": "The agent's lesson state (agent/lesson_state.py): main branch position, open detours, understanding.",
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptMark"
+            },
+            "maxItems": 200,
+            "title": "Concepts",
+            "type": "array"
+          },
+          "detours": {
+            "items": {
+              "$ref": "#/components/schemas/Detour"
+            },
+            "maxItems": 20,
+            "title": "Detours",
+            "type": "array"
+          },
+          "idea": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Idea",
+            "type": "string"
+          },
+          "saved_at": {
+            "default": "",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "slide": {
+            "default": 0,
+            "title": "Slide",
+            "type": "integer"
+          },
+          "step": {
+            "default": 0,
+            "title": "Step",
+            "type": "integer"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "LessonCheckpoint",
+        "type": "object"
+      },
       "MasteryEntry": {
         "additionalProperties": false,
         "properties": {
@@ -1659,6 +2000,155 @@
           "nodes"
         ],
         "title": "MasteryResponse",
+        "type": "object"
+      },
+      "Material": {
+        "properties": {
+          "dataset_title": {
+            "title": "Dataset Title",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "pdf",
+              "url",
+              "demo"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref",
+          "dataset_title"
+        ],
+        "title": "Material",
+        "type": "object"
+      },
+      "MaterialDataset": {
+        "description": "The concept graph of an ingested material (only what a track needs: KPs and their prerequisites).",
+        "properties": {
+          "edges": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MaterialEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MaterialNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "MaterialDataset",
+        "type": "object"
+      },
+      "MaterialEdge": {
+        "properties": {
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "type": {
+            "default": "prerequisite",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target"
+        ],
+        "title": "MaterialEdge",
+        "type": "object"
+      },
+      "MaterialIn": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/MaterialDataset"
+          },
+          "kind": {
+            "enum": [
+              "pdf",
+              "url",
+              "demo"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ref",
+          "dataset"
+        ],
+        "title": "MaterialIn",
+        "type": "object"
+      },
+      "MaterialNode": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "MaterialNode",
+        "type": "object"
+      },
+      "NewTrack": {
+        "properties": {
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "user_id": {
+            "default": "demo",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "NewTrack",
         "type": "object"
       },
       "NextResponse": {
@@ -2055,6 +2545,36 @@
         "title": "PlotRange",
         "type": "object"
       },
+      "ProgressIn": {
+        "properties": {
+          "kp_updates": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/KPUpdate"
+            },
+            "title": "Kp Updates",
+            "type": "array"
+          },
+          "struggles": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Struggle"
+            },
+            "title": "Struggles",
+            "type": "array"
+          },
+          "worked": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Worked"
+            },
+            "title": "Worked",
+            "type": "array"
+          }
+        },
+        "title": "ProgressIn",
+        "type": "object"
+      },
       "PulseNode": {
         "additionalProperties": false,
         "properties": {
@@ -2369,45 +2889,27 @@
         "title": "SeriesDoc",
         "type": "object"
       },
-      "SessionRequest": {
+      "SessionIn": {
         "properties": {
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
           "tutor_id": {
             "title": "Tutor Id",
             "type": "string"
+          },
+          "user_id": {
+            "default": "demo",
+            "title": "User Id",
+            "type": "string"
           }
         },
         "required": [
+          "track_id",
           "tutor_id"
         ],
-        "title": "SessionRequest",
-        "type": "object"
-      },
-      "SessionResponse": {
-        "properties": {
-          "identity": {
-            "title": "Identity",
-            "type": "string"
-          },
-          "room": {
-            "title": "Room",
-            "type": "string"
-          },
-          "token": {
-            "title": "Token",
-            "type": "string"
-          },
-          "url": {
-            "title": "Url",
-            "type": "string"
-          }
-        },
-        "required": [
-          "url",
-          "token",
-          "room",
-          "identity"
-        ],
-        "title": "SessionResponse",
+        "title": "SessionIn",
         "type": "object"
       },
       "ShowCard": {
@@ -2882,6 +3384,32 @@
         "title": "SourceRef",
         "type": "object"
       },
+      "Struggle": {
+        "properties": {
+          "kp_id": {
+            "title": "Kp Id",
+            "type": "string"
+          },
+          "tried_explanations": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tried Explanations",
+            "type": "array"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kp_id",
+          "what"
+        ],
+        "title": "Struggle",
+        "type": "object"
+      },
       "SttResponse": {
         "properties": {
           "transcript": {
@@ -2984,6 +3512,50 @@
         "title": "TopicStats",
         "type": "object"
       },
+      "Track": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "knowledge_points": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/KP"
+            },
+            "title": "Knowledge Points",
+            "type": "array"
+          },
+          "materials": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Material"
+            },
+            "title": "Materials",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "track_id",
+          "user_id",
+          "title",
+          "created_at"
+        ],
+        "title": "Track",
+        "type": "object"
+      },
       "TtsRequest": {
         "properties": {
           "text": {
@@ -3079,44 +3651,6 @@
         "title": "TtsSegmentsRequest",
         "type": "object"
       },
-      "Tutor": {
-        "properties": {
-          "avatar_id": {
-            "title": "Avatar Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "style_prompt": {
-            "title": "Style Prompt",
-            "type": "string"
-          },
-          "tagline": {
-            "title": "Tagline",
-            "type": "string"
-          },
-          "tutor_id": {
-            "title": "Tutor Id",
-            "type": "string"
-          },
-          "voice_id": {
-            "title": "Voice Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "tutor_id",
-          "name",
-          "tagline",
-          "avatar_id",
-          "voice_id",
-          "style_prompt"
-        ],
-        "title": "Tutor",
-        "type": "object"
-      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3193,6 +3727,24 @@
           "status"
         ],
         "title": "ValidationReport",
+        "type": "object"
+      },
+      "Worked": {
+        "properties": {
+          "explanation_style": {
+            "title": "Explanation Style",
+            "type": "string"
+          },
+          "kp_id": {
+            "title": "Kp Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kp_id",
+          "explanation_style"
+        ],
+        "title": "Worked",
         "type": "object"
       }
     }
@@ -3754,6 +4306,609 @@
         "summary": "Get Paper",
         "tags": [
           "ingest"
+        ]
+      }
+    },
+    "/api/lesson/context/{lesson_id}": {
+      "get": {
+        "operationId": "get_context_api_lesson_context__lesson_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lesson_id",
+            "required": true,
+            "schema": {
+              "title": "Lesson Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Context",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/lessons/{lesson_id}/end": {
+      "post": {
+        "operationId": "end_lesson_api_lesson_lessons__lesson_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lesson_id",
+            "required": true,
+            "schema": {
+              "title": "Lesson Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lesson"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Lesson",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/lessons/{lesson_id}/progress": {
+      "post": {
+        "operationId": "post_progress_api_lesson_lessons__lesson_id__progress_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lesson_id",
+            "required": true,
+            "schema": {
+              "title": "Lesson Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lesson"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Post Progress",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/lessons/{lesson_id}/state": {
+      "get": {
+        "operationId": "get_state_api_lesson_lessons__lesson_id__state_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lesson_id",
+            "required": true,
+            "schema": {
+              "title": "Lesson Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LessonCheckpoint"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Get State Api Lesson Lessons  Lesson Id  State Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get State",
+        "tags": [
+          "lesson"
+        ]
+      },
+      "post": {
+        "description": "The agent's lesson-state checkpoint (every tutor turn / 60 s); only the latest is kept.",
+        "operationId": "save_state_api_lesson_lessons__lesson_id__state_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "lesson_id",
+            "required": true,
+            "schema": {
+              "title": "Lesson Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonCheckpoint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonCheckpoint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save State",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/session": {
+      "post": {
+        "operationId": "start_session_api_lesson_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Session",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tracks": {
+      "get": {
+        "operationId": "list_tracks_api_lesson_tracks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "default": "demo",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tracks",
+        "tags": [
+          "lesson"
+        ]
+      },
+      "post": {
+        "operationId": "create_track_api_lesson_tracks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTrack"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Track",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tracks/{track_id}": {
+      "get": {
+        "operationId": "get_track_api_lesson_tracks__track_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Track",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tracks/{track_id}/deck": {
+      "get": {
+        "operationId": "get_deck_api_lesson_tracks__track_id__deck_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Deck",
+        "tags": [
+          "lesson"
+        ]
+      },
+      "post": {
+        "description": "Starts (re)generating the track's deck in the background; never blocks a lesson. Poll GET for status.",
+        "operationId": "generate_deck_api_lesson_tracks__track_id__deck_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Deck",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tracks/{track_id}/materials": {
+      "post": {
+        "operationId": "add_material_api_lesson_tracks__track_id__materials_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Material",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tracks/{track_id}/materials/pdf": {
+      "post": {
+        "description": "Full text of the PDF is stored; KPs are built from it (Sonnet, else headings). Returns the updated Track.",
+        "operationId": "add_pdf_api_lesson_tracks__track_id__materials_pdf_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Pdf",
+        "tags": [
+          "lesson"
+        ]
+      }
+    },
+    "/api/lesson/tutors": {
+      "get": {
+        "operationId": "list_tutors_api_lesson_tutors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tutors",
+        "tags": [
+          "lesson"
         ]
       }
     },
@@ -4569,72 +5724,6 @@
         "summary": "Tts Segments",
         "tags": [
           "voice"
-        ]
-      }
-    },
-    "/api/tutor/session": {
-      "post": {
-        "operationId": "start_session_api_tutor_session_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SessionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Start Session",
-        "tags": [
-          "tutor"
-        ]
-      }
-    },
-    "/api/tutor/tutors": {
-      "get": {
-        "operationId": "list_tutors_api_tutor_tutors_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Tutor"
-                  },
-                  "title": "Response List Tutors Api Tutor Tutors Get",
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "List Tutors",
-        "tags": [
-          "tutor"
         ]
       }
     }

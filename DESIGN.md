@@ -14,17 +14,17 @@ flowchart LR
     LW["Lecture workspace<br/>(AvatarDock · GraphCanvas · Circle-to-Ask)"]
     PS["PaperSim workspace<br/>(4 analysis tabs)"]
     HG["HypothesisGraph<br/>(topic sidebar · evidence graph)"]
-    Tutor["Live Tutor (/tutor)"]
+    Tutor["Live Lessons (/lecture/lesson)"]
   end
 
   subgraph Backend["FastAPI Backend (:8000 · /api)"]
     Ingest["lecture / paper_ingest / sim / hypothesis"]
     Ask["ask-spatial/v2 & quiz"]
     Voice["voice (/tts, /stt) & synthesia"]
-    TutorAPI["tutor (/tutor/session)"]
+    TutorAPI["lesson (/lesson/session · tracks · decks)"]
   end
 
-  subgraph Agent["LiveKit Worker (agent/avatar_agent.py)"]
+  subgraph Agent["LiveKit Worker (agent/agent.py)"]
     Pipeline["ElevenLabs STT → Claude Haiku → ElevenLabs TTS → Synthesia"]
   end
 
@@ -37,8 +37,11 @@ flowchart LR
   PS -->|POST /api/sim/run| Ingest
   LW -->|Circle-to-Ask| Ask
   LW -->|TTS / audio| Voice
+  PS -->|Ask a tutor about this| Tutor
+  HG -->|Ask a tutor about this| Tutor
   Tutor <-->|WebRTC| Agent
-  Tutor -->|Mint token| TutorAPI
+  Tutor -->|Track + material, mint token| TutorAPI
+  Agent -->|Lesson context, progress| TutorAPI
 ```
 
 ---
@@ -52,11 +55,10 @@ The visual system lives in [globals.css](frontend/src/app/globals.css). Motion a
 - **One hue per module.** Every screen of a module uses its colour for the header icon, back-button hover, primary buttons and glows, so you always know where you are (§2.3).
 - **Liquid Glass.** Every screen sits on a static colour field (`--backdrop-field`, painted once on `body`). Content and controls float above it as translucent glass layers. Each layer has a bright rim, an inner top highlight and a diagonal sheen. The header is a floating capsule, panes are floating sheets inset with ~10 px gaps, and single-line controls are capsules. Screen roots stay transparent so the field shows through.
 - **Calm surfaces, expressive entrances.** The expression comes from motion: things fade up in a stagger, graphs draw themselves, cards lift on hover. The colour field behind stays still.
-- **Live Tutor on call.** The tutor is not in the header.
-  - **Where the button appears:** only the inner workspaces, the PaperSim tabbed workspace and the HypothesisGraph results view, carry the **Live tutor** button (`LiveTutorFab`) in their innermost content layer. It sits bottom-right in a slim lane below the scrolling content (the PaperSim tab area, the HypothesisGraph graph sheet's footer, next to the click hint), so it never covers content at any scroll position.
-  - **Where it does not:** the landing page, the libraries and the HypothesisGraph start screen have none. Neither does anything in LectureUnderstanding, whose workspace has the tutor built into its left dock (`LiveAvatarTile`).
-  - **Panel:** the button opens the tutor in a glass panel, which is portalled to `body` so no pane can clip it.
-  - **Calls:** closing the panel keeps a live call running; a green dot on the button marks the call.
+- **Ask a tutor about this.** The tutor is not in the header.
+  - **Where the button appears:** only the inner workspaces, the PaperSim tabbed workspace and the HypothesisGraph results view, carry **Ask a tutor about this** ([AskTutorButton](frontend/src/tutor/AskTutorButton.tsx)) in their content, where it never covers content at any scroll position.
+  - **Where it does not:** the landing page, the libraries and the HypothesisGraph start screen have none. LectureUnderstanding is the live lesson itself (`/lecture/lesson`).
+  - **Click:** it reuses the learning track already made for that paper or map, or creates one with it as the material (a paper's concept map, or the map's claims with their supports / contradicts / open-question links), then opens the lesson lobby on it (`/lecture/lesson?track=<id>`), where the student picks a tutor and joins. While it works the capsule reads "Setting up your lesson…"; a failure shows a short reason under it.
 - **Show the paper's meaning, not the plumbing.**
   - Math always renders, as KaTeX or Unicode.
   - Graph links say how things relate, never a generic "governs".
@@ -148,7 +150,7 @@ Evidence counts always appear as coloured dot plus number, using the same three 
 
 - **Back button:** always first. Its label hides below `sm` (icon plus tooltip remain). It hovers in the module hue.
 - **Actions:** screen actions use `HeaderAction`, whose labels collapse to icons below `lg`; an active action is `apple-tint` in the module hue. Theme labels hide below `xl`.
-- **Live Tutor is not in the header.** It is the floating `LiveTutorFab` inside each screen's content (§2.1).
+- **The tutor is not in the header.** It is the **Ask a tutor about this** button inside each screen's content (§2.1).
 - **Overflow:** the bar must never overflow, down to 390 px.
 - **Landing page:** the header carries only the global controls. The **Athena** wordmark sits centre stage in the hero instead.
 
@@ -250,17 +252,15 @@ All custom animations use the `st-` prefix, so one global rule switches them off
 The root route `/` ([page.tsx](frontend/src/app/page.tsx)) switches between client-side screens:
 
 ```
-type Screen = "home" | "library" | "lecture-workspace" | "papersim-workspace" | "hypothesis-chat"
+type Screen = "home" | "library" | "papersim-workspace" | "hypothesis-chat"
 ```
 
 1. **Home** ([HomeHub.tsx](frontend/src/components/HomeHub.tsx)): the Athena wordmark and tagline, then three module cards.
-2. **Library** ([LibraryView.tsx](frontend/src/components/LibraryView.tsx)): one per module (lecture or PaperSim). The hero New Conversation panel sits above the saved topics, which are kept in `localStorage` under `scholartwin.library.v1` via `useSyncExternalStore` to avoid hydration mismatches.
-3. **Lecture workspace** ([page.tsx](frontend/src/app/page.tsx)): two panes.
-   - **Left, 310 px:** `AvatarDock` with `LiveAvatarTile`, ask input, voice and TTS toggle.
-   - **Right:** `GraphCanvas` with the `LassoOverlay` for Circle-to-Ask.
+2. **Library** ([LibraryView.tsx](frontend/src/components/LibraryView.tsx)): PaperSim's saved simulations. The hero New Conversation panel sits above the saved topics, which are kept in `localStorage` under `scholartwin.library.v1` via `useSyncExternalStore` to avoid hydration mismatches.
+3. **LectureUnderstanding** is its own route, the live lesson at `/lecture/lesson` (item 6); the Home card navigates there.
 4. **PaperSim workspace** ([PaperSimTabsView.tsx](frontend/src/components/PaperSimTabsView.tsx)): four tabs (§2.8). Slider changes re-run the simulation through `POST /api/sim/run`; the latest request wins, and older saves recover their `sim_id` from the code hash.
 5. **HypothesisGraph** ([HypothesisChatView.tsx](frontend/src/components/HypothesisChatView.tsx)): a collapsible topic sidebar (topics stored under `scholartwin.hypothesis.history.v1`, including `lastNodeId`) and the evidence graph.
-6. **Live Tutor** (`/tutor`, [tutor/page.tsx](frontend/src/app/tutor/page.tsx)): tutor picker, then the live call with lesson board and captions.
+6. **Live Lessons** (`/lecture/lesson`, [lecture/lesson/page.tsx](frontend/src/app/lecture/lesson/page.tsx), components in `frontend/src/tutor/shell/`): the lobby (tutor, learning track, materials and slides), then the live call with slides, whiteboard and captions, then the recap. `?track=<id>` opens the lobby on that track (used by **Ask a tutor about this**).
 
 ### 3.2 API client and data adapters
 
@@ -288,17 +288,17 @@ type Screen = "home" | "library" | "lecture-workspace" | "papersim-workspace" | 
 | `quiz` | `GET /api/quiz/{graph_id}/next`, `GET /api/quiz/{graph_id}/{node_id}`, `POST /api/quiz/{graph_id}/{node_id}/answer`, `GET /api/mastery/{graph_id}` | Adaptive MCQ generation and mastery tracking |
 | `voice` | `POST /api/tts`, `POST /api/tts/segments`, `POST /api/stt`, `GET /api/media/{media_id}` | ElevenLabs TTS/STT and audio serving |
 | `synthesia` | `POST /api/avatar/clips`, `POST /api/avatar/session`, `GET /api/avatar/clips/{clip_id}/video` | Synthesia avatar clip generation and playback |
-| `tutor` | `GET /api/tutor/tutors`, `POST /api/tutor/session` | LiveKit room token minting and agent dispatch |
+| `lesson` | `GET /api/lesson/tutors`, `GET/POST /api/lesson/tracks`, `POST /api/lesson/tracks/{track_id}/materials`, `POST /api/lesson/tracks/{track_id}/deck`, `POST /api/lesson/session`, `GET /api/lesson/context/{lesson_id}` | Live Lessons: learning tracks and their materials, animated slide decks, LiveKit room token minting and agent dispatch, lesson memory for the agent |
 | `presets` | `GET /api/presets`, `POST /api/presets/{name}/load`, `POST /api/presets/{name}/freeze` | Demo preset management |
 | `health` | `GET /api/health` | Service health, cache mode, and active preset status |
 
 ---
 
-## 5. Live Avatar Worker (`agent/avatar_agent.py`)
+## 5. Live Lesson Worker (`agent/agent.py`)
 
-[avatar_agent.py](agent/avatar_agent.py) runs as a LiveKit Agents worker (`scholartwin-tutor`):
-- **Pipeline:** Silero VAD → ElevenLabs STT (`scribe_v2_realtime`) → Anthropic Claude (`claude-haiku-5-5`, prompt caching) → ElevenLabs TTS (`eleven_flash_v2_5`) → Synthesia avatar (`MAX_AVATARS = 5`, swappable mid-call via the `tutor.switch` text stream).
-- **Turn handling:** configured for natural interruptions (`min_duration: 0.8s`, `min_words: 2`) and word-synced transcripts (`use_tts_aligned_transcript=True`).
+[agent.py](agent/agent.py) runs as a LiveKit Agents worker (`TUTOR_AGENT_NAME`, default `scholartwin-tutor`), dispatched by `POST /api/lesson/session` with `{track_id, lesson_id, tutor_id}`:
+- **Pipeline:** ElevenLabs STT → Anthropic Claude Haiku → ElevenLabs TTS → Synthesia avatar (voice only when `TUTOR_AVATAR=0` or the avatar can't join).
+- **Lesson:** reads its tutor, track and the student's progress from `GET /api/lesson/context/{lesson_id}`, teaches from the track's slide deck and the shared whiteboard (RPC), answers Circle-to-Ask and "I'm lost" from the page, and writes progress, checkpoints and the recap back to `/api/lesson`.
 
 ---
 

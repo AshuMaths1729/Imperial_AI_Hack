@@ -9,7 +9,7 @@ The landing hub (`HomeHub`) routes into three dedicated workflows:
 - **LectureUnderstanding (Understand):** Opens a **Library** of saved lecture conversations and a **New Conversation** floating toast for PDF/URL ingestion, leading into a **2-pane** avatar + interactive concept graph workspace (`AvatarDock`, `GraphCanvas`, `LassoOverlay`) with **Circle-to-Ask** spatial tutoring.
 - **PaperSim (Reproduce):** Opens a **Library** of saved paper simulations and a **New Conversation** PDF/URL toast, leading into a **tabbed interactive visualisation** workspace (`PaperSimTabsView`) with live parameter-sweep plots, concept & parameter graphs, series breakdowns, and extracted Python equations.
 - **HypothesisGraph (Verify):** A dedicated **Topic-to-Graph** generator (`HypothesisChatView`) with text + mic input and saved topic history. Queries grounded papers across **Semantic Scholar → OpenAlex (with 429/5xx retry) → arXiv → Europe PMC** and renders a full-viewport graph with per-node citations, grayed-out unlinked nodes, click-to-zoom neighbourhoods, click-to-inspect edge explanation cards (`supports`, `contradicts`, `gap`), and a clickable **Graph Citations** side pane linking directly to arXiv, OpenAlex, Semantic Scholar, Europe PMC, and DOI sources.
-- **Circle-to-Ask & Live Avatar Tutor:** Toggle the lasso overlay on the lecture canvas to circle a region and ask via voice or text, or launch `/tutor` for a live Synthesia/LiveKit avatar call.
+- **Circle-to-Ask & Live Avatar Tutor:** Toggle the lasso overlay on the lecture canvas to circle a region and ask via voice or text, or start a Live Lesson (`/lecture/lesson`, or **Ask a tutor about this** on a paper or evidence map) for a live Synthesia/LiveKit avatar call.
 
 ## Themes & Accessibility
 
@@ -45,10 +45,11 @@ npm run dev
 
 API keys and settings go in a `.env` file (copy `.env.example`, names only; never commit it).
 
-### Live avatar tutor
+### Live lesson tutor
 
-The live Synthesia/LiveKit tutor (left tutor box and `/tutor`) needs LiveKit keys in `.env` and its
-agent worker running next to `./start.sh`: `cd agent && uv run avatar_agent.py dev`.
+The live Synthesia/LiveKit tutor (Live Lessons at `/lecture/lesson`, and **Ask a tutor about this** in
+the Paper Simulator and Evidence Map screens) needs LiveKit keys in `.env` and its agent worker running
+next to `./start.sh`: `cd agent && uv run agent.py dev`.
 Full setup, per-developer agent names and troubleshooting: [`agent/README.md`](agent/README.md).
 
 ### Shared types

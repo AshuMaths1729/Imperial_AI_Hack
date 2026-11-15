@@ -71,12 +71,8 @@ class Settings(BaseSettings):
     synthesia_api_key: SecretStr | None = None
     s2_api_key: SecretStr | None = None
     openalex_mailto: str | None = None  # contact email for the OpenAlex polite pool
-
-    # --- live tutor (LiveKit room + agent dispatch) ---------------------------------
-    livekit_url: str | None = None
-    livekit_api_key: SecretStr | None = None
-    livekit_api_secret: SecretStr | None = None
-    tutor_agent_name: str = "scholartwin-tutor"  # must match the agent worker's TUTOR_AGENT_NAME
+    # LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET / TUTOR_AGENT_NAME are read straight from the
+    # environment by the live lesson module (app/modules/lesson) and the agent worker, not through Settings.
 
     # --- cache / offline / presets --------------------------------------------------
     cache_mode: CacheMode = "live"

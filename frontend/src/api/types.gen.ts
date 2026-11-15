@@ -226,6 +226,205 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lesson/context/{lesson_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Context */
+        get: operations["get_context_api_lesson_context__lesson_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/lessons/{lesson_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End Lesson */
+        post: operations["end_lesson_api_lesson_lessons__lesson_id__end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/lessons/{lesson_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Progress */
+        post: operations["post_progress_api_lesson_lessons__lesson_id__progress_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/lessons/{lesson_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get State */
+        get: operations["get_state_api_lesson_lessons__lesson_id__state_get"];
+        put?: never;
+        /**
+         * Save State
+         * @description The agent's lesson-state checkpoint (every tutor turn / 60 s); only the latest is kept.
+         */
+        post: operations["save_state_api_lesson_lessons__lesson_id__state_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Session */
+        post: operations["start_session_api_lesson_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tracks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tracks */
+        get: operations["list_tracks_api_lesson_tracks_get"];
+        put?: never;
+        /** Create Track */
+        post: operations["create_track_api_lesson_tracks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tracks/{track_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Track */
+        get: operations["get_track_api_lesson_tracks__track_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tracks/{track_id}/deck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Deck */
+        get: operations["get_deck_api_lesson_tracks__track_id__deck_get"];
+        put?: never;
+        /**
+         * Generate Deck
+         * @description Starts (re)generating the track's deck in the background; never blocks a lesson. Poll GET for status.
+         */
+        post: operations["generate_deck_api_lesson_tracks__track_id__deck_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tracks/{track_id}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Material */
+        post: operations["add_material_api_lesson_tracks__track_id__materials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tracks/{track_id}/materials/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Pdf
+         * @description Full text of the PDF is stored; KPs are built from it (Sonnet, else headings). Returns the updated Track.
+         */
+        post: operations["add_pdf_api_lesson_tracks__track_id__materials_pdf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson/tutors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tutors */
+        get: operations["list_tutors_api_lesson_tutors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mastery/{graph_id}": {
         parameters: {
             query?: never;
@@ -555,40 +754,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/tutor/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start Session */
-        post: operations["start_session_api_tutor_session_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/tutor/tutors": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Tutors */
-        get: operations["list_tutors_api_tutor_tutors_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -661,6 +826,11 @@ export interface components {
             mode: "clips" | "audio_only";
             /** Ready Clips */
             ready_clips: number;
+        };
+        /** Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post */
+        Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post: {
+            /** File */
+            file: string;
         };
         /** Body_generate_from_pdf_api_sim_generate_pdf_post */
         Body_generate_from_pdf_api_sim_generate_pdf_post: {
@@ -882,6 +1052,28 @@ export interface components {
             /** Target */
             target: string;
         };
+        /** ConceptMark */
+        ConceptMark: {
+            /**
+             * Anchor
+             * @default
+             */
+            anchor: string;
+            /** Concept */
+            concept: string;
+            /**
+             * Evidence
+             * @default
+             */
+            evidence: string;
+            /** Level */
+            level?: ("not_yet" | "shaky" | "got_it") | null;
+            /**
+             * Tries
+             * @default 0
+             */
+            tries: number;
+        };
         /** DerivationStep */
         DerivationStep: {
             /** Explanation */
@@ -893,6 +1085,31 @@ export interface components {
             latex: string;
             /** Title */
             title: string;
+        };
+        /** Detour */
+        Detour: {
+            /**
+             * From Idea
+             * @default
+             */
+            from_idea: string;
+            /**
+             * From Slide
+             * @default 0
+             */
+            from_slide: number;
+            /**
+             * From Step
+             * @default 0
+             */
+            from_step: number;
+            /** Topic */
+            topic: string;
+            /**
+             * Why
+             * @default
+             */
+            why: string;
         };
         /** DocInfo */
         DocInfo: {
@@ -958,6 +1175,18 @@ export interface components {
              * @enum {string}
              */
             type: "prerequisite" | "supports" | "contradicts" | "gap";
+        };
+        /** EndIn */
+        EndIn: {
+            /** Board Snapshot Ref */
+            board_snapshot_ref?: string | null;
+            /**
+             * Covered Kp Ids
+             * @default []
+             */
+            covered_kp_ids: string[];
+            /** Summary */
+            summary: string;
         };
         /** Equation */
         Equation: {
@@ -1191,6 +1420,117 @@ export interface components {
             /** Stage */
             stage: string;
         };
+        /** KP */
+        KP: {
+            /**
+             * Evidence
+             * @default
+             */
+            evidence: string;
+            /** Kp Id */
+            kp_id: string;
+            /**
+             * Prereq Ids
+             * @default []
+             */
+            prereq_ids: string[];
+            /**
+             * Status
+             * @default not_started
+             * @enum {string}
+             */
+            status: "not_started" | "introduced" | "understood";
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** KPUpdate */
+        KPUpdate: {
+            /**
+             * Evidence
+             * @default
+             */
+            evidence: string;
+            /** Kp Id */
+            kp_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "not_started" | "introduced" | "understood";
+        };
+        /** Lesson */
+        Lesson: {
+            /** Board Snapshot Ref */
+            board_snapshot_ref?: string | null;
+            /** Covered Kp Ids */
+            covered_kp_ids?: string[];
+            /** Ended At */
+            ended_at?: string | null;
+            /** Lesson Id */
+            lesson_id: string;
+            /** Started At */
+            started_at: string;
+            state?: components["schemas"]["LessonCheckpoint"] | null;
+            /**
+             * Struggles
+             * @default []
+             */
+            struggles: components["schemas"]["Struggle"][];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Track Id */
+            track_id: string;
+            /** Tutor Id */
+            tutor_id: string;
+            /**
+             * Worked
+             * @default []
+             */
+            worked: components["schemas"]["Worked"][];
+        };
+        /**
+         * LessonCheckpoint
+         * @description The agent's lesson state (agent/lesson_state.py): main branch position, open detours, understanding.
+         */
+        LessonCheckpoint: {
+            /** Concepts */
+            concepts?: components["schemas"]["ConceptMark"][];
+            /** Detours */
+            detours?: components["schemas"]["Detour"][];
+            /**
+             * Idea
+             * @default
+             */
+            idea: string;
+            /**
+             * Saved At
+             * @default
+             */
+            saved_at: string;
+            /**
+             * Slide
+             * @default 0
+             */
+            slide: number;
+            /**
+             * Step
+             * @default 0
+             */
+            step: number;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
         /** MasteryEntry */
         MasteryEntry: {
             /** Attempts */
@@ -1208,6 +1548,81 @@ export interface components {
             graph_id: string;
             /** Nodes */
             nodes: components["schemas"]["MasteryEntry"][];
+        };
+        /** Material */
+        Material: {
+            /** Dataset Title */
+            dataset_title: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pdf" | "url" | "demo";
+            /** Ref */
+            ref: string;
+        };
+        /**
+         * MaterialDataset
+         * @description The concept graph of an ingested material (only what a track needs: KPs and their prerequisites).
+         */
+        MaterialDataset: {
+            /**
+             * Edges
+             * @default []
+             */
+            edges: components["schemas"]["MaterialEdge"][];
+            /**
+             * Nodes
+             * @default []
+             */
+            nodes: components["schemas"]["MaterialNode"][];
+            /** Title */
+            title: string;
+        };
+        /** MaterialEdge */
+        MaterialEdge: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /**
+             * Type
+             * @default prerequisite
+             */
+            type: string;
+        };
+        /** MaterialIn */
+        MaterialIn: {
+            dataset: components["schemas"]["MaterialDataset"];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pdf" | "url" | "demo";
+            /** Ref */
+            ref: string;
+        };
+        /** MaterialNode */
+        MaterialNode: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+        };
+        /** NewTrack */
+        NewTrack: {
+            /** Title */
+            title: string;
+            /**
+             * User Id
+             * @default demo
+             */
+            user_id: string;
         };
         /** NextResponse */
         NextResponse: {
@@ -1380,6 +1795,24 @@ export interface components {
                 number
             ];
         };
+        /** ProgressIn */
+        ProgressIn: {
+            /**
+             * Kp Updates
+             * @default []
+             */
+            kp_updates: components["schemas"]["KPUpdate"][];
+            /**
+             * Struggles
+             * @default []
+             */
+            struggles: components["schemas"]["Struggle"][];
+            /**
+             * Worked
+             * @default []
+             */
+            worked: components["schemas"]["Worked"][];
+        };
         /** PulseNode */
         PulseNode: {
             /**
@@ -1489,21 +1922,17 @@ export interface components {
              */
             name: string;
         };
-        /** SessionRequest */
-        SessionRequest: {
+        /** SessionIn */
+        SessionIn: {
+            /** Track Id */
+            track_id: string;
             /** Tutor Id */
             tutor_id: string;
-        };
-        /** SessionResponse */
-        SessionResponse: {
-            /** Identity */
-            identity: string;
-            /** Room */
-            room: string;
-            /** Token */
-            token: string;
-            /** Url */
-            url: string;
+            /**
+             * User Id
+             * @default demo
+             */
+            user_id: string;
         };
         /** ShowCard */
         ShowCard: {
@@ -1700,6 +2129,18 @@ export interface components {
              */
             page: number | null;
         };
+        /** Struggle */
+        Struggle: {
+            /** Kp Id */
+            kp_id: string;
+            /**
+             * Tried Explanations
+             * @default []
+             */
+            tried_explanations: string[];
+            /** What */
+            what: string;
+        };
         /** SttResponse */
         SttResponse: {
             /** Transcript */
@@ -1739,6 +2180,27 @@ export interface components {
             /** Supports */
             supports: number;
         };
+        /** Track */
+        Track: {
+            /** Created At */
+            created_at: string;
+            /**
+             * Knowledge Points
+             * @default []
+             */
+            knowledge_points: components["schemas"]["KP"][];
+            /**
+             * Materials
+             * @default []
+             */
+            materials: components["schemas"]["Material"][];
+            /** Title */
+            title: string;
+            /** Track Id */
+            track_id: string;
+            /** User Id */
+            user_id: string;
+        };
         /** TtsRequest */
         TtsRequest: {
             /** Text */
@@ -1767,21 +2229,6 @@ export interface components {
             /** Voice Id */
             voice_id?: string | null;
         };
-        /** Tutor */
-        Tutor: {
-            /** Avatar Id */
-            avatar_id: string;
-            /** Name */
-            name: string;
-            /** Style Prompt */
-            style_prompt: string;
-            /** Tagline */
-            tagline: string;
-            /** Tutor Id */
-            tutor_id: string;
-            /** Voice Id */
-            voice_id: string;
-        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1808,6 +2255,13 @@ export interface components {
             status: "passed" | "failed";
             /** Warnings */
             warnings?: components["schemas"]["Issue"][];
+        };
+        /** Worked */
+        Worked: {
+            /** Explanation Style */
+            explanation_style: string;
+            /** Kp Id */
+            kp_id: string;
         };
     };
     responses: never;
@@ -2231,6 +2685,453 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_context_api_lesson_context__lesson_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_lesson_api_lesson_lessons__lesson_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EndIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_progress_api_lesson_lessons__lesson_id__progress_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_state_api_lesson_lessons__lesson_id__state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonCheckpoint"] | null;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_state_api_lesson_lessons__lesson_id__state_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonCheckpoint"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LessonCheckpoint"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_session_api_lesson_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tracks_api_lesson_tracks_get: {
+        parameters: {
+            query?: {
+                user_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_track_api_lesson_tracks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTrack"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_track_api_lesson_tracks__track_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_deck_api_lesson_tracks__track_id__deck_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_deck_api_lesson_tracks__track_id__deck_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_material_api_lesson_tracks__track_id__materials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_pdf_api_lesson_tracks__track_id__materials_pdf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_add_pdf_api_lesson_tracks__track_id__materials_pdf_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Track"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tutors_api_lesson_tutors_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -2823,59 +3724,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_session_api_tutor_session_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SessionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_tutors_api_tutor_tutors_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Tutor"][];
                 };
             };
         };
