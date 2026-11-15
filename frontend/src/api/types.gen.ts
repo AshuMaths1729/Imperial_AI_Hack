@@ -817,6 +817,83 @@ export interface components {
             /** Title */
             title: string;
         };
+        /**
+         * ConceptDoc
+         * @description A node of the paper's concept & parameter graph.
+         */
+        ConceptDoc: {
+            /**
+             * Detail
+             * @description 2-4 sentences: why it matters / how it works
+             * @default
+             */
+            detail: string;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "paper" | "model" | "concept" | "variable" | "parameter" | "assumption" | "result" | "cited_work";
+            /** Label */
+            label: string;
+            /**
+             * Latex
+             * @description Defining formula, if any (no $ delimiters)
+             * @default
+             */
+            latex: string;
+            /**
+             * Param Key
+             * @description PARAMS key if this is a slider
+             */
+            param_key: string | null;
+            source: components["schemas"]["SourceLoc"] | null;
+            /**
+             * Summary
+             * @description One-sentence, beginner-friendly explanation
+             */
+            summary: string;
+        };
+        /**
+         * ConceptLink
+         * @description A directed, labelled relation between two concepts.
+         */
+        ConceptLink: {
+            /**
+             * Explanation
+             * @description One sentence on why the link holds
+             * @default
+             */
+            explanation: string;
+            /**
+             * Kind
+             * @default prerequisite
+             * @enum {string}
+             */
+            kind: "prerequisite" | "supports" | "contradicts" | "gap";
+            /**
+             * Relation
+             * @description Short verb phrase, e.g. "slows the decay of"
+             */
+            relation: string;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** DerivationStep */
+        DerivationStep: {
+            /** Explanation */
+            explanation: string;
+            /**
+             * Latex
+             * @default
+             */
+            latex: string;
+            /** Title */
+            title: string;
+        };
         /** DocInfo */
         DocInfo: {
             /** Doc Id */
@@ -893,6 +970,27 @@ export interface components {
             label: string | null;
             /** Latex */
             latex: string;
+        };
+        /** EquationDoc */
+        EquationDoc: {
+            /** Explanation */
+            explanation: string;
+            /** Id */
+            id: string;
+            /** Latex */
+            latex: string;
+            source: components["schemas"]["SourceLoc"] | null;
+            /** Title */
+            title: string;
+            /** Variables */
+            variables: components["schemas"]["EquationVar"][];
+        };
+        /** EquationVar */
+        EquationVar: {
+            /** Meaning */
+            meaning: string;
+            /** Symbol Latex */
+            symbol_latex: string;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -1215,6 +1313,40 @@ export interface components {
             truncated: boolean;
         };
         /**
+         * ParamDoc
+         * @description Plain-language explanation of one PARAMS slider.
+         */
+        ParamDoc: {
+            /**
+             * Effect
+             * @description What increasing it does to the plot
+             */
+            effect: string;
+            /**
+             * Key
+             * @description The PARAMS key this documents
+             */
+            key: string;
+            /**
+             * Meaning
+             * @description What the parameter is, in one plain sentence
+             */
+            meaning: string;
+            source: components["schemas"]["SourceLoc"] | null;
+            /**
+             * Symbol Latex
+             * @description LaTeX symbol, e.g. \Delta S
+             * @default
+             */
+            symbol_latex: string;
+            /**
+             * Typical
+             * @description Typical / paper-reported value, if any
+             * @default
+             */
+            typical: string;
+        };
+        /**
          * ParamSpec
          * @description One entry of `PARAMS` (a slider).
          */
@@ -1342,6 +1474,21 @@ export interface components {
             /** Y */
             y: number[];
         };
+        /** SeriesDoc */
+        SeriesDoc: {
+            /**
+             * How To Read
+             * @default
+             */
+            how_to_read: string;
+            /** Meaning */
+            meaning: string;
+            /**
+             * Name
+             * @description Must equal a series name returned by simulate()
+             */
+            name: string;
+        };
         /** SessionRequest */
         SessionRequest: {
             /** Tutor Id */
@@ -1375,6 +1522,47 @@ export interface components {
              * @enum {string}
              */
             type: "show_card";
+        };
+        /**
+         * SimDocs
+         * @description Explanatory material generated alongside the code (all PaperSim tabs read this).
+         */
+        SimDocs: {
+            /** Concepts */
+            concepts: components["schemas"]["ConceptDoc"][];
+            /** Derivation */
+            derivation: components["schemas"]["DerivationStep"][];
+            /** Equations */
+            equations: components["schemas"]["EquationDoc"][];
+            /** Glossary */
+            glossary: components["schemas"]["EquationVar"][];
+            /** Key Findings */
+            key_findings: string[];
+            /** Limitations */
+            limitations: string[];
+            /** Links */
+            links: components["schemas"]["ConceptLink"][];
+            /**
+             * Overview
+             * @description 3-5 sentence plain-language summary of the paper's idea
+             */
+            overview: string;
+            /** Params */
+            params: components["schemas"]["ParamDoc"][];
+            /** Presets */
+            presets: components["schemas"]["SimPreset"][];
+            /** Series */
+            series: components["schemas"]["SeriesDoc"][];
+            /**
+             * X Meaning
+             * @default
+             */
+            x_meaning: string;
+            /**
+             * Y Meaning
+             * @default
+             */
+            y_meaning: string;
         };
         /**
          * SimOutput
@@ -1425,6 +1613,29 @@ export interface components {
             python_code: string | null;
         };
         /**
+         * SimPreset
+         * @description A named scenario: slider values that reproduce something from the paper.
+         *
+         *     After sanitising, `params` holds a value for EVERY PARAMS key, each within its range.
+         */
+        SimPreset: {
+            /** Description */
+            description: string;
+            /**
+             * Expected
+             * @description What the learner should see in the plot
+             * @default
+             */
+            expected: string;
+            /** Name */
+            name: string;
+            /** Params */
+            params: {
+                [key: string]: number;
+            };
+            source: components["schemas"]["SourceLoc"] | null;
+        };
+        /**
          * SimSpec
          * @description A stored simulation: the `SimPayload` plus provenance and validation.
          */
@@ -1434,6 +1645,7 @@ export interface components {
             /** Assumptions */
             assumptions: string[];
             default_output: components["schemas"]["SimOutput"];
+            docs: components["schemas"]["SimDocs"] | null;
             /** Equation Latex */
             equation_latex: string | null;
             /**
@@ -1454,6 +1666,29 @@ export interface components {
             /** Title */
             title: string;
             validation: components["schemas"]["ValidationReport"];
+        };
+        /**
+         * SourceLoc
+         * @description Where in the paper something comes from.
+         */
+        SourceLoc: {
+            /**
+             * Page
+             * @description 1-based PDF page, when known
+             */
+            page: number | null;
+            /**
+             * Quote
+             * @description Short verbatim snippet
+             * @default
+             */
+            quote: string;
+            /**
+             * Section
+             * @description Section name/number, e.g. "3.2 Forgetting"
+             * @default
+             */
+            section: string;
         };
         /** SourceRef */
         SourceRef: {

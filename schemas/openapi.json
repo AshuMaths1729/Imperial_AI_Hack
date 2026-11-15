@@ -677,6 +677,155 @@
         "title": "ClipSummary",
         "type": "object"
       },
+      "ConceptDoc": {
+        "additionalProperties": false,
+        "description": "A node of the paper's concept & parameter graph.",
+        "properties": {
+          "detail": {
+            "default": "",
+            "description": "2-4 sentences: why it matters / how it works",
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "paper",
+              "model",
+              "concept",
+              "variable",
+              "parameter",
+              "assumption",
+              "result",
+              "cited_work"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "latex": {
+            "default": "",
+            "description": "Defining formula, if any (no $ delimiters)",
+            "title": "Latex",
+            "type": "string"
+          },
+          "param_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PARAMS key if this is a slider",
+            "title": "Param Key"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "description": "One-sentence, beginner-friendly explanation",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "summary",
+          "detail",
+          "latex",
+          "param_key",
+          "source"
+        ],
+        "title": "ConceptDoc",
+        "type": "object"
+      },
+      "ConceptLink": {
+        "additionalProperties": false,
+        "description": "A directed, labelled relation between two concepts.",
+        "properties": {
+          "explanation": {
+            "default": "",
+            "description": "One sentence on why the link holds",
+            "title": "Explanation",
+            "type": "string"
+          },
+          "kind": {
+            "default": "prerequisite",
+            "enum": [
+              "prerequisite",
+              "supports",
+              "contradicts",
+              "gap"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "relation": {
+            "description": "Short verb phrase, e.g. \"slows the decay of\"",
+            "title": "Relation",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "relation",
+          "explanation",
+          "kind"
+        ],
+        "title": "ConceptLink",
+        "type": "object"
+      },
+      "DerivationStep": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "latex": {
+            "default": "",
+            "title": "Latex",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "latex",
+          "explanation"
+        ],
+        "title": "DerivationStep",
+        "type": "object"
+      },
       "DocInfo": {
         "additionalProperties": false,
         "properties": {
@@ -888,6 +1037,73 @@
           "context"
         ],
         "title": "Equation",
+        "type": "object"
+      },
+      "EquationDoc": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "latex": {
+            "title": "Latex",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/EquationVar"
+            },
+            "title": "Variables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "latex",
+          "explanation",
+          "variables",
+          "source"
+        ],
+        "title": "EquationDoc",
+        "type": "object"
+      },
+      "EquationVar": {
+        "additionalProperties": false,
+        "properties": {
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "symbol_latex": {
+            "title": "Symbol Latex",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol_latex",
+          "meaning"
+        ],
+        "title": "EquationVar",
         "type": "object"
       },
       "ErrorBody": {
@@ -1705,6 +1921,59 @@
         "title": "PaperSource",
         "type": "object"
       },
+      "ParamDoc": {
+        "additionalProperties": false,
+        "description": "Plain-language explanation of one PARAMS slider.",
+        "properties": {
+          "effect": {
+            "description": "What increasing it does to the plot",
+            "title": "Effect",
+            "type": "string"
+          },
+          "key": {
+            "description": "The PARAMS key this documents",
+            "title": "Key",
+            "type": "string"
+          },
+          "meaning": {
+            "description": "What the parameter is, in one plain sentence",
+            "title": "Meaning",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "symbol_latex": {
+            "default": "",
+            "description": "LaTeX symbol, e.g. \\Delta S",
+            "title": "Symbol Latex",
+            "type": "string"
+          },
+          "typical": {
+            "default": "",
+            "description": "Typical / paper-reported value, if any",
+            "title": "Typical",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "symbol_latex",
+          "meaning",
+          "effect",
+          "typical",
+          "source"
+        ],
+        "title": "ParamDoc",
+        "type": "object"
+      },
       "ParamSpec": {
         "additionalProperties": false,
         "description": "One entry of `PARAMS` (a slider).",
@@ -2074,6 +2343,32 @@
         "title": "Series",
         "type": "object"
       },
+      "SeriesDoc": {
+        "additionalProperties": false,
+        "properties": {
+          "how_to_read": {
+            "default": "",
+            "title": "How To Read",
+            "type": "string"
+          },
+          "meaning": {
+            "title": "Meaning",
+            "type": "string"
+          },
+          "name": {
+            "description": "Must equal a series name returned by simulate()",
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "meaning",
+          "how_to_read"
+        ],
+        "title": "SeriesDoc",
+        "type": "object"
+      },
       "SessionRequest": {
         "properties": {
           "tutor_id": {
@@ -2148,6 +2443,114 @@
           "id"
         ],
         "title": "ShowCard",
+        "type": "object"
+      },
+      "SimDocs": {
+        "additionalProperties": false,
+        "description": "Explanatory material generated alongside the code (all PaperSim tabs read this).",
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptDoc"
+            },
+            "title": "Concepts",
+            "type": "array"
+          },
+          "derivation": {
+            "items": {
+              "$ref": "#/components/schemas/DerivationStep"
+            },
+            "title": "Derivation",
+            "type": "array"
+          },
+          "equations": {
+            "items": {
+              "$ref": "#/components/schemas/EquationDoc"
+            },
+            "title": "Equations",
+            "type": "array"
+          },
+          "glossary": {
+            "items": {
+              "$ref": "#/components/schemas/EquationVar"
+            },
+            "title": "Glossary",
+            "type": "array"
+          },
+          "key_findings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Key Findings",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/ConceptLink"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "overview": {
+            "description": "3-5 sentence plain-language summary of the paper's idea",
+            "title": "Overview",
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/ParamDoc"
+            },
+            "title": "Params",
+            "type": "array"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/SimPreset"
+            },
+            "title": "Presets",
+            "type": "array"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesDoc"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "x_meaning": {
+            "default": "",
+            "title": "X Meaning",
+            "type": "string"
+          },
+          "y_meaning": {
+            "default": "",
+            "title": "Y Meaning",
+            "type": "string"
+          }
+        },
+        "required": [
+          "overview",
+          "key_findings",
+          "params",
+          "concepts",
+          "links",
+          "equations",
+          "derivation",
+          "presets",
+          "series",
+          "x_meaning",
+          "y_meaning",
+          "limitations",
+          "glossary"
+        ],
+        "title": "SimDocs",
         "type": "object"
       },
       "SimOutput": {
@@ -2258,6 +2661,52 @@
         "title": "SimPayload",
         "type": "object"
       },
+      "SimPreset": {
+        "additionalProperties": false,
+        "description": "A named scenario: slider values that reproduce something from the paper.\n\nAfter sanitising, `params` holds a value for EVERY PARAMS key, each within its range.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "expected": {
+            "default": "",
+            "description": "What the learner should see in the plot",
+            "title": "Expected",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceLoc"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "params",
+          "expected",
+          "source"
+        ],
+        "title": "SimPreset",
+        "type": "object"
+      },
       "SimSpec": {
         "additionalProperties": false,
         "description": "A stored simulation: the `SimPayload` plus provenance and validation.",
@@ -2282,6 +2731,16 @@
           },
           "default_output": {
             "$ref": "#/components/schemas/SimOutput"
+          },
+          "docs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SimDocs"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "equation_latex": {
             "anyOf": [
@@ -2351,9 +2810,48 @@
           "title",
           "explanation",
           "assumptions",
+          "docs",
           "validation"
         ],
         "title": "SimSpec",
+        "type": "object"
+      },
+      "SourceLoc": {
+        "additionalProperties": false,
+        "description": "Where in the paper something comes from.",
+        "properties": {
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "1-based PDF page, when known",
+            "title": "Page"
+          },
+          "quote": {
+            "default": "",
+            "description": "Short verbatim snippet",
+            "maxLength": 400,
+            "title": "Quote",
+            "type": "string"
+          },
+          "section": {
+            "default": "",
+            "description": "Section name/number, e.g. \"3.2 Forgetting\"",
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "page",
+          "quote"
+        ],
+        "title": "SourceLoc",
         "type": "object"
       },
       "SourceRef": {

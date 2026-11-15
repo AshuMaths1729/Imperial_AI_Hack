@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import Link from "next/link";
 import {
-  ArrowLeft,
   GraduationCap,
   Loader2,
   Maximize2,
@@ -20,11 +18,11 @@ import {
 import { listTutors, type Tutor } from "@/tutor/api";
 import { AvatarVideo, Portrait, portrait, voiceSample } from "@/tutor/media";
 import { useAvatarCall, type Caption } from "@/tutor/useAvatarCall";
-import { ThemeToggle } from "@/components/ThemeProvider";
+import { AppHeader } from "@/components/AppHeader";
 
 const LessonBoard = dynamic(() => import("@/tutor/LessonBoard"), {
   ssr: false,
-  loading: () => <div className="grid h-full place-items-center text-xs text-slate-500">Loading whiteboard…</div>,
+  loading: () => <div className="grid h-full place-items-center text-xs text-[var(--text-muted)]">Loading whiteboard…</div>,
 });
 
 function TutorCard({
@@ -152,41 +150,29 @@ export default function TutorPage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      <header className="apple-glass z-30 flex h-14 shrink-0 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-            <GraduationCap className="h-4 w-4" aria-hidden />
-          </div>
-          <div>
-            <h1 className="apple-heading text-sm font-bold">ScholarTwin Live Tutor</h1>
-            <p className="text-[11px] text-[var(--text-muted)]">Face-to-face lessons with an AI avatar</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Link
-            href="/"
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Workspace
-          </Link>
-        </div>
-      </header>
+      <AppHeader
+        back={{ label: "Home", href: "/" }}
+        icon={GraduationCap}
+        title="Live Tutor"
+        subtitle="Face-to-face lessons with an AI avatar"
+        hideTutorLink
+      />
 
       {!inCall ? (
         <main className="mx-auto w-full max-w-xl space-y-5 overflow-y-auto px-4 py-10">
-          <h2 className="apple-heading text-lg font-semibold">Choose your tutor</h2>
+          <h2 className="apple-heading st-fade-up text-lg font-semibold">Choose your tutor</h2>
           {loadError && <p role="alert" className="text-sm text-[var(--status-contradict)]">{loadError}</p>}
           <div className="grid gap-3">
-            {tutors.map((t) => (
-              <TutorCard
-                key={t.tutor_id}
-                tutor={t}
-                selected={t.tutor_id === picked}
-                playing={playing === t.tutor_id}
-                onSelect={() => setPicked(t.tutor_id)}
-                onPlay={() => playSample(t.tutor_id)}
-              />
+            {tutors.map((t, i) => (
+              <div key={t.tutor_id} className="st-fade-up" style={{ animationDelay: `${80 + i * 80}ms` }}>
+                <TutorCard
+                  tutor={t}
+                  selected={t.tutor_id === picked}
+                  playing={playing === t.tutor_id}
+                  onSelect={() => setPicked(t.tutor_id)}
+                  onPlay={() => playSample(t.tutor_id)}
+                />
+              </div>
             ))}
           </div>
           {call.status === "error" && <p role="alert" className="text-sm text-[var(--status-contradict)]">{call.error}</p>}
@@ -218,9 +204,11 @@ export default function TutorPage() {
               ) : (
                 <div className="relative h-full w-full">
                   {active && <Image src={portrait(active.tutor_id)} alt="" fill sizes="512px" className="object-cover opacity-40 blur-[2px]" />}
-                  <p role="status" className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-[var(--text-primary)]">
-                    <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
-                    {active ? `${active.name} is joining…` : "Connecting…"}
+                  <p role="status" className="absolute inset-0 flex items-center justify-center">
+                    <span className="apple-glass flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm text-[var(--text-primary)]">
+                      <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+                      {active ? `${active.name} is joining…` : "Connecting…"}
+                    </span>
                   </p>
                 </div>
               )}
@@ -301,7 +289,7 @@ export default function TutorPage() {
             <button
               type="button"
               onClick={call.end}
-              className="apple-press apple-focus flex h-9 items-center justify-center gap-2 rounded-full bg-[var(--status-contradict)] text-sm font-semibold text-white hover:opacity-90"
+              className="apple-press apple-focus flex h-9 items-center justify-center gap-2 rounded-full bg-[var(--status-contradict)] text-sm font-semibold text-[var(--status-contradict-fg)] hover:opacity-90"
             >
               <PhoneOff className="h-4 w-4" aria-hidden /> Leave lesson
             </button>

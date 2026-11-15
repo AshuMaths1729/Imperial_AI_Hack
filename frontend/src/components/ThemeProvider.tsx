@@ -84,7 +84,7 @@ export function ThemeToggle() {
     <div
       role="group"
       aria-label="Color theme"
-      className="inline-flex items-center gap-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-0.5"
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] p-0.5"
     >
       {THEME_OPTIONS.map((opt) => {
         const Icon = opt.icon;
@@ -95,15 +95,17 @@ export function ThemeToggle() {
             type="button"
             onClick={() => setTheme(opt.id)}
             aria-pressed={active}
-            title={opt.label}
-            className={`apple-press apple-focus flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition ${
+            aria-label={`${opt.label} theme`}
+            title={`${opt.label} theme`}
+            className={`apple-press apple-focus flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition ${
               active
-                ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
             }`}
           >
             <Icon className={`h-3.5 w-3.5 ${active ? "text-[var(--accent)]" : ""}`} />
-            <span className="hidden md:inline">{opt.label}</span>
+            {/* Labels only on wide screens so crowded headers don't overflow at 768-1279px */}
+            <span className="hidden whitespace-nowrap xl:inline">{opt.label}</span>
           </button>
         );
       })}

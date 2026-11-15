@@ -80,7 +80,7 @@ export function AvatarDock({
       : { borderColor: "var(--border-strong)" };
 
   return (
-    <aside className="flex h-full flex-col justify-between border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+    <aside className="flex flex-col justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
@@ -142,7 +142,7 @@ export function AvatarDock({
                   isSpeaking
                     ? "bg-[var(--accent)] text-[var(--accent-fg)]"
                     : listening
-                    ? "bg-[var(--status-contradict)] text-white"
+                    ? "bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
                     : "border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)]"
                 }`}
               >
@@ -174,7 +174,7 @@ export function AvatarDock({
           onClick={handleVoice}
           className={`apple-press apple-focus flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ${
             listening
-              ? "animate-pulse bg-[var(--status-contradict)] text-white"
+              ? "animate-pulse bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
               : "bg-[var(--accent)] text-[var(--accent-fg)] hover:bg-[var(--accent-hover)]"
           }`}
         >
@@ -188,6 +188,7 @@ export function AvatarDock({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about circled area..."
+            aria-label="Ask the tutor a question"
             className="apple-focus w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)]"
           />
           <button

@@ -1,36 +1,29 @@
 "use client";
 
-import React, { useRef, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
-  Clock,
-  ExternalLink,
+  AlertTriangle,
+  ArrowRight,
   GitCompare,
-  GraduationCap,
-  History,
   Loader2,
   Mic,
   MicOff,
-  Plus,
+  MousePointerClick,
   Search,
   Sparkles,
-  Trash2,
-  X,
 } from "lucide-react";
 import { createTopicGraph, stt } from "../api/endpoints";
 import { graphToWorkspaceDataset } from "../api/adapters";
-import { extractGraphCitations, formatCitationLabel, resolveCitationUrl } from "../api/citations";
-import { GraphEdgeData, GraphNodeData, WorkspaceDataset } from "../types/scholartwin";
+import { GraphEdgeData } from "../types/scholartwin";
 import { GraphCanvas } from "./GraphCanvas";
-import { ThemeToggle } from "./ThemeProvider";
+import { AppHeader } from "./AppHeader";
+import { TopicSidebar, type TopicRun } from "./hypothesis/TopicSidebar";
+import { EvidenceGlyph, EvidenceLegend, SearchProgress, StarterTopics } from "./hypothesis/EvidenceHero";
+import { buildHypothesisModel } from "./hypothesis/model";
+import { EdgeBubble, NodeBubble } from "./hypothesis/Bubbles";
+import { PaperList } from "./hypothesis/PaperList";
 
-export interface HypothesisTopicRun {
-  id: string;
-  title: string;
-  updatedAt: string;
-  dataset: WorkspaceDataset;
-}
+export type HypothesisTopicRun = TopicRun;
 
 interface HypothesisChatViewProps {
   onBackHome: () => void;
@@ -42,34 +35,10 @@ const STARTER_QUERIES = [
   "Compute-optimal scaling laws: Chinchilla vs Kaplan",
   "Does chain-of-thought prompting improve mathematical reasoning reliability?",
   "LoRA vs full fine-tuning generalization on domain-specific tasks",
-];
+] as const;
 
-const EDGE_BADGE: Record<GraphEdgeData["type"], { label: string; colorVar: string; softVar: string; borderVar: string }> = {
-  supports: {
-    label: "Supports",
-    colorVar: "var(--status-support)",
-    softVar: "var(--status-support-soft)",
-    borderVar: "var(--status-support-border)",
-  },
-  contradicts: {
-    label: "Contradicts",
-    colorVar: "var(--status-contradict)",
-    softVar: "var(--status-contradict-soft)",
-    borderVar: "var(--status-contradict-border)",
-  },
-  gap: {
-    label: "Research Gap",
-    colorVar: "var(--status-gap)",
-    softVar: "var(--status-gap-soft)",
-    borderVar: "var(--status-gap-border)",
-  },
-  prerequisite: {
-    label: "Prerequisite",
-    colorVar: "var(--accent)",
-    softVar: "var(--accent-soft)",
-    borderVar: "var(--accent-border)",
-  },
-};
+/** Keep focused nodes in the top half: the details bubble covers the bottom of the canvas. */
+const FOCUS_PADDING = { top: "12%", left: "10%", right: "10%", bottom: "50%" } as const;
 
 type SpeechRecCtor = new () => {
   lang: string;
@@ -132,52 +101,98 @@ function persistHistory(next: HypothesisTopicRun[]) {
   }
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "Recent";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(d);
+function isNarrowScreen(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+}
+
+function StatChip({ n, label, color }: { n: number; label: string; color: string }) {
+  return (
+    <span
+      style={{ color, borderColor: `color-mix(in srgb, ${color} 35%, transparent)`, backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)` }}
+      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+      {n} {label}
+    </span>
+  );
 }
 
 export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
-  const history = useSyncExternalStore(
-    subscribeHistory,
-    getHistorySnapshot,
-    getServerHistorySnapshot
-  );
+  const history = useSyncExternalStore(subscribeHistory, getHistorySnapshot, getServerHistorySnapshot);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
-  const [dataset, setDataset] = useState<WorkspaceDataset | null>(null);
-  const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
+  const [dataset, setDataset] = useState<HypothesisTopicRun["dataset"] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<GraphEdgeData | null>(null);
   const recognitionRef = useRef<InstanceType<SpeechRecCtor> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // Paper-level graph: papers and open questions as nodes, claims inside their paper.
+  const model = useMemo(() => (dataset ? buildHypothesisModel(dataset) : null), [dataset]);
+  // Saved topics may remember a claim id; it now lives inside its paper.
+  const shownId = model ? model.resolveId(selectedId) : null;
+  const selectedNode = (shownId && model?.byId.get(shownId)) || null;
+
+  // Each paper node says how many claims it holds and how many of them link out.
+  const nodeMeta = useCallback(
+    (id: string) => {
+      const claims = model?.claimsOf.get(id);
+      if (!model || !claims?.length) return undefined;
+      const linked = claims.filter((c) => model.claimLinks.has(c.id)).length;
+      const n = `${claims.length} ${claims.length === 1 ? "claim" : "claims"}`;
+      return linked ? `${n} · ${linked} linked` : `${n} · none linked`;
+    },
+    [model]
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedId(null);
+    setSelectedEdge(null);
+  }, []);
+
+  // Esc closes the details bubble.
+  useEffect(() => {
+    if (!selectedId && !selectedEdge) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") clearSelection();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedId, selectedEdge, clearSelection]);
+
   const startNewTopic = () => {
     setActiveRunId(null);
     setDataset(null);
-    setSelectedNode(null);
+    setSelectedId(null);
     setSelectedEdge(null);
     setErrorMsg(null);
     setQuery("");
+    if (isNarrowScreen()) setSidebarCollapsed(true);
   };
 
   const openRun = (run: HypothesisTopicRun) => {
     setActiveRunId(run.id);
     setQuery(run.title);
     setDataset(run.dataset);
-    setSelectedNode(run.dataset.nodes[0] ?? null);
+    // Back to the node last clicked in this topic, else the whole chart (no auto-zoom).
+    setSelectedId(run.dataset.nodes.some((n) => n.id === run.lastNodeId) ? run.lastNodeId! : null);
     setSelectedEdge(null);
     setErrorMsg(null);
+    if (isNarrowScreen()) setSidebarCollapsed(true);
+  };
+
+  const selectNode = (id: string) => {
+    setSelectedId(id);
+    setSelectedEdge(null);
+    if (activeRunId) {
+      persistHistory(history.map((r) => (r.id === activeRunId ? { ...r, lastNodeId: id } : r)));
+    }
   };
 
   const deleteRun = (id: string) => {
@@ -226,9 +241,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
         setListening(true);
         return;
       } catch (err) {
-        setErrorMsg(
-          err instanceof Error ? `Microphone error: ${err.message}` : "Microphone permission denied."
-        );
+        setErrorMsg(err instanceof Error ? `Microphone error: ${err.message}` : "Microphone permission denied.");
         return;
       }
     }
@@ -270,7 +283,7 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
       const graph = await createTopicGraph(trimmed, 12);
       const mapped = graphToWorkspaceDataset(graph, "hypothesis", trimmed);
       setDataset(mapped);
-      setSelectedNode(mapped.nodes[0] ?? null);
+      setSelectedId(null); // open on the whole chart
 
       const runId = `hyp-${Date.now()}`;
       const newRun: HypothesisTopicRun = {
@@ -297,497 +310,254 @@ export function HypothesisChatView({ onBackHome }: HypothesisChatViewProps) {
     runTopicSearch(query);
   };
 
-  const edgeSourceLabel =
-    selectedEdge && dataset
-      ? dataset.nodes.find((n) => n.id === selectedEdge.source)?.label ?? selectedEdge.source
-      : "";
-  const edgeTargetLabel =
-    selectedEdge && dataset
-      ? dataset.nodes.find((n) => n.id === selectedEdge.target)?.label ?? selectedEdge.target
-      : "";
 
-  const supportsCount = dataset?.edges.filter((e) => e.type === "supports").length ?? 0;
-  const contradictsCount = dataset?.edges.filter((e) => e.type === "contradicts").length ?? 0;
-  const gapCount = dataset?.edges.filter((e) => e.type === "gap").length ?? 0;
+  const hero = !dataset;
+
+  const searchForm = (
+    <form
+      onSubmit={handleSubmit}
+      style={hero ? ({ "--st-glow-a": "var(--status-gap)", "--st-glow-b": "var(--status-support)" } as React.CSSProperties) : undefined}
+      className={`relative flex items-center gap-2 rounded-2xl border border-[var(--status-gap-border)] bg-[var(--bg-surface)] transition-[border-color,box-shadow] duration-300 focus-within:border-[var(--status-gap)] focus-within:shadow-[0_0_0_4px_var(--status-gap-soft)] ${
+        hero ? "st-glow-border p-2.5 shadow-xl" : "p-2 shadow-lg"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={toggleMic}
+        disabled={transcribing}
+        aria-label={listening ? "Stop microphone" : "Start microphone"}
+        title={listening ? "Click to stop & transcribe" : "Speak research topic"}
+        className={`apple-press apple-focus relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+          listening
+            ? "bg-[var(--status-contradict)] text-[var(--status-contradict-fg)]"
+            : transcribing
+              ? "bg-[var(--status-gap-soft)] text-[var(--status-gap)]"
+              : "bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:bg-[var(--status-gap-soft)] hover:text-[var(--status-gap)]"
+        }`}
+      >
+        {listening && (
+          <span aria-hidden className="absolute inset-0 rounded-xl bg-[var(--status-contradict)] motion-safe:animate-ping" style={{ opacity: 0.35 }} />
+        )}
+        {transcribing ? (
+          <Loader2 className="relative h-4 w-4 animate-spin" />
+        ) : listening ? (
+          <MicOff className="relative h-4 w-4" />
+        ) : (
+          <Mic className="relative h-4 w-4" />
+        )}
+      </button>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={listening ? "Listening… click the mic again to stop" : "Enter a research topic or question (e.g. Chinchilla scaling laws)…"}
+        aria-label="Research topic or question"
+        className={`min-w-0 flex-1 bg-transparent px-2 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none ${
+          hero ? "text-[15px]" : "text-sm"
+        }`}
+      />
+      <button
+        type="submit"
+        disabled={loading || !query.trim()}
+        style={{ backgroundColor: "var(--status-gap)", color: "var(--accent-fg)" }}
+        className="apple-press apple-focus st-sheen group relative flex h-10 shrink-0 items-center gap-1.5 overflow-hidden rounded-xl px-4 text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="hidden sm:inline">Generating…</span>
+          </>
+        ) : (
+          <>
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Generate graph</span>
+            <ArrowRight className="hidden h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 sm:block" />
+          </>
+        )}
+      </button>
+    </form>
+  );
+
+  const errorBox = errorMsg && (
+    <div
+      role="alert"
+      className="st-shake mt-3 flex items-start gap-2 rounded-xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-3.5 py-2 text-xs text-[var(--status-contradict)]"
+    >
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>{errorMsg}</span>
+    </div>
+  );
 
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
-      <header className="apple-glass z-30 flex h-14 shrink-0 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBackHome}
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Home
-          </button>
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--status-gap-soft)] text-[var(--status-gap)]">
-            <GitCompare className="h-4 w-4" />
-          </div>
-          <div>
-            <h1 className="apple-heading text-sm font-bold text-[var(--text-primary)]">HypothesisGraph</h1>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              Grounded Multi-Paper Evidence, Contradictions & Gaps
-            </p>
-          </div>
+      <AppHeader
+        tone="gap"
+        back={{ label: "Home", onClick: onBackHome }}
+        icon={GitCompare}
+        title="HypothesisGraph"
+        subtitle="Grounded multi-paper evidence, contradictions & gaps"
+      />
+
+      <div className="relative flex min-h-0 flex-1">
+        {/* On phones the rail stays in flow and the expanded panel overlays the page. */}
+        <div className="relative z-30 flex w-[60px] shrink-0 md:w-auto">
+          <TopicSidebar
+            runs={history}
+            activeRunId={activeRunId}
+            collapsed={sidebarCollapsed}
+            onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+            onNewTopic={startNewTopic}
+            onOpenRun={openRun}
+            onDeleteRun={deleteRun}
+          />
         </div>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => setHistoryOpen((v) => !v)}
-            style={
-              historyOpen
-                ? {
-                    borderColor: "var(--status-gap-border)",
-                    backgroundColor: "var(--status-gap-soft)",
-                    color: "var(--status-gap)",
-                  }
-                : undefined
-            }
-            className={`apple-press apple-focus flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium ${
-              !historyOpen
-                ? "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
-                : ""
-            }`}
-          >
-            <History className="h-3.5 w-3.5" />
-            Saved Topics ({history.length})
-          </button>
-          <button
-            type="button"
-            onClick={startNewTopic}
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
-          >
-            <Plus className="h-3.5 w-3.5 text-[var(--status-gap)]" />
-            New Topic
-          </button>
-          <a
-            href="/tutor"
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
-          >
-            <GraduationCap className="h-3.5 w-3.5 text-[var(--accent)]" />
-            Live Tutor
-          </a>
-        </div>
-      </header>
+        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {hero ? (
+            <>
+              {/* Ambient animated backdrop */}
+              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="apple-hero-glow absolute inset-x-0 top-0 h-[420px]" />
+                <div className="st-aurora absolute -top-40 left-[calc(50%-380px)] h-[460px] w-[760px] rounded-full bg-[var(--status-gap-soft)] blur-3xl" />
+                <div className="st-aurora-slow absolute bottom-0 -left-32 h-[340px] w-[340px] rounded-full bg-[var(--status-support-soft)] blur-3xl" />
+                <div className="st-aurora-slow absolute -right-24 top-1/3 h-[300px] w-[300px] rounded-full bg-[var(--status-contradict-soft)] blur-3xl" />
+                <div className="st-grid absolute inset-0 opacity-[0.3]" />
+              </div>
 
-      <div className="flex min-h-0 flex-1">
-        {/* Saved Topics Sidebar */}
-        {historyOpen && (
-          <aside className="flex w-64 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-3.5 py-2.5">
-              <span className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
-                Previous Topics
-              </span>
-              <button
-                type="button"
-                onClick={startNewTopic}
-                className="apple-focus text-[11px] font-semibold text-[var(--status-gap)] hover:opacity-80"
-              >
-                + New
-              </button>
-            </div>
-            <div className="flex-1 space-y-1.5 overflow-y-auto p-2.5">
-              {history.length === 0 ? (
-                <p className="px-2 py-4 text-center text-[11px] text-[var(--text-muted)]">
-                  Generated paper graphs will be saved here.
-                </p>
-              ) : (
-                history.map((run) => {
-                  const active = run.id === activeRunId;
-                  return (
-                    <div
-                      key={run.id}
-                      onClick={() => openRun(run)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          openRun(run);
-                        }
-                      }}
-                      style={
-                        active
-                          ? {
-                              borderColor: "var(--status-gap-border)",
-                              backgroundColor: "var(--status-gap-soft)",
-                            }
-                          : undefined
-                      }
-                      className={`apple-press apple-focus group flex cursor-pointer items-start justify-between gap-2 rounded-xl border px-2.5 py-2 ${
-                        !active
-                          ? "border-transparent hover:border-[var(--border-subtle)] hover:bg-[var(--bg-surface-muted)]"
-                          : ""
-                      }`}
+              <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-4 py-8 sm:px-6">
+                <div className="mx-auto my-auto w-full max-w-2xl">
+                  <div className="st-fade-up mx-auto mb-2 w-full max-w-[400px]">
+                    <EvidenceGlyph busy={loading} className="st-float h-auto w-full" />
+                  </div>
+                  <div className="text-center">
+                    <span
+                      className="st-fade-up inline-flex items-center gap-1.5 rounded-full border border-[var(--status-gap-border)] bg-[var(--status-gap-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--status-gap)]"
+                      style={{ animationDelay: "80ms" }}
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-[var(--text-primary)]">{run.title}</p>
-                        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-2.5 w-2.5" />
-                            {formatDate(run.updatedAt)}
-                          </span>
-                          <span>{run.dataset.nodes.length} nodes</span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={`Delete ${run.title}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteRun(run.id);
-                        }}
-                        className="apple-focus rounded p-1 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </aside>
-        )}
-
-        {/* Main Topic Query + Full-Space Graph */}
-        <main
-          className={`flex min-h-0 flex-1 flex-col px-4 py-4 ${
-            dataset ? "justify-start" : "justify-center"
-          }`}
-        >
-          <div className={`mx-auto w-full ${dataset ? "max-w-4xl" : "max-w-2xl"}`}>
-            {!dataset && (
-              <div className="mb-6 text-center">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--status-gap-border)] bg-[var(--status-gap-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--status-gap)]">
-                  <Sparkles className="h-3 w-3" />
-                  arXiv · bioRxiv · PubMed · Semantic Scholar
-                </span>
-                <h2 className="apple-display mt-3 text-2xl font-bold text-[var(--text-primary)]">
-                  Generate a Grounded Paper Graph
-                </h2>
-                <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
-                  Enter a research topic or speak into the mic to retrieve grounded papers and map
-                  supporting evidence, contradictions, and research gaps.
-                </p>
-              </div>
-            )}
-
-            {/* Topic Query Input with Mic */}
-            <form
-              onSubmit={handleSubmit}
-              className="flex items-center gap-2 rounded-2xl border border-[var(--status-gap-border)] bg-[var(--bg-surface)] p-2 shadow-lg"
-            >
-              <button
-                type="button"
-                onClick={toggleMic}
-                disabled={transcribing}
-                aria-label={listening ? "Stop microphone" : "Start microphone"}
-                title={listening ? "Click to stop & transcribe" : "Speak research topic"}
-                className={`apple-press apple-focus flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                  listening
-                    ? "animate-pulse bg-[var(--status-contradict)] text-white"
-                    : transcribing
-                    ? "bg-[var(--status-gap-soft)] text-[var(--status-gap)]"
-                    : "bg-[var(--bg-surface-muted)] text-[var(--text-secondary)] hover:text-[var(--status-gap)]"
-                }`}
-              >
-                {transcribing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : listening ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </button>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter a research topic or query (e.g. Chinchilla scaling laws)..."
-                className="flex-1 bg-transparent px-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={loading || !query.trim()}
-                style={{
-                  backgroundColor: "var(--status-gap)",
-                  color: "var(--accent-fg)",
-                }}
-                className="apple-press apple-focus flex h-10 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4" />
-                    Generate Graph
-                  </>
-                )}
-              </button>
-            </form>
-
-            {errorMsg && (
-              <p className="mt-3 rounded-xl border border-[var(--status-contradict-border)] bg-[var(--status-contradict-soft)] px-4 py-2 text-xs text-[var(--status-contradict)]">
-                {errorMsg}
-              </p>
-            )}
-
-            {!dataset && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {STARTER_QUERIES.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => runTopicSearch(q)}
-                    className="apple-press apple-focus rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--status-gap-border)] hover:text-[var(--status-gap)]"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Large Full-Space Hypothesis Graph */}
-          {dataset && (
-            <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] lg:grid-cols-[1fr_310px]">
-              <div className="relative flex min-h-0 flex-col">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-4 py-2">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</span>
-                    <span className="text-[11px] text-[var(--text-secondary)]">
-                      {dataset.nodes.length} nodes · {supportsCount} supports · {contradictsCount}{" "}
-                      contradicts · {gapCount} gaps
+                      <Sparkles className="st-twinkle h-3 w-3" />
+                      arXiv · bioRxiv · PubMed · Semantic Scholar
                     </span>
-                    <span className="text-[11px] text-[var(--text-muted)]">
-                      Click a node to zoom its neighbourhood · Click a link for explanation
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-muted)]">
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />
-                      Supports
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />
-                      Contradicts
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-[var(--status-gap)]" />
-                      Gap
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-[var(--text-muted)]" />
-                      Detached
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative min-h-0 flex-1">
-                  <GraphCanvas
-                    nodes={dataset.nodes}
-                    edges={dataset.edges}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    selectedEdgeId={selectedEdge?.id ?? null}
-                    annotations={[]}
-                    onSelectNode={(n) => setSelectedNode(n)}
-                    onSelectEdge={(edge) => setSelectedEdge(edge)}
-                  />
-
-                  {/* Nice Edge Explanation Box on Link Click */}
-                  {selectedEdge && (
-                    <div className="apple-glass-elevated apple-materialize absolute bottom-4 left-4 right-4 z-20 mx-auto max-w-xl rounded-2xl border p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            style={{
-                              color: EDGE_BADGE[selectedEdge.type].colorVar,
-                              backgroundColor: EDGE_BADGE[selectedEdge.type].softVar,
-                              borderColor: EDGE_BADGE[selectedEdge.type].borderVar,
-                            }}
-                            className="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold"
-                          >
-                            {EDGE_BADGE[selectedEdge.type].label}
-                          </span>
-                          <span className="text-xs font-medium text-[var(--text-secondary)]">
-                            {edgeSourceLabel} → {edgeTargetLabel}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedEdge(null)}
-                          aria-label="Close edge explanation"
-                          className="apple-press apple-focus rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <p className="mt-2.5 text-xs leading-relaxed text-[var(--text-primary)]">
-                        {selectedEdge.label ||
-                          selectedEdge.condition ||
-                          "Grounded relationship linking these two claims/papers."}
-                      </p>
-
-                      {selectedEdge.evidence && selectedEdge.evidence.length > 0 && (
-                        <div className="mt-3 space-y-1.5 border-t border-[var(--border-subtle)] pt-2.5">
-                          <p className="apple-label text-[10px] font-semibold uppercase text-[var(--text-muted)]">
-                            Grounded Evidence
-                          </p>
-                          {selectedEdge.evidence.map((ev, idx) => (
-                            <blockquote
-                              key={`${ev.paper_id}-${idx}`}
-                              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] px-3 py-2 text-[11px] italic text-[var(--text-secondary)]"
-                            >
-                              “{ev.quote}”
-                            </blockquote>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <aside className="flex flex-col gap-5 overflow-y-auto border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 lg:border-t-0 lg:border-l">
-                <div>
-                  <p className="apple-label text-[11px] font-semibold uppercase text-[var(--status-gap)]">
-                    Node Citation & Summary
-                  </p>
-                  {selectedNode ? (
-                    <div className="mt-3 space-y-3">
-                      <h3 className="apple-heading text-sm font-semibold text-[var(--text-primary)]">
-                        {selectedNode.label}
-                      </h3>
-                      {(selectedNode.authors_year || selectedNode.slide_ref || selectedNode.doc_id || selectedNode.category === "paper") && (() => {
-                        const docId = selectedNode.doc_id || (selectedNode.category === "paper" ? selectedNode.id : undefined);
-                        const citText =
-                          selectedNode.authors_year ||
-                          selectedNode.slide_ref ||
-                          formatCitationLabel(docId) ||
-                          selectedNode.label;
-                        const citUrl = resolveCitationUrl({
-                          docId,
-                          citation: selectedNode.authors_year || selectedNode.slide_ref,
-                          title: selectedNode.label,
-                        });
-                        return citUrl ? (
-                          <a
-                            href={citUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="apple-press apple-focus flex items-center justify-between gap-2 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--accent)] hover:opacity-90"
-                          >
-                            <span className="flex items-center gap-1.5 truncate">
-                              <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                              <span className="truncate">{citText}</span>
-                            </span>
-                            <ExternalLink className="h-3 w-3 shrink-0" />
-                          </a>
-                        ) : (
-                          <div className="flex items-center gap-1.5 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--accent)]">
-                            <BookOpen className="h-3.5 w-3.5 shrink-0" />
-                            <span>{citText}</span>
-                          </div>
-                        );
-                      })()}
-                      <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-                        {selectedNode.summary}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-xs text-[var(--text-muted)]">
-                      Click a node or a citation below to inspect it and zoom into its neighbourhood.
+                    {/* leading/padding leave room for descenders, which bg-clip-text would otherwise cut */}
+                    <h2
+                      className="apple-display st-fade-up mt-3 bg-gradient-to-r from-[var(--status-gap)] via-[var(--text-primary)] to-[var(--status-support)] bg-clip-text pb-1.5 text-2xl font-bold !leading-[1.25] text-transparent sm:text-3xl"
+                      style={{ animationDelay: "140ms" }}
+                    >
+                      Map what the literature agrees on, and where it doesn&apos;t
+                    </h2>
+                    <p
+                      className="st-fade-up mx-auto mt-2 max-w-xl text-sm text-[var(--text-secondary)]"
+                      style={{ animationDelay: "200ms" }}
+                    >
+                      Type a research question or speak it into the mic. We find grounded papers and map the
+                      evidence that supports it, contradicts it, and the gaps nobody has filled yet.
                     </p>
-                  )}
+                  </div>
+
+                  <div className="st-fade-up mt-6" style={{ animationDelay: "260ms" }}>
+                    {searchForm}
+                  </div>
+                  {loading && <SearchProgress />}
+                  {errorBox}
+
+                  <div className="mt-5">
+                    <p
+                      className="st-fade-up apple-label mb-2 text-center text-[10px] font-semibold uppercase text-[var(--text-muted)]"
+                      style={{ animationDelay: "320ms" }}
+                    >
+                      Try one of these
+                    </p>
+                    <StarterTopics topics={STARTER_QUERIES} disabled={loading} onPick={runTopicSearch} baseDelay={360} />
+                  </div>
+
+                  <div className="mt-8">
+                    <EvidenceLegend baseDelay={520} />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : model ? (
+            <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
+              {/* Full-space hypothesis graph (new searches start from "New topic" in the sidebar) */}
+              <div
+                key={activeRunId ?? dataset.title}
+                className="st-fade-up grid min-h-0 flex-1 grid-cols-1 overflow-y-auto rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden"
+              >
+                <div className="relative flex min-h-[72vh] flex-col lg:min-h-0">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-[var(--border-subtle)] px-4 py-2.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <h2
+                        title={dataset.title}
+                        className="apple-heading mr-1 max-w-[26rem] truncate text-sm font-semibold text-[var(--text-primary)]"
+                      >
+                        {dataset.title}
+                      </h2>
+                      <StatChip n={model.counts.paper} label={model.counts.paper === 1 ? "paper" : "papers"} color="var(--accent)" />
+                      <StatChip n={model.counts.supports} label={model.counts.supports === 1 ? "agreement" : "agreements"} color="var(--status-support)" />
+                      <StatChip n={model.counts.contradicts} label={model.counts.contradicts === 1 ? "contradiction" : "contradictions"} color="var(--status-contradict)" />
+                      <StatChip n={model.counts.gap} label={model.counts.gap === 1 ? "open question" : "open questions"} color="var(--status-gap)" />
+                    </div>
+                    {model.counts.unlinked > 0 && (
+                      <span className="text-[11px] text-[var(--text-muted)]">
+                        {model.counts.unlinked} {model.counts.unlinked === 1 ? "paper stands" : "papers stand"} alone (greyed out, bottom row)
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative min-h-[420px] flex-1">
+                    <GraphCanvas
+                      nodes={model.nodes}
+                      edges={model.edges}
+                      focusPadding={FOCUS_PADDING}
+                      nodeMeta={nodeMeta}
+                      selectedNodeId={shownId}
+                      selectedEdgeId={selectedEdge?.id ?? null}
+                      annotations={[]}
+                      onSelectNode={(n) => selectNode(n.id)}
+                      onSelectEdge={(edge) => setSelectedEdge(edge)}
+                      onClearSelection={clearSelection}
+                    />
+
+                    {selectedEdge ? (
+                      <EdgeBubble
+                        key={selectedEdge.id}
+                        model={model}
+                        edge={selectedEdge}
+                        onSelectNode={selectNode}
+                        onBack={selectedNode ? () => setSelectedEdge(null) : undefined}
+                        onClose={clearSelection}
+                      />
+                    ) : (
+                      selectedNode && (
+                        <NodeBubble
+                          key={selectedNode.id}
+                          model={model}
+                          node={selectedNode}
+                          onSelectNode={selectNode}
+                          onShowEdge={(edge) => setSelectedEdge(edge)}
+                          onClose={clearSelection}
+                          highlightClaimId={selectedId !== shownId ? selectedId : null}
+                        />
+                      )
+                    )}
+
+                    {!selectedNode && !selectedEdge && (
+                      <p className="apple-glass pointer-events-none absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] text-[var(--text-secondary)] sm:flex">
+                        <MousePointerClick className="h-3.5 w-3.5 text-[var(--status-gap)]" />
+                        Click a paper to see its claims and links · click a line to see why
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Clickable Graph Citations */}
-                {(() => {
-                  const citations = extractGraphCitations(dataset.nodes, dataset.edges);
-                  if (citations.length === 0) return null;
-                  return (
-                    <div className="border-t border-[var(--border-subtle)] pt-4">
-                      <div className="mb-2.5 flex items-center justify-between">
-                        <p className="apple-label text-[11px] font-semibold uppercase text-[var(--text-muted)]">
-                          Graph Citations ({citations.length})
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {citations.map((cit) => {
-                          const targetNode = cit.nodeId
-                            ? dataset.nodes.find((n) => n.id === cit.nodeId)
-                            : undefined;
-                          const isSelected = Boolean(cit.nodeId && selectedNode?.id === cit.nodeId);
-                          return (
-                            <div
-                              key={cit.id}
-                              className={`apple-press flex items-start justify-between gap-2 rounded-xl border p-2.5 transition ${
-                                isSelected
-                                  ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                                  : "border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--border-strong)]"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (targetNode) {
-                                    setSelectedNode(targetNode);
-                                    setSelectedEdge(null);
-                                  } else if (cit.url) {
-                                    window.open(cit.url, "_blank", "noopener,noreferrer");
-                                  }
-                                }}
-                                className="apple-focus min-w-0 flex-1 text-left"
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
-                                    {cit.citation}
-                                  </p>
-                                  {cit.isDetached && (
-                                    <span className="shrink-0 rounded border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--text-muted)]">
-                                      Unlinked
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--text-muted)]">
-                                  {cit.title}
-                                </p>
-                                {cit.evidenceCount > 0 && (
-                                  <span className="mt-1 inline-block text-[10px] font-medium text-[var(--accent)]">
-                                    {cit.evidenceCount} grounded {cit.evidenceCount === 1 ? "quote" : "quotes"}
-                                  </span>
-                                )}
-                              </button>
-                              {cit.url && (
-                                <a
-                                  href={cit.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  aria-label={`Open source for ${cit.citation}`}
-                                  title="Open paper / search citation"
-                                  className="apple-press apple-focus shrink-0 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--accent)]"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </aside>
+                <aside
+                  aria-label="Papers in this topic"
+                  className="flex h-[60vh] min-h-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] lg:h-auto lg:border-l lg:border-t-0"
+                >
+                  <PaperList model={model} selectedId={selectedId} onSelect={selectNode} />
+                </aside>
+              </div>
             </div>
-          )}
+          ) : null}
         </main>
       </div>
     </div>

@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {
-  PenTool,
-  Sparkles,
-  GraduationCap,
-  BookOpen,
-  MessageSquarePlus,
-} from "lucide-react";
+import { Layers, MessageSquarePlus, PenTool } from "lucide-react";
 import type { AskSpatialRequest, AskSpatialResponse, SimSpec } from "../api/types";
 import {
   createTopicGraph,
@@ -19,9 +13,11 @@ import {
 import { fixtureGetGraph, fixtureGetSim } from "../api/fixtures";
 import {
   graphToWorkspaceDataset,
+  resolveSimId,
   simOutputToSeries,
   simSpecToWorkspaceDataset,
 } from "../api/adapters";
+import { ApiError } from "../api/client";
 import {
   GraphNodeData,
   UIAnnotation,
@@ -36,7 +32,7 @@ import { LibraryTopic, LibraryView } from "../components/LibraryView";
 import { HomeHub } from "../components/HomeHub";
 import { PaperSimTabsView } from "../components/PaperSimTabsView";
 import { HypothesisChatView } from "../components/HypothesisChatView";
-import { ThemeToggle } from "../components/ThemeProvider";
+import { AppHeader, HeaderAction } from "../components/AppHeader";
 import { LiveAvatarTile } from "../tutor/LiveAvatarTile";
 import { useAvatarCall } from "../tutor/useAvatarCall";
 import type { Tutor } from "../tutor/api";
@@ -211,7 +207,7 @@ export default function ScholarTwinWorkspace() {
     if (topic.dataset) {
       skipNextFetchRef.current = true;
       setDataset(topic.dataset);
-      setSelectedNode(topic.dataset.nodes[0] ?? null);
+      setSelectedNode(null); // open on the whole graph, not zoomed onto the first node
       if (topic.dataset.simulation) {
         const defaults: Record<string, number> = {};
         topic.dataset.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -251,7 +247,7 @@ export default function ScholarTwinWorkspace() {
         }
         if (cancelled) return;
         setDataset(data);
-        setSelectedNode(data.nodes[0] ?? null);
+        setSelectedNode(null);
         if (data.simulation) {
           const defaults: Record<string, number> = {};
           data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -325,23 +321,39 @@ export default function ScholarTwinWorkspace() {
     }
   };
 
-  const handleParamChange = async (key: string, val: number) => {
-    const next = { ...paramValues, [key]: val };
+  const simRunSeqRef = useRef(0);
+
+  /** Set several slider values at once (presets, reset) and re-run the simulation. */
+  const handleSetParams = async (next: Record<string, number>) => {
     setParamValues(next);
-    const simId = dataset?.simulation?.arxiv_id;
-    if (!simId) return;
+    const sim = dataset?.simulation;
+    if (!sim) return;
+    const seq = ++simRunSeqRef.current;
+    const simId = await resolveSimId(sim);
+    if (!simId) {
+      setStatusMsg("This saved simulation can't be re-run. Load the paper again to regenerate it.");
+      return;
+    }
     try {
       const simRes = await runSim(simId, next);
+      if (seq !== simRunSeqRef.current) return; // a newer run superseded this one
       const { x, series } = simOutputToSeries(simRes.output);
+      setStatusMsg(null);
       setDataset((prev) =>
         prev && prev.simulation
-          ? { ...prev, simulation: { ...prev.simulation, x, series } }
+          ? { ...prev, simulation: { ...prev.simulation, sim_id: simId, x, series } }
           : prev
       );
-    } catch {
-      // ignore transient errors during slider drag
+    } catch (err) {
+      // Transient errors during a slider drag are ignored; a missing simulation is not.
+      if (seq === simRunSeqRef.current && err instanceof ApiError && err.status === 404) {
+        setStatusMsg("This saved simulation is no longer on the server. Load the paper again to regenerate it.");
+      }
     }
   };
+
+  const handleParamChange = (key: string, val: number) =>
+    handleSetParams({ ...paramValues, [key]: val });
 
   const handleAsk = async (transcript: string, bboxOverride?: BoundingBox) => {
     const activeBox = bboxOverride ?? lastBbox;
@@ -410,7 +422,7 @@ export default function ScholarTwinWorkspace() {
   ) => {
     skipNextFetchRef.current = true;
     setDataset(data);
-    setSelectedNode(data.nodes[0] ?? null);
+    setSelectedNode(null);
     if (data.simulation) {
       const defaults: Record<string, number> = {};
       data.simulation.params.forEach((p) => (defaults[p.key] = p.default_val));
@@ -436,7 +448,7 @@ export default function ScholarTwinWorkspace() {
     setActiveTopicId(newTopic.id);
     persistLibrary([newTopic, ...libraryTopics]);
     setScreen(mode === "paper2sim" ? "papersim-workspace" : "lecture-workspace");
-    speakText(msg);
+    // Deliberately silent: the tutor only speaks when the user asks it something.
   };
 
   const handleUploadPdf = async (file: File) => {
@@ -508,27 +520,17 @@ export default function ScholarTwinWorkspace() {
   if (screen === "library") {
     const libraryMode = mode === "paper2sim" ? "paper2sim" : "lecture";
     return (
-      <>
-        <LibraryView
-          mode={libraryMode}
-          topics={libraryTopics.filter((t) => t.mode === libraryMode)}
-          onBackHome={() => setScreen("home")}
-          onOpenTopic={openTopic}
-          onDeleteTopic={deleteTopic}
-          onNewConversation={() => {
-            setUploadError(null);
-            setUploadOpen(true);
-          }}
-        />
-        <UploadModal
-          open={uploadOpen}
-          loading={uploadLoading}
-          error={uploadError}
-          onClose={() => setUploadOpen(false)}
-          onUploadPdf={handleUploadPdf}
-          onIngestUrl={handleIngestUrl}
-        />
-      </>
+      <LibraryView
+        mode={libraryMode}
+        topics={libraryTopics.filter((t) => t.mode === libraryMode)}
+        uploadLoading={uploadLoading}
+        uploadError={uploadError}
+        onBackHome={() => setScreen("home")}
+        onOpenTopic={openTopic}
+        onDeleteTopic={deleteTopic}
+        onUploadPdf={handleUploadPdf}
+        onIngestUrl={handleIngestUrl}
+      />
     );
   }
 
@@ -541,6 +543,7 @@ export default function ScholarTwinWorkspace() {
           annotations={annotations}
           statusMsg={statusMsg}
           onParamChange={handleParamChange}
+          onSetParams={handleSetParams}
           onBackToLibrary={() => setScreen("library")}
           onNewConversation={() => {
             setUploadError(null);
@@ -562,70 +565,36 @@ export default function ScholarTwinWorkspace() {
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       {/* Top Workspace Bar */}
-      <header className="apple-glass z-30 flex h-14 shrink-0 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setScreen("library")}
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
-          >
-            <BookOpen className="h-3.5 w-3.5 text-[var(--accent)]" />
-            Lecture Library
-          </button>
-          <div className="hidden items-center gap-2.5 sm:flex">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <h1 className="apple-heading text-sm font-bold text-[var(--text-primary)]">
-                LectureUnderstanding
-              </h1>
-              <p className="text-[11px] text-[var(--text-muted)]">2-Pane Avatar & Concept Canvas</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Circle-to-Ask & New Conversation */}
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => {
-              setUploadError(null);
-              setUploadOpen(true);
-            }}
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent)] hover:opacity-90"
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            New Conversation
-          </button>
-          <button
-            type="button"
-            onClick={() => setLassoActive((v) => !v)}
-            className={`apple-press apple-focus flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
-              lassoActive
-                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm"
-                : "border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] text-[var(--text-primary)] hover:border-[var(--border-strong)]"
-            }`}
-          >
-            <PenTool className="h-3.5 w-3.5" />
-            {lassoActive ? "Draw Circle on Canvas..." : "Circle-to-Ask"}
-          </button>
-          <a
-            href="/tutor"
-            className="apple-press apple-focus flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:border-[var(--border-strong)]"
-          >
-            <GraduationCap className="h-3.5 w-3.5 text-[var(--accent)]" />
-            Live Tutor
-          </a>
-          <span className="hidden rounded-lg border border-[var(--status-support-border)] bg-[var(--status-support-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--status-support)] md:inline-block">
-            Demo Preset Ready
-          </span>
-        </div>
-      </header>
+      <AppHeader
+        tone="accent"
+        back={{ label: "Lecture Library", onClick: () => setScreen("library") }}
+        icon={Layers}
+        title="LectureUnderstanding"
+        subtitle="Avatar tutor & concept canvas"
+        actions={
+          <>
+            <HeaderAction
+              icon={MessageSquarePlus}
+              label="New Conversation"
+              onClick={() => {
+                setUploadError(null);
+                setUploadOpen(true);
+              }}
+            />
+            <HeaderAction
+              icon={PenTool}
+              label={lassoActive ? "Draw a circle on the canvas…" : "Circle-to-Ask"}
+              active={lassoActive}
+              wideLabel
+              onClick={() => setLassoActive((v) => !v)}
+            />
+          </>
+        }
+      />
 
       {/* Main 2-Pane Workspace: Avatar & Canvas */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[310px_1fr]">
+      {/* Below lg the panes stack and this area scrolls; the canvas keeps a usable height. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[310px_1fr] lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden">
         {/* Left Pane: Avatar & Voice */}
         <AvatarDock
           avatarState={avatarState}
@@ -645,14 +614,14 @@ export default function ScholarTwinWorkspace() {
         />
 
         {/* Right Pane: Interactive Concept Canvas + Circle-to-Ask Overlay */}
-        <main className="relative flex min-h-0 flex-col bg-[var(--bg-canvas)]">
+        <main className="relative flex min-h-[72vh] flex-col bg-[var(--bg-canvas)] lg:min-h-0">
           {dataset && (
-            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
-              <div>
-                <h2 className="text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
-                <p className="text-[11px] text-[var(--text-muted)]">{dataset.subtitle}</p>
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 py-2">
+              <div className="min-w-0">
+                <h2 title={dataset.title} className="truncate text-xs font-semibold text-[var(--text-primary)]">{dataset.title}</h2>
+                <p title={dataset.subtitle} className="truncate text-[11px] text-[var(--text-muted)]">{dataset.subtitle}</p>
               </div>
-              <div className="hidden items-center gap-3 text-[10px] font-medium text-[var(--text-muted)] sm:flex">
+              <div className="hidden shrink-0 items-center gap-3 text-[10px] font-medium text-[var(--text-muted)] sm:flex">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" />Prereq</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-support)]" />Supports</span>
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--status-contradict)]" />Contradicts</span>
@@ -670,6 +639,7 @@ export default function ScholarTwinWorkspace() {
           <div className="relative min-h-0 flex-1">
             {dataset && (
               <GraphCanvas
+                key={`${dataset.title}:${dataset.nodes.length}`}
                 nodes={dataset.nodes}
                 edges={dataset.edges}
                 selectedNodeId={selectedNode?.id ?? null}

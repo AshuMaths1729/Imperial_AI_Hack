@@ -33,7 +33,7 @@ export function fixtureGetGraph(graphId: string): Promise<Graph> {
 
 export async function fixtureGetSim(simId: string): Promise<SimSpec> {
   const payload = await loadFixture<SimPayload>("sim_heavy_ball");
-  return { sim_id: simId || "sim_heavy_ball", payload };
+  return { ...payload, sim_id: simId || "sim_heavy_ball" };
 }
 
 export function fixtureAskSpatial(req: AskSpatialRequest): Promise<AskSpatialResponse> {
