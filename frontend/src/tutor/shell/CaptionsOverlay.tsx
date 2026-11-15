@@ -18,14 +18,14 @@ export function CaptionsOverlay({ captions, tutorName }: { captions: Caption[]; 
     <div
       data-testid="captions-overlay"
       aria-live="polite"
-      className="flex h-8 shrink-0 items-center gap-2 border-t border-slate-800 bg-slate-950/80 px-3 text-sm leading-none"
+      className="flex h-8 shrink-0 items-center gap-2 rounded-xl bg-[var(--st-surface)] px-3 text-sm leading-none ring-1 ring-[var(--st-line)]"
     >
       {c && (
         <>
-          <span className={`shrink-0 text-xs font-semibold ${c.who === "tutor" ? "text-sky-300" : "text-amber-300"}`}>
+          <span className={`shrink-0 font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] ${c.who === "tutor" ? "text-[var(--st-accent)]" : "text-[var(--st-warn)]"}`}>
             {c.who === "tutor" ? tutorName : "You"}
           </span>
-          <p className={`flex min-w-0 justify-end overflow-hidden whitespace-nowrap ${c.final ? "text-slate-50" : "text-slate-300"}`}>
+          <p className={`flex min-w-0 justify-end overflow-hidden whitespace-nowrap ${c.final ? "text-[var(--st-text)]" : "text-[var(--st-muted)]"}`}>
             {captionTail(c.text)}
           </p>
         </>

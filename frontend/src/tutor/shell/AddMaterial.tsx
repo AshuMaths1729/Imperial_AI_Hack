@@ -38,19 +38,19 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
     <div className="space-y-2">
       <form onSubmit={onUrl} className="flex gap-2">
         <div className="relative flex-1">
-          <Link2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" aria-hidden />
+          <Link2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--st-muted)]" aria-hidden />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             aria-label="Material URL"
             placeholder="https://arxiv.org/abs/…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 py-2 pl-8 pr-2 text-xs text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
+            className="w-full rounded-xl border border-[var(--st-line-strong)] bg-[var(--st-surface)] py-2 pl-8 pr-2 text-xs text-[var(--st-text)] placeholder-[var(--st-muted)] focus:border-[var(--st-accent)] focus:outline-none"
           />
         </div>
         <button
           type="submit"
           disabled={busy || !url.trim()}
-          className="rounded-lg bg-slate-800 px-3 text-xs font-medium text-slate-100 transition-colors hover:bg-slate-700 disabled:opacity-50"
+          className="rounded-xl bg-black/5 px-3 text-xs font-medium text-[var(--st-text)] transition-colors hover:bg-black/10 disabled:opacity-50"
         >
           Add URL
         </button>
@@ -58,7 +58,7 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
           type="button"
           disabled={busy}
           onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1 rounded-lg bg-slate-800 px-3 text-xs font-medium text-slate-100 transition-colors hover:bg-slate-700 disabled:opacity-50"
+          className="flex items-center gap-1 rounded-xl bg-black/5 px-3 text-xs font-medium text-[var(--st-text)] transition-colors hover:bg-black/10 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Upload className="h-3.5 w-3.5" aria-hidden />}
           PDF
@@ -76,9 +76,9 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
           }}
         />
       </form>
-      {busy && <p className="text-[11px] text-slate-400">Reading material…</p>}
+      {busy && <p className="text-[11px] text-[var(--st-muted)]">Reading material…</p>}
       {msg && (
-        <p role={msg.ok ? "status" : "alert"} className={`text-[11px] ${msg.ok ? "text-emerald-300" : "text-rose-300"}`}>
+        <p role={msg.ok ? "status" : "alert"} className={`text-[11px] ${msg.ok ? "text-[var(--st-accent)]" : "text-[var(--st-danger)]"}`}>
           {msg.text}
         </p>
       )}

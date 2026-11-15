@@ -57,24 +57,24 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
     ["screen", "Shared screen"],
   ];
   return (
-    <section aria-label="Main stage" className="flex min-h-[60vh] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900 lg:min-h-0 lg:flex-1 lg:shrink">
-      <div role="tablist" aria-label="Stage" className="flex shrink-0 items-center gap-1 border-b border-slate-800 px-2 py-1.5">
+    <section aria-label="Main stage" className="st-glass flex min-h-[60vh] shrink-0 flex-col gap-2 overflow-hidden rounded-[20px] p-2 lg:min-h-0 lg:flex-1 lg:shrink">
+      <div role="tablist" aria-label="Stage" className="flex shrink-0 items-center gap-1 self-start rounded-full bg-black/5 p-1">
         {tabs.map(([id, label]) => (
           <button
             key={id}
             role="tab"
             aria-selected={tab === id}
             onClick={() => onTab(id)}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-              tab === id ? "bg-slate-800 text-slate-100" : "text-slate-400 hover:text-slate-200"
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors duration-150 ${
+              tab === id ? "bg-[var(--st-accent)] text-[var(--st-accent-fg)] shadow-sm" : "text-[var(--st-text-2)] hover:bg-black/5"
             }`}
           >
             {label}
-            {id === "screen" && screenTrack && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 align-middle" />}
+            {id === "screen" && screenTrack && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#2f9e5b] align-middle" />}
           </button>
         ))}
       </div>
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[14px] bg-[#0b0d12] ring-1 ring-[var(--st-line)]">
         {/* The board stays mounted while hidden: the agent's board RPCs need it during the whole lesson. */}
         <div className={`absolute inset-0 bg-white ${pane("board")}`}>
           <Whiteboard ref={boardRef} onCircle={onCircle} plugins={BOARD_PLUGINS} emit={emit} />
@@ -91,10 +91,10 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <p className="text-sm text-slate-400">Share a window — your notes or a problem sheet — and the tutor can see it.</p>
+              <p className="max-w-sm text-sm text-slate-300">Share a window — your notes or a problem sheet — and the tutor can see it.</p>
               <button
                 onClick={onShare}
-                className="flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-[transform,background-color] duration-150 ease-out hover:bg-sky-400 active:scale-[0.97]"
+                className="flex items-center gap-2 rounded-full bg-[var(--st-accent-fg)] px-4 py-2 text-xs font-semibold text-[var(--st-accent)] transition-[transform,background-color] duration-150 ease-out hover:bg-white active:scale-[0.97]"
               >
                 <MonitorUp className="h-4 w-4" aria-hidden />
                 Share screen
@@ -104,7 +104,7 @@ export function Stage({ tab, onTab, boardRef, onCircle, emit, screenTrack, circl
         </div>
         {fade.leaving && (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-            <span role="status" className="rounded-full bg-slate-950/80 px-4 py-2 text-sm font-medium text-slate-100 shadow-lg backdrop-blur">
+            <span role="status" className="st-glass rounded-full px-4 py-2 text-sm font-medium text-[var(--st-text)]">
               {MOVING[tab]}
             </span>
           </div>

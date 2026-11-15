@@ -3,6 +3,7 @@ import { RoomEvent, type Room } from "livekit-client";
 import {
   connectLesson,
   joinLesson,
+  makeCueScheduler,
   mergeCaption,
   micErrorMessage,
   onCaptions,
@@ -72,6 +73,15 @@ describe("session", () => {
     // the stub board answers {ok:false}; the RPC passes the payload through and returns its reply
     const reply = JSON.parse(await room.rpcs.get("board.apply")!({ payload: '{"ops":[]}' }));
     expect(reply).toHaveProperty("ok");
+  });
+
+  it("registers ui.point_cues with the other rpcs and hands it to the cue scheduler", async () => {
+    const room = fakeRoom();
+    const cues = makeCueScheduler(vi.fn());
+    await connectLesson(room as unknown as RoomLike, { url: "wss://lk", token: "tok" }, () => null, undefined, undefined, undefined, cues);
+    expect(room.rpcs.has("ui.point_cues")).toBe(true);
+    expect(JSON.parse(await room.rpcs.get("ui.point_cues")!({ payload: '{"cues":[{"word":0,"id":"rise"}]}' }))).toEqual({ ok: true, errors: [] });
+    expect(JSON.parse(await room.rpcs.get("ui.point_cues")!({ payload: "oops" })).ok).toBe(false);
   });
 
   it("the stage switches to the whiteboard when the tutor writes on it", async () => {
