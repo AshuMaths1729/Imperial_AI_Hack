@@ -41,7 +41,12 @@ function QuoteBlock({ quote, where }: { quote: string; where?: string }) {
 
 export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { label: string; value: number }[] }) {
   const overview = sim.docs?.overview?.trim() || sim.summary?.trim();
-  const citedModel = !!sim.sim_title && !!sim.paper_title && sim.sim_title.trim() !== sim.paper_title.trim();
+  // Same model as the paper when the titles match loosely (case, punctuation, a trailing "(…)" note).
+  const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const citedModel =
+    !!sim.sim_title && !!sim.paper_title && !norm(sim.paper_title).startsWith(norm(sim.sim_title).split(" ").slice(0, 2).join(" "));
+  // Only real arXiv ids get a link (built-in samples carry internal ids such as "sim_heavy_ball").
+  const arxivId = sim.arxiv_id && /^(\d{4}\.\d{4,5}|[a-z-]+(\.[A-Z]{2})?\/\d{7})(v\d+)?$/i.test(sim.arxiv_id) ? sim.arxiv_id : undefined;
   return (
     <div className={`${card} relative overflow-hidden p-5`}>
       <div aria-hidden className="apple-hero-glow pointer-events-none absolute inset-0" />
@@ -55,14 +60,14 @@ export function OverviewBody({ sim, facts }: { sim: SimulationPayload; facts: { 
               <CornerDownRight className="h-3 w-3" /> Model cited in the paper
             </span>
           )}
-          {sim.arxiv_id && (
+          {arxivId && (
             <a
-              href={`https://arxiv.org/abs/${encodeURIComponent(sim.arxiv_id)}`}
+              href={`https://arxiv.org/abs/${encodeURIComponent(arxivId)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="apple-focus inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] px-2.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--accent)]"
             >
-              arXiv:{sim.arxiv_id} <ExternalLink className="h-3 w-3" />
+              arXiv:{arxivId} <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>

@@ -61,7 +61,8 @@ function getLibrarySnapshot(): LibraryTopic[] {
     if (!raw) return DEFAULT_LIBRARY_TOPICS;
     if (raw === cachedLibraryRaw) return cachedLibraryTopics;
     const parsed = JSON.parse(raw) as LibraryTopic[];
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    // A stored [] means the user removed everything: keep it empty (only a missing key gets the sample).
+    if (Array.isArray(parsed)) {
       cachedLibraryRaw = raw;
       // Older saves can hold the same paper more than once: list each paper once (newest first).
       cachedLibraryTopics = dedupeTopics(parsed.filter((t) => t && typeof t.id === "string"));

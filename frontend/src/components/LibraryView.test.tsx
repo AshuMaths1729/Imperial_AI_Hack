@@ -61,6 +61,8 @@ describe("Paper Simulator start screen", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Memory/ }));
     expect(onOpenTopic).toHaveBeenCalledWith(b);
     fireEvent.click(screen.getByRole("button", { name: "Remove Attention" }));
+    // asks once before deleting
+    fireEvent.click(screen.getByRole("button", { name: "Confirm: Remove Attention" }));
     expect(onDeleteTopic).toHaveBeenCalledWith("a");
   });
 

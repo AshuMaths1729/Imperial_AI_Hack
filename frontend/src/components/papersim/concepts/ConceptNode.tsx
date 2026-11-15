@@ -137,9 +137,11 @@ export function ConceptNodeCard({ data }: NodeProps<ConceptFlowNode>) {
       )}
 
       {node.kind !== "parameter" && !node.isRoot && node.summary && (
+        // Two clamped lines. Every descendant is forced inline: a block-level child broke the clamp
+        // (an ellipsis mid-sentence, then a half-cut second line with clipped descenders).
         <p
-          className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-[var(--text-secondary)]"
-          style={{ display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          className="px-3 pb-2.5 pt-1 text-[11px] leading-snug text-[var(--text-secondary)] [&_*]:!inline"
+          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
         >
           <RichText text={node.summary} />
         </p>

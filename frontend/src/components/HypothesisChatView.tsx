@@ -102,6 +102,8 @@ function persistHistory(next: HypothesisTopicRun[]) {
 /* Screen-size breakpoints as external stores (no setState in effects, no hydration guesswork). */
 const PHONE_QUERY = "(max-width: 767px)"; // the sidebar overlays the page below md
 const WIDE_QUERY = "(min-width: 1024px)"; // the details move into the side panel from lg
+// Below xl the open sidebar plus the details panel squeezed the map to ~350px, so it starts collapsed there.
+const ROOMY_QUERY = "(min-width: 1280px)";
 
 function mediaStore(query: string) {
   return {
@@ -115,7 +117,9 @@ function mediaStore(query: string) {
 }
 const phoneStore = mediaStore(PHONE_QUERY);
 const wideStore = mediaStore(WIDE_QUERY);
+const roomyStore = mediaStore(ROOMY_QUERY);
 const serverFalse = () => false;
+const serverTrue = () => true;
 
 /** A glass capsule that is both a legend entry (the line's colour and dash) and a count. */
 function CountChip({ type, label, n }: { type: GraphEdgeData["type"]; label: string; n: number }) {
@@ -133,9 +137,11 @@ export function HypothesisChatView({ onBackHome, initialTopicId }: HypothesisCha
   const phone = useSyncExternalStore(phoneStore.subscribe, phoneStore.get, serverFalse);
   const wide = useSyncExternalStore(wideStore.subscribe, wideStore.get, serverFalse);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  // null = follow the screen (collapsed on phones, where the open sidebar covers the page).
+  const roomy = useSyncExternalStore(roomyStore.subscribe, roomyStore.get, serverTrue);
+  // null = follow the screen: collapsed on phones (the open sidebar covers the page) and below 1280px
+  // (sidebar + details would squeeze the map).
   const [collapsedPref, setCollapsedPref] = useState<boolean | null>(null);
-  const sidebarCollapsed = collapsedPref ?? phone;
+  const sidebarCollapsed = collapsedPref ?? (phone || !roomy);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

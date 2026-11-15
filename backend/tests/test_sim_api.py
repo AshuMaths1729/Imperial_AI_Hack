@@ -364,6 +364,17 @@ def test_run_clamps_params_and_caches(client, fake_llm):
     assert again["cached"] is True and again["output"] == body["output"]
 
 
+def test_builtin_sample_reruns_from_the_repo_fixture(client):
+    # The frontend's built-in example paper uses id "sim_heavy_ball", which is never generated on the server;
+    # it is served from fixtures/sim_heavy_ball.json so its sliders re-run (it used to 404).
+    r = client.post("/api/sim/run", json={"sim_id": "sim_heavy_ball", "params": {"gamma": 0.9}})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["params"]["gamma"] == 0.9 and body["output"]["series"]
+    default = client.post("/api/sim/run", json={"sim_id": "sim_heavy_ball", "params": {}}).json()
+    assert default["output"]["series"][0]["y"] != body["output"]["series"][0]["y"]
+
+
 def test_run_and_get_unknown_sim_404(client):
     assert client.post("/api/sim/run", json={"sim_id": "sim_nope", "params": {}}).status_code == 404
     assert client.get("/api/sim/sim_nope").status_code == 404

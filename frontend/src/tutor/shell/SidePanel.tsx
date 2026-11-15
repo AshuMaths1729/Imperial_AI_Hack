@@ -133,7 +133,9 @@ function KeyPoints({ points, covered }: { points: KeyPoint[]; covered: number })
                 <Circle className="h-4 w-4 text-[var(--border-strong)]" />
               )}
             </span>
-            <span className="min-w-0 flex-1">
+            {/* relative: the sr-only status below is absolutely positioned; without a containing block here it
+                escaped the scrolling list and stretched the whole call view (~165px of page scroll). */}
+            <span className="relative min-w-0 flex-1">
               <span className="font-mono text-[10.5px] text-[var(--text-muted)]">{String(i + 1).padStart(2, "0")} · </span>
               <span className={p.state === "upcoming" ? "text-[var(--text-muted)]" : p.state === "now" ? "font-medium text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}>
                 {p.text}

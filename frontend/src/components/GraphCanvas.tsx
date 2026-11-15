@@ -72,6 +72,8 @@ export function EdgeSwatch({ type, width = 20 }: { type: GraphEdgeData["type"]; 
 
 /** maxZoom stops a lone node from filling the whole canvas. */
 const FIT = { padding: 0.3, maxZoom: 1.1 } as const;
+/** Smallest zoom for the first view: keeps 12px node labels at ~9px or more. */
+const FIRST_VIEW_MIN_ZOOM = 0.75;
 
 /** Diagonal specular sheen layered over a glass node's fill. */
 const NODE_SHEEN = "linear-gradient(150deg, var(--glass-specular), transparent 42%, transparent 78%, var(--glass-specular-2))";
@@ -118,8 +120,20 @@ function GraphCanvasInner({
 
   // First view (decided once, so the object stays stable for React Flow): the node that was
   // selected when the graph opened (e.g. the last one clicked in a saved chat) with its
-  // neighbours, otherwise the whole graph. Never "whatever node happens to be first".
-  const [initialFit] = useState(() => (selectedNodeId ? focusFit(selectedNodeId) : { ...FIT }));
+  // neighbours, otherwise the best-connected node and its neighbours. Fitting a 30-node map whole
+  // drew 12px labels at ~4px; a readable floor (minZoom) keeps the first view legible, and
+  // "fit view" in the controls still shows everything.
+  const [initialFit] = useState(() => {
+    if (selectedNodeId) return { ...focusFit(selectedNodeId), minZoom: FIRST_VIEW_MIN_ZOOM };
+    const degree = new Map<string, number>();
+    for (const e of edges) {
+      degree.set(e.source, (degree.get(e.source) ?? 0) + 1);
+      degree.set(e.target, (degree.get(e.target) ?? 0) + 1);
+    }
+    let hub: string | undefined;
+    for (const [id, d] of degree) if (hub === undefined || d > (degree.get(hub) ?? 0)) hub = id;
+    return hub ? { ...focusFit(hub), minZoom: FIRST_VIEW_MIN_ZOOM } : { ...FIT, minZoom: FIRST_VIEW_MIN_ZOOM };
+  });
   const zoomedFor = useRef<string | null>(selectedNodeId);
 
   // Later selection changes (a click, or a node picked outside the canvas) zoom in.

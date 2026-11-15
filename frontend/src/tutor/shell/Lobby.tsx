@@ -46,7 +46,14 @@ function DeviceCheck() {
     try {
       setStream(await navigator.mediaDevices.getUserMedia({ audio: true, video: true }));
     } catch (e) {
-      setErr(e instanceof Error ? `${e.name}: allow the microphone and camera for this site.` : String(e));
+      const name = e instanceof Error ? e.name : "";
+      setErr(
+        name === "NotFoundError"
+          ? "No microphone or camera was found. Connect one, or join anyway and type to your tutor."
+          : name === "NotReadableError"
+            ? "Another app is using your microphone or camera. Close it and try again."
+            : "Allow the microphone and camera for this site in your browser, then check again."
+      );
     }
   };
 

@@ -17,13 +17,22 @@ import { LessonPanel, useTrackData, type TrackData } from "@/tutor/shell/SidePan
 import { useTutorSession } from "@/tutor/shell/useTutorSession";
 
 const LESSONS = MODULES.lecture;
+/** How long the recap waits for the tutor's summary before it stops polling. */
+const RECAP_WAIT_MS = 45_000;
 
 type RecapProps = { trackId: string; lessonId?: string; onBack: () => void };
 
 function Recap({ trackId, lessonId, onBack }: RecapProps) {
   // the agent posts the lesson summary a few seconds after the room closes; poll for it, and stop once it's in
   const isEnded = (d: TrackData) => d.lessons.some((l) => l.lesson_id === lessonId && !!l.ended_at);
-  const [data] = useTrackData(trackId, true, isEnded);
+  // Give the agent a while to post the summary; after that stop waiting (it may never come, e.g. a lesson that
+  // was left before the tutor joined) and say where it will appear instead of spinning forever.
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setGaveUp(true), RECAP_WAIT_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+  const [data] = useTrackData(trackId, !gaveUp, isEnded);
   const ended = !!data && isEnded(data);
   return (
     <div className="mx-auto w-full max-w-[760px] px-3 pb-10 sm:px-5">
@@ -34,9 +43,14 @@ function Recap({ trackId, lessonId, onBack }: RecapProps) {
         </h2>
       </div>
       <section aria-labelledby="recap-heading" className="apple-sheet st-fade-up grid grid-cols-1 gap-5 rounded-[26px] p-4 sm:p-6" style={{ animationDelay: "80ms" }}>
-        {!ended && (
+        {!ended && !gaveUp && (
           <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Your tutor is writing the recap…
+          </p>
+        )}
+        {!ended && gaveUp && (
+          <p role="status" aria-live="polite" className="text-sm text-[var(--text-secondary)]">
+            No recap for this lesson yet. If your tutor writes one, it will show under this topic next time you open it.
           </p>
         )}
         {data && <LessonPanel {...data} lessonId={lessonId} />}

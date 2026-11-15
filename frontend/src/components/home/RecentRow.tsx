@@ -1,8 +1,9 @@
 "use client";
 
+import { ConfirmDelete } from "@/components/glass/ConfirmDelete";
 import React from "react";
 import Link from "next/link";
-import { Trash2, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
 export type RecentRowProps = {
   icon: LucideIcon;
@@ -95,15 +96,7 @@ export function RecentRow({
         </button>
       )}
       {onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label={deleteLabel ?? `Remove ${title}`}
-          title={deleteLabel ?? `Remove ${title}`}
-          className="apple-press apple-focus mr-2 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[var(--text-muted)] transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)]"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <ConfirmDelete label={deleteLabel ?? `Remove ${title}`} onConfirm={onDelete} className="mr-2 h-8 min-w-8" />
       )}
     </li>
   );

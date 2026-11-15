@@ -114,7 +114,7 @@ export function Segmented<T extends string>({
             data-active={active}
             onClick={() => onChange(o.value)}
             className={`apple-press apple-focus relative z-[1] flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              active ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              active ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             } ${buttonClassName}`}
             {...optionProps?.(o.value)}
           >

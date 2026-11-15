@@ -162,7 +162,12 @@ describe("Evidence Map", () => {
 
   it("deletes a saved topic and returns to the question screen when it was open", () => {
     render(<HypothesisChatView onBackHome={() => {}} initialTopicId="hyp-1" />);
+    // the sidebar starts collapsed below 1280px (jsdom reports a narrow screen)
+    const expand = screen.queryByRole("button", { name: "Expand sidebar" });
+    if (expand) fireEvent.click(expand);
     fireEvent.click(screen.getByRole("button", { name: "Delete Chinchilla vs Kaplan" }));
+    // asks once before deleting
+    fireEvent.click(screen.getByRole("button", { name: "Confirm: Delete Chinchilla vs Kaplan" }));
     expect(screen.queryByTestId("map")).toBeNull();
     expect(JSON.parse(localStorage.getItem(KEY) ?? "[]").map((r: { id: string }) => r.id)).toEqual(["hyp-2"]);
   });

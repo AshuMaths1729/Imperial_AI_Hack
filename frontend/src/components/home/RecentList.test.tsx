@@ -85,6 +85,8 @@ describe("Pick up where you left off", () => {
     expect(h.onOpenPaper).toHaveBeenCalledWith(p);
 
     fireEvent.click(screen.getByRole("button", { name: "Remove Attention" }));
+    // asks once before deleting
+    fireEvent.click(screen.getByRole("button", { name: "Confirm: Remove Attention" }));
     expect(h.onDeletePaper).toHaveBeenCalledWith("p1");
     // only papers can be removed from here
     expect(screen.getAllByRole("button", { name: /^Remove/ })).toHaveLength(1);

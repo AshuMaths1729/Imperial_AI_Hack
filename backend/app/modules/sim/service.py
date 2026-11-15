@@ -60,6 +60,17 @@ async def load_spec(settings: Settings, sim_id: str) -> SimSpec:
         raise NotFound(f"unknown simulation {sim_id!r}")
     path = sims_dir(settings) / f"{sim_id}.json"
     if not path.is_file():
+        # Built-in samples (the frontend's "Built-in example" papers) ship as repo fixtures, never generated
+        # here; serve them so their sliders, scenarios and sweeps re-run like any other simulation.
+        bundled = settings.fixtures_dir / f"{sim_id}.json"
+        if sim_id.startswith("sim_") and bundled.is_file():
+            data = json.loads(bundled.read_text(encoding="utf-8"))
+            return SimSpec.model_validate({
+                "title": data.get("paper_title") or sim_id,
+                "validation": {"status": "passed"},  # a curated sample, checked when it was written
+                **data,
+                "sim_id": sim_id,
+            })
         raise NotFound(f"unknown simulation {sim_id!r}")
     return SimSpec.model_validate_json(path.read_text(encoding="utf-8"))
 

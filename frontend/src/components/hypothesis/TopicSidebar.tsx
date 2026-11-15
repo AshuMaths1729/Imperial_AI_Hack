@@ -1,7 +1,8 @@
 "use client";
 
+import { ConfirmDelete } from "@/components/glass/ConfirmDelete";
 import React, { useState } from "react";
-import { Clock, History, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
+import { Clock, History, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import type { WorkspaceDataset } from "../../types/scholartwin";
 
 export interface TopicRun {
@@ -312,19 +313,13 @@ export function TopicSidebar({
                         </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      aria-label={`Delete ${run.title}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteRun(run.id);
-                      }}
-                      title="Delete this topic"
+                    <ConfirmDelete
+                      label={`Delete ${run.title}`}
+                      onConfirm={() => onDeleteRun(run.id)}
+                      iconClassName="h-3.5 w-3.5"
                       // Hidden until hover on desktop; always shown on touch screens (no hover there).
-                      className="apple-focus shrink-0 rounded-full p-1.5 text-[var(--text-muted)] opacity-0 transition hover:bg-[var(--status-contradict-soft)] hover:text-[var(--status-contradict)] group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                      className="h-7 min-w-7 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+                    />
                   </div>
                 );
               })

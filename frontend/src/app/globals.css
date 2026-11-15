@@ -63,9 +63,9 @@
   --status-support-soft: rgba(31, 107, 95, 0.12);
   --status-support-border: rgba(31, 107, 95, 0.32);
 
-  --status-contradict: #a8452e; /* clay */
-  --status-contradict-soft: rgba(168, 69, 46, 0.12);
-  --status-contradict-border: rgba(168, 69, 46, 0.34);
+  --status-contradict: #9c3f29; /* clay (white text on it stays >=4.5:1, e.g. Leave) */
+  --status-contradict-soft: rgba(156, 63, 41, 0.12);
+  --status-contradict-border: rgba(156, 63, 41, 0.34);
   /* Text/icons on a solid --status-contradict fill (recording / leave buttons) */
   --status-contradict-fg: #ffffff;
 

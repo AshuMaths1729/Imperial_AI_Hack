@@ -200,7 +200,7 @@ export function OpenPaperPanel({
           disabled={loading || !urlInput.trim()}
           aria-label={loading ? "Opening the paper" : "Open"}
           style={{ "--tint": "var(--ncp-c)" } as React.CSSProperties}
-          className={`apple-tint apple-press apple-focus group/load flex shrink-0 items-center gap-1.5 rounded-full px-4 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`apple-tint apple-press apple-focus group/load flex shrink-0 items-center gap-1.5 rounded-full px-4 font-semibold transition disabled:cursor-not-allowed disabled:!border-[var(--border-subtle)] disabled:!bg-[var(--bg-surface-muted)] disabled:!text-[var(--text-muted)] disabled:!shadow-none ${
             hero ? "h-11 text-[14.5px] sm:px-5" : "h-10 text-[13.5px]"
           }`}
         >
