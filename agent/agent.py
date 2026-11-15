@@ -16,6 +16,8 @@ from livekit import rtc
 from livekit.agents import (
     Agent,
     AgentSession,
+    APIConnectOptions,
+    SessionConnectOptions,
     JobContext,
     JobProcess,
     TurnHandlingOptions,
@@ -48,7 +50,19 @@ VOICE_MAX_TOKENS = 2000
 MAX_TOOL_STEPS = 12
 SPEECH_SPEED = 0.9  # 3Blue1Brown pace; ElevenLabs allows 0.8-1.2
 CHECKPOINT_EVERY_S = 60
+LLM_TIMEOUT_S = 25  # the first, cache-writing call takes 5-9 s; the 10 s default made it time out and retry
 CONTINUE_AFTER_S = 2.0  # silence after a mid-slide stop before the agent nudges the tutor on
+
+
+class VoiceLLM(anthropic.LLM):
+    """The voice brain without thinking: measured live, replies start in ~1 s instead of ~3 s (Haiku 5.5 thinks by
+    default; disabling it is allowed at its default effort)."""
+
+    EXTRA = {"thinking": {"type": "disabled"}}
+
+    def chat(self, *, extra_kwargs=None, **kw):
+        more = extra_kwargs if isinstance(extra_kwargs, dict) else {}  # callers may pass NOT_GIVEN
+        return super().chat(extra_kwargs={**self.EXTRA, **more}, **kw)
 
 
 class RoomTutorIO:
@@ -199,7 +213,8 @@ async def entrypoint(ctx: JobContext) -> None:
 
     session = AgentSession(
         stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
-        llm=anthropic.LLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
+        llm=VoiceLLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
+        conn_options=SessionConnectOptions(llm_conn_options=APIConnectOptions(timeout=LLM_TIMEOUT_S)),
         tts=elevenlabs.TTS(
             voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5",
             voice_settings=elevenlabs.VoiceSettings(stability=0.5, similarity_boost=0.75, speed=SPEECH_SPEED),

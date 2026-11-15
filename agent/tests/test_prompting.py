@@ -103,3 +103,11 @@ def test_rules_stay_short_for_the_voice_model():
     import lesson_state
     from prompting import RULES
     assert len(RULES) + len(lesson_state.RULES) < 4000
+
+
+def test_voice_llm_answers_without_thinking_and_the_first_call_has_room():
+    # measured live: Haiku 5.5's default thinking made each reply start ~3 s late (~1 s without); the first,
+    # cache-writing call takes 5-9 s and hit the 10 s default timeout
+    import agent
+    assert agent.VoiceLLM.EXTRA["thinking"] == {"type": "disabled"}
+    assert agent.LLM_TIMEOUT_S >= 20
