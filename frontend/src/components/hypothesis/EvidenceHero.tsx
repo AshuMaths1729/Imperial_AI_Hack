@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ArrowUpRight, CircleDashed, Lightbulb, Loader2, ShieldCheck, Swords } from "lucide-react";
+import { ArrowUpRight, Lightbulb, Loader2 } from "lucide-react";
 
 /* ------------------------------------------------------------------ animated evidence glyph */
 
@@ -109,64 +109,9 @@ export function EvidenceGlyph({ busy = false, className = "" }: { busy?: boolean
   );
 }
 
-/* ------------------------------------------------------------------ what you get */
-
-const LEGEND = [
-  {
-    icon: ShieldCheck,
-    title: "Supports",
-    body: "Papers whose results back a claim, with the quote that shows it.",
-    color: "var(--status-support)",
-    soft: "var(--status-support-soft)",
-    border: "var(--status-support-border)",
-  },
-  {
-    icon: Swords,
-    title: "Contradicts",
-    body: "Findings that disagree, laid side by side so you can weigh them.",
-    color: "var(--status-contradict)",
-    soft: "var(--status-contradict-soft)",
-    border: "var(--status-contradict-border)",
-  },
-  {
-    icon: CircleDashed,
-    title: "Research gaps",
-    body: "Questions the papers leave open: where new work could go.",
-    color: "var(--status-gap)",
-    soft: "var(--status-gap-soft)",
-    border: "var(--status-gap-border)",
-  },
-] as const;
-
-export function EvidenceLegend({ baseDelay = 0 }: { baseDelay?: number }) {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {LEGEND.map(({ icon: Icon, title, body, color, soft, border }, i) => (
-        <div
-          key={title}
-          style={{ animationDelay: `${baseDelay + i * 90}ms`, ["--card-c" as string]: color, ["--card-b" as string]: border }}
-          className="apple-card st-fade-up group rounded-2xl border p-3.5 transition-all duration-300 hover:-translate-y-1 hover:!border-[var(--card-b)]"
-        >
-          <div className="flex items-center gap-2">
-            <span
-              style={{ color, backgroundColor: soft }}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
-            >
-              <Icon className="h-4 w-4" />
-            </span>
-            <span className="text-xs font-semibold" style={{ color }}>
-              {title}
-            </span>
-          </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">{body}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ starter topics */
 
+/** Ready-made questions, as glass capsules floating on the landscape under the question bar. */
 export function StarterTopics({
   topics,
   disabled,
@@ -179,7 +124,7 @@ export function StarterTopics({
   baseDelay?: number;
 }) {
   return (
-    <div className="flex flex-wrap justify-center gap-2">
+    <div className="flex flex-wrap gap-2">
       {topics.map((q, i) => (
         <button
           key={q}
@@ -187,11 +132,11 @@ export function StarterTopics({
           disabled={disabled}
           onClick={() => onPick(q)}
           style={{ animationDelay: `${baseDelay + i * 70}ms` }}
-          className="apple-card apple-press apple-focus st-fade-up group flex max-w-full items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-3.5 text-[11px] text-[var(--text-secondary)] transition-all duration-200 hover:-translate-y-0.5 hover:!border-[var(--status-gap-border)] hover:text-[var(--status-gap)] disabled:pointer-events-none disabled:opacity-50"
+          className="apple-card apple-press apple-focus st-fade-up st-sheen group relative flex max-w-full items-center gap-2 overflow-hidden rounded-full border py-2 pl-3.5 pr-4 text-[12.5px] font-medium text-[var(--text-primary)] transition-all duration-200 hover:-translate-y-0.5 hover:!border-[var(--status-gap-border)] disabled:pointer-events-none disabled:opacity-60"
         >
-          <Lightbulb className="h-3 w-3 shrink-0 text-[var(--status-gap)] transition-transform group-hover:-rotate-12 group-hover:scale-110" />
+          <Lightbulb className="h-3.5 w-3.5 shrink-0 text-[var(--status-gap)] transition-transform group-hover:-rotate-12 group-hover:scale-110" />
           <span className="min-w-0 text-left">{q}</span>
-          <ArrowUpRight className="h-3 w-3 shrink-0 -translate-x-1 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
+          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-[var(--text-secondary)] transition-transform duration-200 group-hover:-translate-y-px group-hover:translate-x-px" />
         </button>
       ))}
     </div>
@@ -204,10 +149,13 @@ const STEPS = [
   "Searching arXiv, bioRxiv, PubMed and Semantic Scholar",
   "Reading abstracts and pulling out quotes",
   "Matching claims across papers",
-  "Flagging contradictions and research gaps",
+  "Flagging contradictions and open questions",
 ];
 
-/** Mounted only while a search runs, so it restarts from the first step every time. */
+/**
+ * A thick glass card under the question bar while a map is being made: the little map draws
+ * itself while the steps tick by. Mounted only while a search runs, so it restarts every time.
+ */
 export function SearchProgress() {
   const [step, setStep] = useState(0);
   useEffect(() => {
@@ -215,16 +163,17 @@ export function SearchProgress() {
     return () => window.clearInterval(id);
   }, []);
   return (
-    <div role="status" aria-live="polite" className="st-fade-up mt-3">
-      <div className="h-1 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
+    <div role="status" aria-live="polite" className="apple-sheet st-fade-up mt-4 rounded-[26px] px-4 pb-4 pt-3 sm:px-5">
+      <EvidenceGlyph busy className="mx-auto h-auto w-full max-w-[340px]" />
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--bg-surface-muted)]">
         <div className="st-progress h-full w-1/3 rounded-full bg-gradient-to-r from-[var(--status-gap)] to-[var(--status-support)]" />
       </div>
-      <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-[var(--text-secondary)]">
-        <Loader2 className="h-3 w-3 animate-spin text-[var(--status-gap)]" />
-        <span key={step} className="st-fade-up">
+      <div className="mt-2.5 flex items-start justify-center gap-2 text-[12px] text-[var(--text-secondary)]">
+        <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-[var(--status-gap)]" />
+        <span key={step} className="st-fade-up min-w-0">
           {STEPS[step]}…
         </span>
-        <span className="text-[var(--text-muted)]">
+        <span className="shrink-0 tabular-nums text-[var(--text-muted)]">
           {step + 1}/{STEPS.length}
         </span>
       </div>

@@ -1,5 +1,5 @@
 /**
- * View model for a HypothesisGraph topic.
+ * View model for an Evidence Map topic.
  *
  * The backend returns papers, claims (each tied to its paper by `doc_id`) and open-question
  * nodes, with links only between claims. The user thinks in papers, so this module turns it into:
@@ -311,7 +311,7 @@ const VERBS: Record<GraphEdgeData["type"], [out: string, inc: string, color: str
   supports: ["Agrees with", "Agrees with", "var(--status-support)"],
   contradicts: ["Contradicts", "Contradicts", "var(--status-contradict)"],
   gap: ["Leaves open", "Raised by", "var(--status-gap)"],
-  prerequisite: ["Leads to", "Builds on", "var(--accent)"],
+  prerequisite: ["Leads to", "Builds on", "var(--status-link)"],
 };
 
 /** Every line touching `id`, phrased from that node's point of view. */

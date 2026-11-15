@@ -45,15 +45,30 @@ interface GraphCanvasProps {
   nodeMeta?: (id: string) => string | undefined;
   /** Where the zoom controls sit. Top-left keeps them clear of a bubble docked at the bottom. */
   controlsPosition?: "bottom-left" | "top-left";
+  /** Draw the line legend over the canvas (default), or leave it to the screen (e.g. in a header). */
+  legend?: "overlay" | "none";
 }
 
-/** Edge styling from theme tokens, so light / dark / high-contrast all match the legend. */
-const EDGE_PALETTE: Record<GraphEdgeData["type"], { color: string; dash?: string; label: string }> = {
-  prerequisite: { color: "var(--accent)", label: "Prerequisite" },
+/**
+ * Edge styling from theme tokens, so light / dark / high-contrast all match the legend. Colour is
+ * never the only cue: contradicts is dash-dot and an open question dashed.
+ */
+export const EDGE_PALETTE: Record<GraphEdgeData["type"], { color: string; dash?: string; label: string }> = {
   supports: { color: "var(--status-support)", label: "Supports" },
   contradicts: { color: "var(--status-contradict)", dash: "10 4 2 4", label: "Contradicts" },
-  gap: { color: "var(--status-gap)", dash: "6 4", label: "Research Gap" },
+  prerequisite: { color: "var(--status-link)", label: "Builds on" },
+  gap: { color: "var(--status-gap)", dash: "6 4", label: "Open question" },
 };
+
+/** A short sample of one kind of line (its colour and dash), for legends and counts. */
+export function EdgeSwatch({ type, width = 20 }: { type: GraphEdgeData["type"]; width?: number }) {
+  const spec = EDGE_PALETTE[type];
+  return (
+    <svg width={width} height="8" aria-hidden className="shrink-0">
+      <line x1="0" y1="4" x2={width} y2="4" style={{ stroke: spec.color }} strokeWidth="2.5" strokeDasharray={spec.dash} />
+    </svg>
+  );
+}
 
 /** maxZoom stops a lone node from filling the whole canvas. */
 const FIT = { padding: 0.3, maxZoom: 1.1 } as const;
@@ -79,6 +94,7 @@ function GraphCanvasInner({
   focusPadding,
   nodeMeta,
   controlsPosition = "bottom-left",
+  legend = "overlay",
 }: GraphCanvasProps) {
   const { fitView } = useReactFlow();
   const palette = EDGE_PALETTE;
@@ -194,8 +210,8 @@ function GraphCanvasInner({
               {citation && (
                 <div
                   title={citation}
-                  className={`truncate text-[10px] font-normal ${
-                    isDetached ? "text-[var(--text-muted)]" : "text-[var(--accent)]"
+                  className={`truncate text-[10px] font-medium ${
+                    isDetached ? "text-[var(--text-secondary)]" : "text-[var(--accent)]"
                   }`}
                 >
                   {citation}
@@ -214,13 +230,14 @@ function GraphCanvasInner({
           fontWeight: 600,
           cursor: "pointer",
           transition: "opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
-          color: isDetached ? "var(--text-muted)" : "var(--text-primary)",
-          // Dimmed (outside the focus) but still legible: 0.35 dropped labels to ~2:1.
-          opacity: dimmed ? 0.5 : isDetached && !isSelected ? 0.6 : 1,
-          // Glass node: thick translucent fill with a diagonal specular sheen. Detached nodes
-          // drop the sheen and sit on the muted wash, so "stands alone" reads as greyed out.
+          color: isDetached ? "var(--text-secondary)" : "var(--text-primary)",
+          // Dimmed (outside the focus) but still legible: at 0.66 the labels stay >= 4.5:1.
+          opacity: dimmed ? 0.66 : 1,
+          // Glass node: thick translucent fill with a diagonal specular sheen and a bright rim.
+          // Detached nodes drop the sheen and sit on the muted wash behind a dashed hairline, so
+          // "stands alone" reads as greyed out without fading the text.
           background: isDetached
-            ? "var(--bg-surface-muted)"
+            ? "linear-gradient(var(--bg-surface-muted), var(--bg-surface-muted)), var(--bg-surface)"
             : isGap
               ? `${NODE_SHEEN}, linear-gradient(var(--status-gap-soft), var(--status-gap-soft)), var(--bg-surface)`
               : `${NODE_SHEEN}, var(--bg-surface)`,
@@ -231,15 +248,15 @@ function GraphCanvasInner({
               : isGap
                 ? `${borderWidth}px dashed var(--status-gap)`
                 : isDetached
-                  ? `${borderWidth}px solid var(--border-strong)`
+                  ? `${borderWidth}px dashed var(--border-strong)`
                   : `${borderWidth}px solid var(--glass-rim)`,
           boxShadow: isPulsed
             ? "inset 0 1px 0 var(--glass-highlight), 0 0 18px var(--status-warning-soft)"
             : isSelected
-              ? "inset 0 1px 0 var(--glass-highlight), 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent), var(--shadow-card)"
+              ? "inset 0 1px 0 var(--glass-highlight), 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent), var(--shadow-card)"
               : isDetached
                 ? "none"
-                : "inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--border-subtle), var(--shadow-card)",
+                : "inset 0 1px 0 var(--glass-highlight), inset 0 -1px 1px var(--glass-lowlight), 0 0 0 1px var(--border-subtle), var(--shadow-card)",
         },
       };
     });
@@ -308,32 +325,19 @@ function GraphCanvasInner({
       </ReactFlow>
 
       {/* CVD-safe edge legend (colour + dash pattern), top-right so bottom popovers never cover it */}
-      {presentEdgeTypes.length > 0 && (
+      {legend === "overlay" && presentEdgeTypes.length > 0 && (
         <div
-          className={`apple-glass pointer-events-none absolute right-3 top-3 z-10 flex ${
+          className={`apple-glass-elevated pointer-events-none absolute right-3 top-3 z-10 flex ${
             // Stay clear of zoom controls docked top-left.
             controlsPosition === "top-left" ? "max-w-[calc(100%-5rem)]" : "max-w-[calc(100%-1.5rem)]"
           } flex-wrap items-center justify-end gap-x-3 gap-y-1 rounded-[20px] border px-3.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)]`}
         >
-          {presentEdgeTypes.map((type) => {
-            const spec = palette[type];
-            return (
-              <div key={type} className="flex items-center gap-1.5 whitespace-nowrap">
-                <svg width="20" height="8" aria-hidden className="shrink-0">
-                  <line
-                    x1="0"
-                    y1="4"
-                    x2="20"
-                    y2="4"
-                    style={{ stroke: spec.color }}
-                    strokeWidth="2.5"
-                    strokeDasharray={spec.dash}
-                  />
-                </svg>
-                <span>{spec.label}</span>
-              </div>
-            );
-          })}
+          {presentEdgeTypes.map((type) => (
+            <div key={type} className="flex items-center gap-1.5 whitespace-nowrap">
+              <EdgeSwatch type={type} />
+              <span>{palette[type].label}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>

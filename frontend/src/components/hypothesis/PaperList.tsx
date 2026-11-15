@@ -4,14 +4,16 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Search, X } from "lucide-react";
 import type { GraphNodeData } from "../../types/scholartwin";
 import { connectionsOf, type HypothesisModel } from "./model";
-import { ClaimLinks, paperUrl } from "./Bubbles";
+import { ClaimLinks, paperUrl } from "./Details";
+import { Segmented, type SegmentOption } from "../glass/Segmented";
+import { scrollIntoBox } from "./scroll";
 
 type Tab = "paper" | "claim" | "gap";
 
 /**
- * Side panel: plain lists of the papers, their claims and the open questions in this topic.
- * Clicking a row selects it on the graph and opens its bubble (a claim opens its paper's bubble
- * with that claim marked).
+ * The lower half of the side panel: plain lists of the papers, their claims and the open
+ * questions in this topic. Clicking a row selects it on the map and shows its details (a claim
+ * shows its paper's details with that claim marked).
  */
 export function PaperList({
   model,
@@ -51,12 +53,12 @@ export function PaperList({
   const claimRows = model.claims.filter((c) => hit(c.label, paperOf(c)?.authors_year, paperOf(c)?.label));
   const rowCount = tab === "paper" ? paperRows.length : tab === "gap" ? gapRows.length : claimRows.length;
 
-  // Keep the selected row in view when it's picked on the canvas.
+  // Keep the selected row in view when it's picked on the canvas (scrolling the list only).
   useEffect(() => {
     if (!selectedId) return;
     const id = tab === "claim" || !shownId ? selectedId : shownId;
     const el = listRef.current?.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"]`);
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    scrollIntoBox(listRef.current, el);
   }, [selectedId, shownId, tab]);
 
   const tabs: { id: Tab; label: string; n: number; color: string }[] = [
@@ -64,40 +66,44 @@ export function PaperList({
     { id: "claim", label: "Claims", n: model.claims.length, color: "var(--text-secondary)" },
     { id: "gap", label: "Questions", n: gaps.length, color: "var(--status-gap)" },
   ];
+  const options: SegmentOption<Tab>[] = tabs
+    .filter((t) => t.id === "paper" || t.n > 0)
+    .map((t) => {
+      const dot =
+        t.id === "gap"
+          ? { className: "rounded-full border border-dashed", style: { borderColor: t.color } }
+          : t.id === "claim"
+            ? { className: "rounded-full", style: { backgroundColor: t.color } }
+            : { className: "rounded-sm", style: { backgroundColor: t.color } };
+      return {
+        value: t.id,
+        label: (
+          <>
+            <span aria-hidden className={`h-2 w-2 shrink-0 ${dot.className}`} style={dot.style} />
+            {t.label}
+            <span className="tabular-nums text-[var(--text-muted)]">{t.n}</span>
+          </>
+        ),
+      };
+    });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 space-y-2.5 border-b border-[var(--border-subtle)] px-2.5 py-3">
-        {/* Segmented pill. Segments size to their label (flex-auto) so "Questions 12" fits at 300px. */}
-        <div className="apple-seg flex gap-0.5 rounded-full p-[3px]" role="tablist" aria-label="Show papers or open questions">
-          {tabs
-            .filter((t) => t.id === "paper" || t.n > 0)
-            .map((t) => {
-              const dot =
-                t.id === "gap"
-                  ? { className: "rounded-full border border-dashed", style: { borderColor: t.color } }
-                  : t.id === "claim"
-                    ? { className: "rounded-full", style: { backgroundColor: t.color } }
-                    : { className: "rounded-sm", style: { backgroundColor: t.color } };
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setTab(t.id)}
-                  className={`apple-press apple-focus flex min-w-0 flex-auto items-center justify-center gap-[3px] whitespace-nowrap rounded-full px-1.5 py-1 text-[10.5px] font-semibold transition ${
-                    active ? "apple-seg-on text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  <span aria-hidden className={`h-2 w-2 shrink-0 ${dot.className}`} style={dot.style} />
-                  {t.label}
-                  <span className="tabular-nums text-[var(--text-muted)]">{t.n}</span>
-                </button>
-              );
-            })}
-        </div>
+      <div className="shrink-0 space-y-2.5 px-3 pb-2.5 pt-3">
+        <p className="px-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.1em] text-[var(--text-muted)]">
+          Everything in this map
+        </p>
+        {/* Segments share the width so "Questions 12" still fits in the 340px panel. */}
+        <Segmented
+          kind="tabs"
+          label="Show papers, claims or open questions"
+          options={options}
+          value={tab}
+          onChange={setTab}
+          className="w-full"
+          buttonClassName="min-w-0 flex-1 justify-center gap-1 px-1.5 text-[11px] font-semibold"
+          optionProps={(v) => ({ id: `evidence-tab-${v}`, "aria-controls": "evidence-list" })}
+        />
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
@@ -106,14 +112,14 @@ export function PaperList({
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tab === "paper" ? "Find a paper or author…" : tab === "claim" ? "Find a claim or paper…" : "Find an open question…"}
             aria-label={tab === "paper" ? "Find a paper" : tab === "claim" ? "Find a claim" : "Find an open question"}
-            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-1.5 pl-8 pr-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--status-gap-border)]"
+            className="apple-focus w-full rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-muted)] py-2 pl-8 pr-8 text-[12px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--status-gap-border)] [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="apple-focus absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
+              className="apple-focus absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface-muted)] hover:text-[var(--text-primary)]"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -121,7 +127,13 @@ export function PaperList({
         </div>
       </div>
 
-      <ul ref={listRef} className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3" role="tabpanel">
+      <ul
+        ref={listRef}
+        id="evidence-list"
+        aria-labelledby={`evidence-tab-${tab}`}
+        className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 pb-3 pt-1"
+        role="tabpanel"
+      >
         {rowCount === 0 && (
           <li className="px-2 py-6 text-center text-xs text-[var(--text-muted)]">Nothing matches.</li>
         )}
@@ -151,11 +163,13 @@ export function PaperList({
   );
 }
 
-const rowClass = (active: boolean) =>
-  `st-fade-up flex items-start gap-1 rounded-2xl border p-2 transition ${
+const rowClass = (active: boolean, alone = false) =>
+  `st-fade-up flex items-start gap-1 rounded-2xl border p-2 transition ${alone ? "border-dashed" : ""} ${
     active
       ? "border-[var(--accent-border)] bg-[var(--accent-soft)] shadow-[inset_0_1px_0_var(--glass-highlight)]"
-      : "border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-[inset_0_1px_0_var(--glass-highlight)] hover:border-[var(--border-strong)]"
+      : `bg-[var(--bg-surface)] shadow-[inset_0_1px_0_var(--glass-highlight)] hover:border-[var(--border-strong)] ${
+          alone ? "border-[var(--border-strong)]" : "border-[var(--border-subtle)]"
+        }`
   }`;
 
 function PaperRow({
@@ -179,9 +193,10 @@ function PaperRow({
   const url = paperUrl(paper);
 
   return (
+    // A paper that stands alone gets a dashed outline (not faded text, which would drop below 4.5:1).
     <li
       data-node-id={paper.id}
-      className={`${rowClass(active)} ${links.length === 0 && !active ? "opacity-60" : ""}`}
+      className={rowClass(active, links.length === 0)}
       style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
     >
       <button
@@ -191,10 +206,10 @@ function PaperRow({
         className="apple-focus min-w-0 flex-1 rounded-xl px-1 text-left"
       >
         {paper.authors_year && (
-          <span className="block break-words text-xs font-semibold text-[var(--text-primary)]">{paper.authors_year}</span>
+          <span className="block break-words text-[12px] font-semibold text-[var(--text-primary)]">{paper.authors_year}</span>
         )}
-        <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-[var(--text-secondary)]">{paper.label}</span>
-        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-medium text-[var(--text-muted)]">
+        <span className="mt-0.5 line-clamp-2 block text-[11.5px] leading-snug text-[var(--text-secondary)]">{paper.label}</span>
+        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-medium text-[var(--text-muted)]">
           {claims > 0 && <span>{claims} {claims === 1 ? "claim" : "claims"}</span>}
           {agrees > 0 && <Meta color="var(--status-support)">agrees with {agrees}</Meta>}
           {contradicts > 0 && <Meta color="var(--status-contradict)">contradicts {contradicts}</Meta>}
@@ -246,9 +261,9 @@ function GapRow({
         aria-current={active ? "true" : undefined}
         className="apple-focus min-w-0 flex-1 rounded-xl px-1 text-left"
       >
-        <span className="line-clamp-3 block text-[11.5px] font-medium leading-snug text-[var(--text-primary)]">{gap.label}</span>
+        <span className="line-clamp-3 block text-[12px] font-medium leading-snug text-[var(--text-primary)]">{gap.label}</span>
         {raisedBy.length > 0 && (
-          <span className="mt-1 block text-[10px] text-[var(--text-muted)]">
+          <span className="mt-1 block text-[10.5px] text-[var(--text-muted)]">
             Raised by <span className="font-semibold text-[var(--text-secondary)]">{raisedBy.join(", ")}</span>
           </span>
         )}
@@ -293,9 +308,9 @@ function ClaimRow({
         aria-current={active ? "true" : undefined}
         className="apple-focus min-w-0 flex-1 cursor-pointer rounded-xl px-1 text-left"
       >
-        <span className="block text-[11.5px] font-medium leading-snug text-[var(--text-primary)]">{claim.label}</span>
+        <span className="block text-[12px] font-medium leading-snug text-[var(--text-primary)]">{claim.label}</span>
         {paper && (
-          <span className="mt-1 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+          <span className="mt-1 flex items-center gap-1 text-[10.5px] text-[var(--text-muted)]">
             <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-sm bg-[var(--accent)]" />
             From{" "}
             <span title={paper.authors_year || paper.label} className="min-w-0 truncate font-semibold text-[var(--text-secondary)]">
