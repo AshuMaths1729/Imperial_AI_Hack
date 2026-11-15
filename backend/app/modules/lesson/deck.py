@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Callable, List, Literal, Optional, Tuple, Union
@@ -545,16 +546,21 @@ def deck_view(track_id: str, doc: Optional[dict]) -> dict:
     }
 
 
-def run_generation(store, track_id: str, llm: LLM) -> None:
-    """Background job: generate, then cache on the track's deck doc. Keeps the previous deck if it fails."""
+def run_generation(store, track_id: str, llm: LLM, again=lambda: False) -> None:
+    """Background job: generate, then cache on the track's deck doc. Keeps the previous deck if it fails.
+    `again()` true means newer material is waiting for another run, so the doc stays "generating"."""
     prev = store.get_deck(track_id) or {}
+    t0 = time.perf_counter()
     try:
         track = store.get_track(track_id)
         deck, warnings = generate_deck(track, llm, store=store)
-        store.save_deck(track_id, {"status": "ready", "deck": deck, "error": "", "warnings": warnings, "updated_at": now()})
+        status = "generating" if again() else "ready"
+        store.save_deck(track_id, {"status": status, "deck": deck, "error": "", "warnings": warnings, "updated_at": now()})
+        log.info("deck for %s: %d slides in %.0fs", track_id, len(deck.get("slides", [])), time.perf_counter() - t0)
     except Exception as e:
-        log.exception("deck generation failed for %s", track_id)
-        store.save_deck(track_id, {**prev, "status": "failed", "error": str(e)[:300], "updated_at": now()})
+        log.exception("deck generation failed for %s after %.0fs", track_id, time.perf_counter() - t0)
+        status = "generating" if again() else "failed"
+        store.save_deck(track_id, {**prev, "status": status, "error": str(e)[:300], "updated_at": now()})
 
 
 if __name__ == "__main__":

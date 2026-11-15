@@ -1,4 +1,5 @@
 import copy
+import importlib
 import json
 import re
 
@@ -268,11 +269,52 @@ def test_failed_regeneration_keeps_previous_deck(env):
     assert body["source"] == "generated" and body["deck"]["slides"][0]["id"] == "s1"
 
 
-def test_post_while_generating_does_not_start_another(env):
+def test_post_while_generating_does_not_start_another(env, monkeypatch):
     client, store, llm = env
+    r = importlib.import_module("app.modules.lesson.router")
+    monkeypatch.setattr(r, "_deck_running", {"gradient-descent"})  # a worker is already building it
     store.save_deck("gradient-descent", {"status": "generating", "updated_at": decks.now()})
     assert client.post("/api/lesson/tracks/gradient-descent/deck").json()["status"] == "generating"
-    assert llm.bodies == []
+    assert llm.bodies == []  # the running worker picks the request up and runs once more instead
+    assert client.get("/api/lesson/tracks/gradient-descent/deck").json()["status"] == "generating"
+
+
+def test_orphaned_generating_doc_reads_as_failed(env):
+    client, store, _ = env
+    store.save_deck("gradient-descent", {"status": "generating", "updated_at": decks.now()})  # no worker: server restarted
+    body = client.get("/api/lesson/tracks/gradient-descent/deck").json()
+    assert body["status"] == "failed" and "stopped" in body["error"]
+
+
+def test_request_during_a_run_runs_again_with_the_new_material(env, monkeypatch):
+    client, store, llm = env
+    r = importlib.import_module("app.modules.lesson.router")
+    calls = []
+    real = decks.run_generation
+
+    def run(store_, tid, llm_, again=lambda: False):
+        calls.append(tid)
+        if len(calls) == 1:  # new material arrives while the first run is generating
+            with r._deck_lock:
+                r._deck_wanted[tid] += 1
+            assert again()
+        real(store_, tid, llm_, again)
+
+    monkeypatch.setattr(r.decks, "run_generation", run)
+    llm.replies += [tool_reply(tiny_deck()), tool_reply(tiny_deck())]
+    client.post("/api/lesson/tracks/gradient-descent/deck")
+    assert len(calls) == 2
+    assert client.get("/api/lesson/tracks/gradient-descent/deck").json()["status"] == "ready"
+
+
+def test_adding_material_starts_the_slides(env):
+    client, store, llm = env
+    tid = client.post("/api/lesson/tracks", json={"title": "X"}).json()["track_id"]
+    llm.replies.append(tool_reply(tiny_deck(("m0:a",))))
+    ds = {"mode": "lecture", "title": "T", "nodes": [{"id": "a", "label": "A", "summary": "s", "category": "core"}], "edges": []}
+    client.post(f"/api/lesson/tracks/{tid}/materials", json={"kind": "url", "ref": "https://x", "dataset": ds})
+    body = client.get(f"/api/lesson/tracks/{tid}/deck").json()
+    assert body["status"] == "ready" and body["deck"]["slides"][0]["id"] == "s1"
 
 
 def test_stale_generating_doc_is_restarted(env):

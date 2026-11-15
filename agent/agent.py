@@ -329,6 +329,18 @@ async def entrypoint(ctx: JobContext) -> None:
 
     ctx.room.register_text_stream_handler("tutor.idle", lambda reader, _who: spawn(on_idle(reader)))
 
+    async def on_slides(reader: rtc.TextStreamReader) -> None:
+        # the page loaded rebuilt slides (or started building them) mid-lesson
+        try:
+            event = json.loads(await reader.read_all())
+        except ValueError:
+            return
+        if nudge := deck.slides_changed(event):
+            logger.info("slides changed mid-lesson: %s", event.get("status"))
+            session.generate_reply(instructions=nudge)
+
+    ctx.room.register_text_stream_handler("tutor.slides", lambda reader, _who: spawn(on_slides(reader)))
+
     # A tutor without a live Synthesia face (empty avatar_id) teaches voice only.
     if os.environ.get("TUTOR_AVATAR") != "0" and tctx["tutor"].get("avatar_id"):
         config = synthesia.AvatarConfig(avatar_ids=[tctx["tutor"]["avatar_id"]])

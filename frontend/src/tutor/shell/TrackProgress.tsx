@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDeck, getLessonState, getTrack, type Track } from "./api";
+import { getLessonState, getTrack, type Track } from "./api";
+import { useDeck } from "./deckStore";
 import { KP_MARKS, kpMarks, lastLesson, timeAgo } from "./progress";
 
 const eyebrow = "font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--accent)]";
 
 /** What the lobby knows about a track's past lessons: where the last one stopped and what it found hard. */
-type History = { lessons: number; ago?: string; slide?: number; slides?: number; struggled: string[] };
+type History = { lessons: number; ago?: string; stoppedAt?: number; struggled: string[] };
 
 /**
  * The selected topic's progress, for the lobby: where the last lesson stopped in the slides, when it was, and how each
@@ -17,21 +18,19 @@ type History = { lessons: number; ago?: string; slide?: number; slides?: number;
 export function TrackProgress({ track }: { track: Track }) {
   const [history, setHistory] = useState<History | null>(null);
   const [failed, setFailed] = useState(false);
+  const { view } = useDeck(track.track_id); // the lobby's shared slide status (one request, kept current)
 
   useEffect(() => {
     let alive = true;
-    const id = track.track_id;
-    Promise.all([getTrack(id), getDeck(id).catch(() => null)])
-      .then(async ([detail, view]) => {
+    getTrack(track.track_id)
+      .then(async (detail) => {
         const last = lastLesson(detail.lessons);
         const state = last ? await getLessonState(last.lesson_id).catch(() => null) : null;
         if (!alive) return;
-        const slides = view?.deck?.slides.length || undefined;
         setHistory({
           lessons: detail.lessons.length,
           ago: last ? timeAgo(last.ended_at ?? last.started_at, Date.now()) : undefined,
-          slides,
-          slide: state && slides ? Math.min(Math.max(1, state.slide), slides) : undefined,
+          stoppedAt: state?.slide,
           struggled: last?.struggles.map((s) => s.kp_id) ?? [],
         });
       })
@@ -44,16 +43,20 @@ export function TrackProgress({ track }: { track: Track }) {
   const kps = track.knowledge_points;
   const marks = kpMarks(kps, history?.struggled);
   const understood = kps.filter((k) => marks.get(k.kp_id) === "understood").length;
-  const pct = history?.slide && history.slides ? (history.slide / history.slides) * 100 : 0;
+  const slides = view?.deck?.slides.length || undefined;
+  const slide = history?.stoppedAt && slides ? Math.min(Math.max(1, history.stoppedAt), slides) : undefined;
+  const pct = slide && slides ? (slide / slides) * 100 : 0;
   const where = !history
     ? failed
       ? "Couldn't load past lessons"
       : "Loading past lessons…"
-    : history.slide
-      ? `Slide ${history.slide} of ${history.slides}`
-      : history.slides
-        ? `${history.slides} slides ready`
-        : "No slides yet";
+    : view?.status === "generating"
+      ? "Preparing slides…"
+      : slide
+        ? `Slide ${slide} of ${slides}`
+        : slides
+          ? `${slides} slides ready`
+          : "No slides yet";
 
   return (
     <section aria-labelledby="progress-heading" className="apple-sheet st-fade-up grid grid-cols-1 gap-4 rounded-[26px] p-4 sm:p-5" style={{ animationDelay: "80ms" }}>

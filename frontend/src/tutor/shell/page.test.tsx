@@ -7,7 +7,7 @@ import { makeSlidesRpcHandlers } from "@/tutor/slides";
 import { pointOnStage, type ShellStage } from "./session";
 import type { TutorSession } from "./useTutorSession";
 
-const deckView = (over = {}) => ({ status: "none", source: "fallback", deck: gd, error: "", warnings: [], updated_at: null, ...over });
+const deckView = (over = {}) => ({ status: "none", source: "fallback", deck: gd, error: "", warnings: [], updated_at: null, ...over }) as never;
 
 vi.mock("./api", () => ({
   listTutors: vi.fn(async () => [
@@ -56,6 +56,8 @@ let search = new URLSearchParams();
 vi.mock("next/navigation", () => ({ useSearchParams: () => search }));
 
 function fakeSession(over: Partial<TutorSession> = {}): TutorSession {
+  // a lesson always runs on a topic (the lobby only starts one with a track): live calls get the test track
+  if (over.status === "live" && !search.get("track")) search = new URLSearchParams("track=t1");
   return {
     setStage: vi.fn((h) => {
       stage = h;
@@ -204,20 +206,120 @@ describe("/tutor page", () => {
     openAddMaterial();
     fireEvent.change(screen.getByLabelText("Material URL"), { target: { value: "https://arxiv.org/abs/1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add URL" }));
-    await screen.findByText("Added 3 knowledge points");
+    await screen.findByText(/Added 3 knowledge points/);
   });
 });
 
+const startButton = () => screen.getAllByRole("button").find((b) => /Start lesson|Preparing slides/.test(b.textContent ?? "")) as HTMLButtonElement;
+
 describe("slides", () => {
-  it("lobby shows the track's deck and Prepare slides starts generation", async () => {
+  it("lobby shows the track's deck and Prepare slides starts generation; Start waits for the slides", async () => {
     render(<TutorPage />);
     await pickTutorAndTrack();
     openAddMaterial();
     await screen.findByText("Using the built-in 7-slide deck.");
+    expect(startButton().disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: /Prepare slides/ }));
-    await screen.findByText(/Generating animated slides/);
+    await screen.findByText(/Building animated slides/);
     expect(api.prepareDeck).toHaveBeenCalledWith("t1");
     expect((screen.getByRole("button", { name: /Prepare slides/ }) as HTMLButtonElement).disabled).toBe(true);
+    // slides on their way: no lesson until they're on the stage
+    expect(startButton().disabled).toBe(true);
+    expect(startButton().textContent).toContain("Preparing slides");
+    screen.getByText(/the lesson opens with them once they're ready/);
+    fireEvent.click(startButton());
+    expect(session.start).not.toHaveBeenCalled();
+  });
+
+  it("Start opens once the slides being built are ready", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ status: "generating", deck: null, source: null }));
+      render(<TutorPage />);
+      await pickTutorAndTrack();
+      await vi.waitFor(() => expect(startButton().disabled).toBe(true));
+      await act(async () => void (await vi.advanceTimersByTimeAsync(3100))); // the next poll: ready
+      await vi.waitFor(() => expect(startButton().disabled).toBe(false));
+      fireEvent.click(startButton());
+      expect(session.start).toHaveBeenCalledWith("t1", "kenji-socratic");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a topic with no slides and nothing to build them from starts at once, on the whiteboard", async () => {
+    vi.mocked(api.prepareDeck).mockClear();
+    vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ deck: null, source: null }));
+    render(<TutorPage />);
+    await pickTutorAndTrack();
+    await screen.findByText(/the tutor teaches on the whiteboard/);
+    expect(startButton().disabled).toBe(false);
+    expect(api.prepareDeck).not.toHaveBeenCalled();
+  });
+
+  it("failed slides don't lock the lesson: Try again rebuilds, or start on the whiteboard", async () => {
+    vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ status: "failed", error: "API down", deck: null, source: null }));
+    render(<TutorPage />);
+    await pickTutorAndTrack();
+    await screen.findByText(/Couldn't build the slides \(API down\)/);
+    expect(startButton().disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /Try again/ }));
+    expect(api.prepareDeck).toHaveBeenCalledWith("t1");
+    await vi.waitFor(() => expect(startButton().disabled).toBe(true));
+  });
+
+  it("material with no slides yet (added before slides built themselves) starts building them", async () => {
+    vi.mocked(api.listTracks).mockResolvedValueOnce([
+      { track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [{ kind: "pdf", ref: "a.pdf", dataset_title: "A" }], knowledge_points: [], created_at: "" },
+    ]);
+    vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ deck: null, source: null }));
+    render(<TutorPage />);
+    await pickTutorAndTrack();
+    await vi.waitFor(() => expect(api.prepareDeck).toHaveBeenCalledWith("t1"));
+    await vi.waitFor(() => expect(startButton().disabled).toBe(true));
+  });
+
+  it("an upload in progress holds the lesson until the server has it", async () => {
+    let finish: (t: api.Track) => void = () => {};
+    vi.mocked(api.uploadPdf).mockImplementationOnce(() => new Promise((r) => (finish = r)));
+    render(<TutorPage />);
+    await pickTutorAndTrack();
+    await vi.waitFor(() => expect(startButton().disabled).toBe(false));
+    openAddMaterial();
+    const file = new File(["%PDF"], "notes.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("Upload PDF"), { target: { files: [file] } });
+    await vi.waitFor(() => expect(startButton().disabled).toBe(true));
+    screen.getByText(/Uploading your material/);
+    vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ status: "generating" })); // the upload started the slides
+    await act(async () =>
+      finish({ track_id: "t1", user_id: "demo", title: "Gradient Descent", materials: [{ kind: "pdf", ref: "notes.pdf", dataset_title: "notes.pdf" }], knowledge_points: [], created_at: "" })
+    );
+    await screen.findByText(/the lesson opens with them once they're ready/);
+    expect(startButton().disabled).toBe(true);
+  });
+
+  it("slides rebuilt during a lesson replace the old deck on the stage, and the tutor is told", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      session = fakeSession({ status: "live", lessonId: "L1" });
+      vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ status: "generating", deck: null, source: null }));
+      render(<TutorPage />);
+      await vi.waitFor(() => expect(session.sendEvent).toHaveBeenCalledWith("tutor.slides", { status: "building" }));
+      const rebuilt = { ...gd, slides: gd.slides.slice(0, 3) };
+      vi.mocked(api.getDeck).mockResolvedValueOnce(deckView({ status: "ready", source: "generated", deck: rebuilt, updated_at: "t2" }));
+      await act(async () => void (await vi.advanceTimersByTimeAsync(3100)));
+      await screen.findByRole("region", { name: /Slide 1 of 3/ });
+      expect(session.sendEvent).toHaveBeenCalledWith("tutor.slides", expect.objectContaining({ status: "ready", slides: 3 }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a lesson that opens on ready slides doesn't tell the tutor anything new", async () => {
+    session = fakeSession({ status: "live", lessonId: "L1" });
+    render(<TutorPage />);
+    await screen.findByRole("region", { name: /Slide 1 of 7/ });
+    expect(session.sendEvent).not.toHaveBeenCalledWith("tutor.slides", expect.anything());
   });
 
   it("the call has a Slides tab showing the deck", async () => {

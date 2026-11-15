@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
-import { AlertTriangle, ArrowRight, Check, Mic, Pause, Play, Plus, Upload, Video, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Loader2, Mic, Pause, Play, Plus, RefreshCw, Upload, Video, X } from "lucide-react";
 import { createTrack, type Track, type Tutor } from "./api";
 import { AddMaterial } from "./AddMaterial";
+import { deckReadiness, rebuildDeck, refreshDeck, useDeck } from "./deckStore";
 import { NoTrackProgress, TrackProgress } from "./TrackProgress";
 import { GlassSelect } from "@/components/GlassSelect";
 import { MODULES } from "@/modules";
@@ -207,7 +208,18 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
   const [adding, setAdding] = useState(false);
   const track = tracks.find((t) => t.track_id === trackId);
   const tutor = tutors.find((t) => t.tutor_id === tutorId);
-  const ready = !!tutor && !!track;
+  // A lesson only starts on finished slides: never on a deck that is still building (or missing).
+  const deckState = useDeck(track?.track_id ?? "");
+  const slides = deckReadiness(deckState, track?.materials.length ?? 0);
+  const ready = !!tutor && !!track && slides.ready;
+  // Material but no slides and nothing building them (e.g. added before slides built themselves): start them now.
+  const needsBuild = !!track && track.materials.length > 0 && deckState.view?.status === "none" && !deckState.view.deck;
+  const asked = useRef(new Set<string>());
+  useEffect(() => {
+    if (!needsBuild || !track || asked.current.has(track.track_id)) return;
+    asked.current.add(track.track_id);
+    void rebuildDeck(track.track_id);
+  }, [needsBuild, track]);
   // "Hear …" voice samples: one plays at a time, and leaving the lobby (joining) stops it.
   const [playing, setPlaying] = useState<string>();
   const sample = useRef<HTMLAudioElement | null>(null);
@@ -339,8 +351,16 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
                     : `${quietBtn} px-5 py-3 text-sm`
                 }
               >
-                {tutor ? `Start lesson with ${tutor.name}` : "Start lesson"}
-                <ArrowRight className="h-4 w-4" aria-hidden />
+                {tutor && track && !slides.ready ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Preparing slides…
+                  </>
+                ) : (
+                  <>
+                    {tutor ? `Start lesson with ${tutor.name}` : "Start lesson"}
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </>
+                )}
               </button>
               <button
                 type="button"
@@ -355,9 +375,26 @@ export function Lobby({ tutors, tracks, tutorId, trackId, onTutor, onTrack, onTr
                 Add your own slides
               </button>
             </div>
-            {!ready && (
+            {(!tutor || !track) && (
               <p className="text-xs text-[var(--text-muted)]">
                 {!tutor && !track ? "Choose a tutor and a topic to start." : !tutor ? "Choose a tutor to start." : "Choose a topic to start."}
+              </p>
+            )}
+            {track && slides.note && (
+              <p
+                role="status"
+                className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${slides.why === "failed" ? "text-[var(--status-contradict)]" : "text-[var(--text-secondary)]"}`}
+              >
+                <span>{slides.note}</span>
+                {slides.why === "failed" && (
+                  <button
+                    type="button"
+                    onClick={() => void (deckState.view ? rebuildDeck(track.track_id) : refreshDeck(track.track_id))}
+                    className={`${quietBtn} px-2.5 py-1 text-[11px]`}
+                  >
+                    <RefreshCw className="h-3 w-3" aria-hidden /> Try again
+                  </button>
+                )}
               </p>
             )}
             {adding && track && (

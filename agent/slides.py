@@ -136,7 +136,11 @@ def _shows(slide: dict | None, step: int) -> str:
 def outline_text(d: dict) -> str:
     """The page's slides.describe reply as compact text for the voice model."""
     if not d.get("ok", True) or "slides" not in d:
-        return f"couldn't read the slides: {'; '.join(d.get('errors') or ['no reply'])}"
+        errs = "; ".join(d.get("errors") or ["no reply"])
+        if "no slides" in errs:  # a topic without slides (yet): teach anyway, never stall on it
+            return (f"couldn't read the slides: {errs}. This lesson has no slides right now: teach on the whiteboard "
+                    "(show_tab(\"board\")) and don't dwell on it. If new slides arrive you will be told.")
+        return f"couldn't read the slides: {errs}"
     lines = [f"Deck: slide {d['index']} of {len(d['slides'])} is open, at step {d['step']}."]
     for s in d["slides"]:
         mark = "  <- open" if s["index"] == d["index"] else ""
@@ -261,6 +265,22 @@ class SlideTools:
             q = f'its check question "{self.check}"' if self.check else "a short check question on its idea"
             nxt = f" That was the last step of this slide: ask {q} and wait for the answer before slide_go."
         return f"ok: slide {index}, step {step} of {total or '?'}.{_shows(self.slide, step)}{nxt}"
+
+    def slides_changed(self, event: dict) -> str | None:
+        """The page loaded a rebuilt deck (or started building one) mid-lesson: forget the old slide and say what to
+        do now. None: nothing to say."""
+        if event.get("status") == "building":
+            return ("New slides for this topic are being built from the student's material (a minute or two). Tell "
+                    "them in one short sentence that they're on the way, then carry on with what you were doing.")
+        if event.get("status") != "ready":
+            return None
+        self.narration, self.index, self.step, self.slide = [], None, None, None
+        self.idea = self.check = ""
+        self.explanation, self.explain_at = None, 0
+        n = event.get("slides") or "the"
+        return (f"The new slides are ready and on the student's stage ({n} slides). Say so in one short sentence, then "
+                "call show_tab(\"slides\") to read the outline and teach from slide 1 (or from the slide that matches "
+                "where you are). The previous slides are gone.")
 
     @property
     def progress(self) -> tuple:

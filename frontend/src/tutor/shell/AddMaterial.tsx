@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link2, Loader2, Upload } from "lucide-react";
 import { addMaterial, getTrack, ingestUrl, uploadPdf, type Track } from "./api";
 import { DeckPrep } from "./DeckPrep";
+import { refreshDeck, setUploading } from "./deckStore";
 
 /** Quiet pill buttons; disabled keeps legible muted ink instead of fading out. */
 const BTN =
@@ -27,14 +28,13 @@ const KP_REFRESH_MS = 1500;
 const KP_REFRESH_TRIES = 16;
 
 /**
- * URL → team ingest → add to track; PDF → the track's full-text PDF endpoint. Then the deck can be prepared from the
- * new material (DeckPrep, re-read after each PDF).
+ * URL → team ingest → add to track; PDF → the track's full-text PDF endpoint. Either one starts building the slides
+ * on the server; the shared deck status (DeckPrep, the lobby's Start button, a live lesson) picks that up.
  */
 export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t: Track) => void }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState<"url" | "pdf">();
   const [msg, setMsg] = useState<{ ok: boolean; text: string }>();
-  const [pdfs, setPdfs] = useState(0); // PDFs added here: remounts DeckPrep with the offer (key this by track)
   const fileRef = useRef<HTMLInputElement>(null);
   const alive = useRef(true);
   useEffect(() => {
@@ -62,11 +62,14 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
   const run = async (kind: "url" | "pdf", work: () => Promise<string>, fail: (e: unknown) => string) => {
     setBusy(kind);
     setMsg(undefined);
+    setUploading(trackId, true); // no lesson starts mid-upload (it would open on the old slides)
     try {
       setMsg({ ok: true, text: await work() });
     } catch (e) {
       setMsg({ ok: false, text: fail(e) });
     } finally {
+      await refreshDeck(trackId); // the server is building the new slides now: read that before letting go
+      setUploading(trackId, false);
       setBusy(undefined);
     }
   };
@@ -82,7 +85,7 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
         onAdded(await addMaterial(trackId, { kind: "url", ref: u, dataset }));
         setUrl("");
         const n = dataset.nodes.length;
-        return `Added ${n} knowledge point${n === 1 ? "" : "s"}`;
+        return `Added ${n} knowledge point${n === 1 ? "" : "s"}. Building the slides from it now.`;
       },
       (e) => (e instanceof Error ? e.message : String(e))
     );
@@ -98,9 +101,8 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
       async () => {
         const t = await uploadPdf(trackId, f);
         onAdded(t);
-        setPdfs((n) => n + 1);
         void refreshKps(t);
-        return `Added ${f.name}. Writing its key points now; they appear here in a few seconds.`;
+        return `Added ${f.name}. Writing its key points and building the slides from it now.`;
       },
       pdfError
     );
@@ -152,7 +154,7 @@ export function AddMaterial({ trackId, onAdded }: { trackId: string; onAdded: (t
           {msg.text}
         </p>
       )}
-      <DeckPrep key={pdfs} trackId={trackId} offer={pdfs > 0} />
+      <DeckPrep trackId={trackId} />
     </div>
   );
 }

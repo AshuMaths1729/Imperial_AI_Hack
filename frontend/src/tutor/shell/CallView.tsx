@@ -6,7 +6,7 @@ import { AppHeader, HeaderAction } from "@/components/AppHeader";
 import { MODULES } from "@/modules";
 import type { BoardHandle, CircleEvent } from "@/tutor/contracts/types";
 import type { Deck, SlidesHandle } from "@/tutor/slides";
-import { getDeck } from "./api";
+import { useDeck } from "./deckStore";
 import { CaptionsOverlay } from "./CaptionsOverlay";
 import { ControlBar } from "./ControlBar";
 import { downloadTranscript, formatElapsed, keyPoints, mastery, progressOf, type DeckPosition } from "./lesson";
@@ -57,6 +57,29 @@ function useDeckPosition(slidesRef: React.RefObject<SlidesHandle | null>) {
   return pos;
 }
 
+/**
+ * The deck on the lesson's stage. It holds one deck object while a rebuild runs (the stage restarts on a new one) and
+ * switches when a finished build lands; `swaps` counts those switches after the first deck.
+ */
+function useLessonDeck(trackId: string) {
+  const { view } = useDeck(trackId);
+  // `seen`: the first answer is in. A deck that lands after it (mid-lesson) counts as a swap the tutor must hear of.
+  const [shown, setShown] = useState<{ deck: Deck | null; key: string | null; swaps: number; seen: boolean }>({
+    deck: null,
+    key: null,
+    swaps: 0,
+    seen: false,
+  });
+  const settled = !!view && view.status !== "generating" && !!view.deck;
+  const key = settled ? `${view.source}:${view.updated_at}` : null;
+  // derived state, adjusted while rendering (React's documented pattern), so the stage never sees a stale frame
+  if (settled && key !== shown.key) setShown({ deck: view.deck, key, seen: true, swaps: shown.seen ? shown.swaps + 1 : 0 });
+  else if (view && !settled && !shown.seen) setShown({ ...shown, seen: true });
+  const building = view?.status === "generating";
+  const deckLoading = !shown.deck && (!view || building);
+  return { deck: shown.deck, deckLoading, swaps: shown.swaps, building };
+}
+
 function Meter({ label, value, text }: { label: string; value: number; text: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
@@ -91,25 +114,24 @@ export function CallView({ session: s, boardRef, tutorName, tutorPortrait, track
   const [captionsOn, setCaptionsOn] = useState(true);
   const live = s.status === "live";
   const slidesRef = useRef<SlidesHandle | null>(null);
-  const [deck, setDeck] = useState<Deck | null>(null);
-  const [deckLoading, setDeckLoading] = useState(true);
+  const { deck, deckLoading, swaps, building } = useLessonDeck(trackId);
   const [data, setData] = useTrackData(trackId, live);
   const state = useLessonState(s.lessonId, live);
   const pos = useDeckPosition(slidesRef);
   const elapsed = useElapsed(live);
   const [explanationSlot, setExplanationSlot] = useState<HTMLElement | null>(null); // set while the side panel docks explanations
 
-  // The deck prepared before the lesson (or the track's shipped fallback); never blocks joining.
+  // Slides rebuilt during the lesson (material added, or "Regenerate slides") are on the stage now: tell the tutor,
+  // who otherwise still teaches from the old outline (or believes there are none).
+  const sendEvent = s.sendEvent;
   useEffect(() => {
-    let alive = true;
-    getDeck(trackId).then(
-      (v) => alive && (setDeck(v.deck), setDeckLoading(false)),
-      () => alive && setDeckLoading(false)
-    );
-    return () => {
-      alive = false;
-    };
-  }, [trackId]);
+    if (swaps === 0 || !deck) return;
+    sendEvent("tutor.slides", { status: "ready", slides: deck.slides.length, title: deck.title ?? "" });
+  }, [swaps, deck, sendEvent]);
+  // A rebuild started mid-lesson: the tutor can say new slides are on their way (and keeps teaching meanwhile).
+  useEffect(() => {
+    if (building && live) sendEvent("tutor.slides", { status: "building" });
+  }, [building, live, sendEvent]);
 
   // The agent's RPCs and laser cues reach the stage through this (tab switching, the Slides tab).
   const setStage = s.setStage;

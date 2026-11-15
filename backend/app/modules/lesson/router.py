@@ -139,9 +139,15 @@ def get_track(track_id: str, store: Store = Depends(get_store)):
     return {"track": track, "lessons": store.recent_lessons(track_id, 3)}
 
 
+def get_deck_llm() -> decks.LLM:
+    """Overridden in tests with a fake Anthropic client."""
+    return decks.anthropic_llm
+
+
 @tutor_router.post("/tracks/{track_id}/materials")
 @_locked
-def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_store)):
+def add_material(track_id: str, body: MaterialIn, background: BackgroundTasks, store: Store = Depends(get_store),
+                 llm: decks.LLM = Depends(get_deck_llm)):
     track = _lookup(store.get_track, track_id)
     prefix = f"m{len(track.materials)}"
     prereqs: dict = {}
@@ -154,12 +160,8 @@ def add_material(track_id: str, body: MaterialIn, store: Store = Depends(get_sto
         for n in body.dataset.nodes
     ]
     store.save_track(track)
+    queue_deck(store, track_id, background, llm)  # the slides build themselves from the new material
     return track
-
-
-def get_deck_llm() -> decks.LLM:
-    """Overridden in tests with a fake Anthropic client."""
-    return decks.anthropic_llm
 
 
 # Key points still being written for a track's PDF uploads: deck generation waits for them (it builds from the KPs).
@@ -232,32 +234,64 @@ def add_pdf(track_id: str, background: BackgroundTasks, file: UploadFile = File(
     with _pending_lock:
         _pending_kps.setdefault(track_id, []).append(done)
     background.add_task(_refine_kps, store, track_id, prefix, pages, name, llm, done)
+    queue_deck(store, track_id, background, llm)  # the slides build themselves (after the KPs) from the new material
     return track
 
 
 @tutor_router.get("/tracks/{track_id}/deck")
 def get_deck(track_id: str, store: Store = Depends(get_store)):
     _lookup(store.get_track, track_id)
-    return decks.deck_view(track_id, store.get_deck(track_id))
+    doc = store.get_deck(track_id)
+    if doc and doc.get("status") == "generating" and track_id not in _deck_running:
+        # nothing is building it any more (the server restarted mid-run): say so, so the lobby offers a retry
+        doc = {**doc, "status": "failed", "error": "slide generation stopped before it finished"}
+    return decks.deck_view(track_id, doc)
 
 
-def _generate_after_kps(store: Store, track_id: str, llm) -> None:
-    wait_for_kps(track_id)  # slides are built from the KPs: never from an upload's placeholder headings
-    decks.run_generation(store, track_id, llm)
+# Slide generation: one worker per track. A request while it runs (new material) makes it run once more after.
+_deck_wanted: dict[str, int] = {}
+_deck_running: set[str] = set()
+_deck_lock = threading.Lock()
+
+
+def _deck_worker(store: Store, track_id: str, llm) -> None:
+    first = True
+    while True:
+        with _deck_lock:
+            serial = _deck_wanted.get(track_id, 0)
+        if not first:  # a newer request came in while the last run finished: show it as generating again
+            store.save_deck(track_id, {**(store.get_deck(track_id) or {}), "status": "generating", "updated_at": decks.now()})
+        first = False
+        try:
+            wait_for_kps(track_id)  # slides are built from the KPs: never from an upload's placeholder headings
+            decks.run_generation(store, track_id, llm, again=lambda: _deck_wanted.get(track_id, 0) != serial)
+        finally:
+            with _deck_lock:
+                if _deck_wanted.get(track_id, 0) == serial:
+                    _deck_running.discard(track_id)
+                    return
+
+
+def queue_deck(store: Store, track_id: str, background: BackgroundTasks, llm) -> dict:
+    """Marks the track's deck generating and makes sure a worker builds it (once more, if one is already running)."""
+    with _deck_lock:
+        _deck_wanted[track_id] = _deck_wanted.get(track_id, 0) + 1
+        start = track_id not in _deck_running
+        _deck_running.add(track_id)
+    doc = {**(store.get_deck(track_id) or {}), "status": "generating", "error": "", "updated_at": decks.now()}
+    store.save_deck(track_id, doc)
+    if start:
+        background.add_task(_deck_worker, store, track_id, llm)
+    return doc
 
 
 @tutor_router.post("/tracks/{track_id}/deck")
 @_locked
 def generate_deck(track_id: str, background: BackgroundTasks, store: Store = Depends(get_store),
                   llm: decks.LLM = Depends(get_deck_llm)):
-    """Starts (re)generating the track's deck in the background; never blocks a lesson. Poll GET for status."""
+    """Starts (re)generating the track's deck in the background. Poll GET for status. Uploads call this by themselves."""
     _lookup(store.get_track, track_id)
-    doc = store.get_deck(track_id) or {}
-    if doc.get("status") != "generating" or decks.is_stale(doc):
-        doc = {**doc, "status": "generating", "error": "", "updated_at": decks.now()}
-        store.save_deck(track_id, doc)
-        background.add_task(_generate_after_kps, store, track_id, llm)
-    return decks.deck_view(track_id, doc)
+    return decks.deck_view(track_id, queue_deck(store, track_id, background, llm))
 
 
 @tutor_router.get("/context/{lesson_id}")

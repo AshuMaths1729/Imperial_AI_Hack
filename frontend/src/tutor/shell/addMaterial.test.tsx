@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import * as api from "./api";
 import { AddMaterial } from "./AddMaterial";
 
-const view = (over = {}) => ({ status: "ready", source: "generated", deck: { title: "D", slides: [{ id: "s", title: "S", objects: [] }] }, error: "", warnings: [], updated_at: null, ...over });
+const view = (over = {}) => ({ status: "ready", source: "generated", deck: { title: "D", slides: [{ id: "s", title: "S", objects: [] }] }, error: "", warnings: [], updated_at: null, ...over }) as never;
 const track = { track_id: "t1", user_id: "demo", title: "Calc", created_at: "", materials: [], knowledge_points: [{}, {}, {}] };
 
 vi.mock("./api", () => ({
@@ -40,7 +40,7 @@ describe("adding a PDF", () => {
     expect(onAdded).toHaveBeenLastCalledWith(refined);
   });
 
-  it("uploads to the track's PDF endpoint, shows progress, then offers to prepare slides from it", async () => {
+  it("uploads to the track's PDF endpoint, shows progress, then shows the slides building from it", async () => {
     let done!: (t: typeof track) => void;
     vi.mocked(api.uploadPdf).mockReturnValue(new Promise((r) => (done = r)) as never);
     const onAdded = vi.fn();
@@ -54,17 +54,17 @@ describe("adding a PDF", () => {
     screen.getByText("Reading the PDF…");
     expect(api.ingestUrl).not.toHaveBeenCalled();
 
+    // the server started building the slides from the upload: the status is re-read before letting go
+    vi.mocked(api.getDeck).mockResolvedValueOnce(view({ status: "generating" }));
     await act(async () => done(track));
     expect(onAdded).toHaveBeenCalledWith(track);
     expect(screen.queryByText(/Reading the PDF/)).toBeNull();
     // the upload answers at once; the model's key points are swapped in when the backend has written them
-    screen.getByText(/Added notes\.pdf\. Writing its key points now/);
-    // the deck status is re-read for the new material, and the button now offers to prepare slides from it
+    screen.getByText(/Added notes\.pdf\. Writing its key points and building the slides/);
     expect(api.getDeck).toHaveBeenCalledTimes(2);
-    await screen.findByText(/Prepare slides to build the lesson from it/);
-    fireEvent.click(screen.getByRole("button", { name: /Prepare slides/ }));
-    expect(api.prepareDeck).toHaveBeenCalledWith("t1");
-    await screen.findByText(/Generating animated slides/);
+    await screen.findByText(/Building animated slides/);
+    expect(api.prepareDeck).not.toHaveBeenCalled(); // nobody has to press anything
+    expect((screen.getByRole("button", { name: /Regenerate slides/ }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("a PDF that is too large says so", async () => {

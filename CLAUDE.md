@@ -49,7 +49,7 @@ npm test                        # vitest run (every src/**/*.test.ts(x))
 
 **Frontend** (`frontend/src/`; `DESIGN.md` is the full UI spec; shared types in `src/types/scholartwin.ts`):
 
-- `app/page.tsx` switches the client screens `home | library | papersim-workspace | hypothesis-chat`. `app/lecture/lesson/page.tsx` is Live Lessons: lobby → call → recap, with `?track=<id>` preselecting a track (components in `src/tutor/shell/`).
+- `app/page.tsx` switches the client screens `home | library | papersim-workspace | hypothesis-chat`. `app/lecture/lesson/page.tsx` is Live Lessons: lobby → call → recap, with `?track=<id>` preselecting a track (components in `src/tutor/shell/`). Adding material (PDF or URL) builds the slides by itself (`queue_deck` in `backend/app/modules/lesson/router.py`, one worker per track that re-runs for material added mid-build). `src/tutor/shell/deckStore.ts` is the one shared slide status: the lobby's Start waits only while slides upload or build, and a deck rebuilt mid-lesson swaps onto the stage and is announced to the agent (`tutor.slides` text stream).
 - **Home:** `HomeHub` plus `components/home/*`: module cards with `ModuleArt` drawings, and a "Pick up where you left off" `RecentList` across all modules (`lib/recent.ts`).
 - **Paper Simulator:** `LibraryView` (start screen: "Open a paper", "Your papers") and `PaperSimTabsView` (Simulate / Concepts / Results / Equations, `components/papersim/*`).
 - **Evidence Map:** `HypothesisChatView` plus `components/hypothesis/*` (`TopicSidebar`, `Details`, `PaperList`); `initialTopicId` opens a saved topic.

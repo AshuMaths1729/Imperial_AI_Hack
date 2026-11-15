@@ -506,3 +506,20 @@ def test_continue_nudge_walks_an_open_explanation_not_the_slide():
     assert "explain_step(2)" in nudge and "slide_step" not in nudge
     t.explain_at = 2
     assert t.continue_instruction("So the slope is 3.") is None  # last step: "did that help?" comes next
+
+
+def test_no_slides_reply_sends_the_tutor_to_the_whiteboard():
+    out = outline_text({"ok": False, "errors": ["no slides are loaded for this lesson"]})
+    assert 'show_tab("board")' in out and "told" in out
+    assert "whiteboard" not in outline_text({"ok": False, "errors": ["slides unreachable: timeout"]})
+
+
+def test_rebuilt_slides_mid_lesson_reset_the_open_slide():
+    t = SlideTools(FakeIO(), "L1")
+    t.narration, t.index, t.step, t.idea = ["a", "b"], 3, 1, "Slope"
+    assert "on the way" in t.slides_changed({"status": "building"})
+    assert t.index == 3  # still teaching the old slides meanwhile
+    nudge = t.slides_changed({"status": "ready", "slides": 6})
+    assert "6 slides" in nudge and 'show_tab("slides")' in nudge
+    assert (t.narration, t.index, t.step, t.idea) == ([], None, None, "")
+    assert t.slides_changed({"status": "other"}) is None

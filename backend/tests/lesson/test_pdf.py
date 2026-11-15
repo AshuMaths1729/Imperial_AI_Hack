@@ -31,12 +31,29 @@ def kp_reply(n=5):
                          "input": {"title": "Differentiation", "knowledge_points": kps}}]}
 
 
+class SplitLLM(FakeLLM):
+    """Uploads now build the slides by themselves: deck calls take `deck_replies` (none queued: that run fails
+    quietly), key-point calls take `replies`."""
+
+    def __init__(self):
+        super().__init__()
+        self.deck_replies = []
+
+    def __call__(self, body):
+        if any(t.get("name") == "make_deck" for t in body.get("tools", [])):
+            self.bodies.append(body)
+            if not self.deck_replies:
+                raise RuntimeError("no deck reply queued")
+            return self.deck_replies.pop(0)
+        return super().__call__(body)
+
+
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTOR_DATA_DIR", str(tmp_path))
     monkeypatch.delenv("MONGODB_URI", raising=False)
     store = make_store()
-    llm = FakeLLM()
+    llm = SplitLLM()
     app = FastAPI()
     app.include_router(tutor_router, prefix="/api")
     app.dependency_overrides[get_store] = lambda: store
@@ -114,10 +131,10 @@ def test_errors(env, monkeypatch):
 def test_deck_prompt_uses_pdf_text(env):
     client, store, llm, tid = env
     llm.replies.append(kp_reply())
-    upload(client, tid, make_pdf())
-    kp_ids = [k.kp_id for k in store.get_track(tid).knowledge_points]
-    llm.replies.append(tool_reply(tiny_deck(kp_ids)))
-    client.post(f"/api/lesson/tracks/{tid}/deck")
+    llm.deck_replies.append(tool_reply(tiny_deck([f"m0:k{i}" for i in range(1, 6)])))
+    upload(client, tid, make_pdf())  # the slides build by themselves once the key points are in
+    assert [k.kp_id for k in store.get_track(tid).knowledge_points] == [f"m0:k{i}" for i in range(1, 6)]
+    assert client.get(f"/api/lesson/tracks/{tid}/deck").json()["status"] == "ready"
     prompt = llm.bodies[1]["messages"][0]["content"]
     assert "A chord joins (1, 1) and (3, 9)" in prompt and "As h tends to 0" in prompt
     assert client.get(f"/api/lesson/tracks/{tid}/deck").json()["status"] == "ready"

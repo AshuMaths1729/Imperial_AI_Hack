@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Play, Presentation, RefreshCw, X } from "lucide-react";
 import { SlidesStage, type DeckView } from "@/tutor/slides";
-import { getDeck, prepareDeck } from "./api";
+import { rebuildDeck, useDeck } from "./deckStore";
 
-const POLL_MS = 3000;
 /** Quiet pill buttons; disabled keeps legible muted ink instead of fading out. */
 const QUIET =
   "apple-press apple-focus flex items-center gap-1 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] hover:border-[var(--accent-border)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:border-[var(--border-subtle)] disabled:text-[var(--text-muted)] disabled:hover:text-[var(--text-muted)]";
@@ -14,7 +13,7 @@ const QUIET =
 function statusLine(v: DeckView | null, err?: string): string {
   if (err) return err;
   if (!v) return "Checking slides…";
-  if (v.status === "generating") return "Generating animated slides… (about a minute; you can join meanwhile)";
+  if (v.status === "generating") return "Building animated slides from your material… (a minute or two)";
   const n = v.deck?.slides.length ?? 0;
   const failed = v.status === "failed" ? `Generation failed (${v.error || "unknown error"}). ` : "";
   if (v.source === "generated") return `${failed}${n} animated slides ready.`;
@@ -22,43 +21,12 @@ function statusLine(v: DeckView | null, err?: string): string {
   return `${failed}No slides yet.`;
 }
 
-/**
- * Prepare (or regenerate) the track's animated deck, and preview it. Key it by track.
- * `offer`: a PDF was just added, so invite building the slides from it (until the student does).
- */
-export function DeckPrep({ trackId, offer: offered = false }: { trackId: string; offer?: boolean }) {
-  const [view, setView] = useState<DeckView | null>(null);
-  const [err, setErr] = useState<string>();
+/** The track's animated deck: its status, a preview, and a rebuild button. Adding material builds it by itself. */
+export function DeckPrep({ trackId }: { trackId: string }) {
+  const { view, err } = useDeck(trackId);
   const [preview, setPreview] = useState(false);
-  const [offer, setOffer] = useState(offered);
   const generating = view?.status === "generating";
-
-  useEffect(() => {
-    let alive = true;
-    getDeck(trackId).then(
-      (v) => alive && setView(v),
-      (e) => alive && setErr(`Couldn't check slides (${e instanceof Error ? e.message : e}).`)
-    );
-    return () => {
-      alive = false;
-    };
-  }, [trackId]);
-
-  useEffect(() => {
-    if (!generating) return;
-    const t = setInterval(() => getDeck(trackId).then(setView, () => {}), POLL_MS);
-    return () => clearInterval(t);
-  }, [generating, trackId]);
-
-  const prepare = async () => {
-    setErr(undefined);
-    setOffer(false);
-    try {
-      setView(await prepareDeck(trackId));
-    } catch (e) {
-      setErr(`Couldn't start generating slides (${e instanceof Error ? e.message : e}).`);
-    }
-  };
+  const prepare = () => void rebuildDeck(trackId);
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border-subtle)] pt-2.5">
@@ -72,7 +40,7 @@ export function DeckPrep({ trackId, offer: offered = false }: { trackId: string;
         ) : (
           <Presentation className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
-        <span>{offer && view && !generating && !err ? "Your PDF is in. Prepare slides to build the lesson from it." : statusLine(view, err)}</span>
+        <span>{statusLine(view, err)}</span>
       </p>
       {view?.deck && (
         <button type="button" onClick={() => setPreview(true)} className={QUIET}>
@@ -83,9 +51,9 @@ export function DeckPrep({ trackId, offer: offered = false }: { trackId: string;
         type="button"
         onClick={prepare}
         disabled={generating || !view}
-        className={offer && !generating && view ? "apple-tint st-sheen apple-press apple-focus relative flex items-center gap-1 overflow-hidden rounded-full px-2.5 py-1 text-[11px] font-semibold" : QUIET}
+        className={QUIET}
       >
-        <RefreshCw className="h-3 w-3" aria-hidden /> {!offer && view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
+        <RefreshCw className="h-3 w-3" aria-hidden /> {view?.source === "generated" ? "Regenerate slides" : "Prepare slides"}
       </button>
 
       {/* Portalled to body: a dialog under a glass or animated (transformed) pane would be clipped to it. */}
