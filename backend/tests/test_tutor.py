@@ -27,10 +27,10 @@ def lk_client():
         yield c
 
 
-def test_lists_two_tutors_with_distinct_voices(client):
+def test_lists_three_tutors_with_distinct_voices(client):
     tutors = client.get("/api/tutor/tutors").json()
-    assert len(tutors) == 2
-    assert len({t["voice_id"] for t in tutors}) == 2
+    assert len(tutors) == 3
+    assert len({t["voice_id"] for t in tutors}) == 3
 
 
 def test_session_needs_livekit_credentials(client):
@@ -57,10 +57,5 @@ def test_session_token_dispatches_agent_with_all_tutors(lk_client):
     assert dispatch["agentName"] == "tutor-test"
     meta = json.loads(dispatch["metadata"])
     assert meta["tutor_id"] == "jenny-socratic"
-    assert [t["tutor_id"] for t in meta["tutors"]] == ["kenji-visual", "jenny-socratic"]
+    assert [t["tutor_id"] for t in meta["tutors"]] == ["kenji-visual", "jenny-socratic", "mei-examples"]
 
-
-def test_mei_stays_hidden_until_her_avatar_is_set():
-    from app.modules.tutor import tutors
-    assert all(t.avatar_id for t in tutors.TUTORS)
-    assert ("mei-examples" in tutors.BY_ID) == bool(tutors.MEI)

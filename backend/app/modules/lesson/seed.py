@@ -4,11 +4,9 @@ from app.modules.tutor.tutors import JENNY, KENJI, MEI, MEI_VOICE
 
 from .models import KP, LearnerProfile, Material, Track, Tutor
 
-# Avatar ids live in the tutor module (single source of truth); Mei takes the worked-examples slot once hers is set.
-
 PROFILE = LearnerProfile(user_id="demo", name="Demo Student", style="visual", level="undergrad")
 
-# Voices: Eric (smooth, trustworthy), Jenny's and Mei's designed voices (Bill stands in until Mei's avatar is set).
+# Avatars come from the tutor module. Voices: Eric (smooth, trustworthy), then Jenny's and Mei's designed voices.
 TUTORS = [
     Tutor(tutor_id="kenji-visual", name="Kenji — visual explainer", avatar_id=KENJI,
           voice_id="cjVigY5qzO86Huf0OWal",
@@ -17,10 +15,6 @@ TUTORS = [
           voice_id="1dJLMOIuKrasdg4BFQb9",
           style_prompt="Socratic coach: asks guiding questions before explaining"),
     Tutor(tutor_id="mei-examples", name="Mei — worked examples", avatar_id=MEI, voice_id=MEI_VOICE,
-          style_prompt="worked examples: solves a similar problem step by step, then lets you try")
-    if MEI else
-    Tutor(tutor_id="kenji-examples", name="Kenji — worked examples", avatar_id=KENJI,
-          voice_id="pqHfZKP75CvOlQylNhV4",
           style_prompt="worked examples: solves a similar problem step by step, then lets you try"),
 ]
 

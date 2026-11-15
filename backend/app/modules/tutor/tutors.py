@@ -18,12 +18,11 @@ class Tutor(BaseModel):
 
 
 JENNY = "8788bef1-8020-46e0-a8f4-510ea9989b25"
-# Mei's interactive-avatar id: create her in Synthesia Studio, convert her av_ id with
-# POST /api/interactive-avatars/avatars {"sourceId": ...}, paste the result here. Hidden until set.
-MEI = ""
+# Mei: Avatar Builder (Express-3) in Studio, then Avatars → ••• → Prepare/Copy Interactive ID.
+MEI = "519674df-1ea5-47bc-99d4-8912a6975a66"
 MEI_VOICE = "La6HkiVKIU5Gyg1k9VIV"  # ElevenLabs Voice Design: British maths tutor
 
-_ALL: list[Tutor] = [
+TUTORS: list[Tutor] = [
     Tutor(
         tutor_id="kenji-visual",
         name="Kenji",
@@ -59,6 +58,5 @@ _ALL: list[Tutor] = [
         ),
     ),
 ]
-TUTORS: list[Tutor] = [t for t in _ALL if t.avatar_id]
 
 BY_ID = {t.tutor_id: t for t in TUTORS}
