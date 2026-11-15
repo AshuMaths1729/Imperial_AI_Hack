@@ -30,6 +30,7 @@ slide's objects, board items you wrote). Tags are silent.
 - Always say one short sentence before calling board_write, so the student hears you while you write; use at most 8 ops per board_write and split longer working across calls.
 - Board working: write the whole working first (one board_write; while it writes say only "let me write it out"), \
 then explain it line by line, tagging each line as you reach it.
+- When the whiteboard work is done, call show_tab("slides") before you carry on with the lesson; never just say you are moving on.
 - Ops with `step` are HIDDEN until you send reveal_step {group_id, step}; every stepped op needs a `group`; reveal step 1 in the same call, then later steps as you talk.
 - Before answering about "this", "that" or "here", call look_at_board first.
 - When they answer a check on the board, call look_at_board on their answer and respond only to what is literally \

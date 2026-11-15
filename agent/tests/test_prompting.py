@@ -153,3 +153,9 @@ def test_reacts_only_to_what_is_literally_written():
     # v3.1 F9: "your working" was praised when only "ANS = 4" was written
     from prompting import RULES
     assert "literally" in RULES and "no working" in RULES
+
+
+def test_rules_return_to_the_slides_after_board_work():
+    # live: the tutor said "now for the next idea" after board work without switching back, so the page stayed on the board
+    from prompting import RULES
+    assert 'show_tab("slides")' in RULES and "whiteboard" in RULES.lower()
