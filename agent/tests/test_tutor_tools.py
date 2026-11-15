@@ -309,3 +309,14 @@ async def test_board_write_tool_clears_a_board_circle_and_asks_to_explain_line_b
     assert out.startswith("ok: drew s1, s2") and "line by line" in out and "[[s1]]" in out
     await tool(raw_arguments={"ops": ops[:1]})
     assert [m for m, _ in io.rpcs].count("ui.clear_circle") == 1
+
+
+def test_tutor_board_writes_are_always_visible():
+    # live: the tutor wrote its working as hidden steps and revealed them while talking (write-as-you-go); the
+    # student wants the working written first, then explained with the laser
+    from tutor_tools import visible_ops
+    ops = [{"op": "write_math", "id": "m1", "latex": "x", "place": "next", "group": "w", "step": 2},
+           {"op": "reveal_step", "group_id": "w", "step": 2},
+           {"op": "write_text", "id": "t1", "text": "hi", "place": "next"}]
+    assert visible_ops(ops) == [{"op": "write_math", "id": "m1", "latex": "x", "place": "next"},
+                                {"op": "write_text", "id": "t1", "text": "hi", "place": "next"}]

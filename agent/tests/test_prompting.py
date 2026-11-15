@@ -40,9 +40,10 @@ def test_greeting_mentions_last_lesson_when_absent():
     assert "last lesson" not in g.lower()
 
 
-def test_rules_explain_hidden_steps():
+def test_rules_write_board_working_visibly_then_explain():
+    # v3.1: no hidden steps revealed while talking; write it all, then explain line by line with the laser
     text = build_instructions(CTX)
-    assert "HIDDEN" in text and "reveal_step" in text and "group" in text
+    assert "reveal_step" not in text and "all visible" in text and "starting each sentence with that line's tag" in text
 
 
 def test_rules_speak_before_drawing_and_keep_board_calls_small():
@@ -132,7 +133,7 @@ def test_rules_teach_the_speech_synced_laser():
     # v3.1 F1: tags right before the word, stripped before speech; the laser follows the words
     from prompting import RULES
     assert "the [[rise]] rise over the [[run]] run" in RULES
-    assert "one tag per sentence" in RULES and "only ids that exist" in RULES
+    assert "every sentence about something on screen carries one [[id]] tag" in RULES.lower() and "only ids that exist" in RULES.lower()
 
 
 def test_slower_pace():

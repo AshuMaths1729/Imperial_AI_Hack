@@ -53,6 +53,13 @@ def _op_error(i: int, op: Any) -> str | None:
     return f"op {i} ({name}): {err.message[:160]}"
 
 
+def visible_ops(ops: list) -> list:
+    """The tutor writes its working visibly, then explains it with the laser: no hidden steps to reveal while talking.
+    (The background animation worker keeps stepped reveals; it calls TutorTools.board_write directly.)"""
+    return [{k: v for k, v in op.items() if k not in ("step", "group")} if isinstance(op, dict) else op
+            for op in ops if not (isinstance(op, dict) and op.get("op") == "reveal_step")]
+
+
 class TutorTools:
     def __init__(self, io: TutorIO, lesson_id: str, on_note: Callable[[str], Awaitable[None]] | None = None,
                  circle=None):
@@ -199,7 +206,7 @@ class TutorTools:
         async def board_write(raw_arguments: dict[str, Any]) -> str:
             # the explanation starts: the student's board circle goes (v3.1 F2)
             cleared = t.circle is not None and await t.circle.clear("board")
-            out = await t.board_write(raw_arguments.get("ops") or [])
+            out = await t.board_write(visible_ops(raw_arguments.get("ops") or []))
             return out + (" The student's circle is cleared." if cleared else "")
 
         @llm.function_tool
