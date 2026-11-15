@@ -50,15 +50,17 @@ VOICE_MAX_TOKENS = 2000
 MAX_TOOL_STEPS = 12
 SPEECH_SPEED = 0.9  # 3Blue1Brown pace; ElevenLabs allows 0.8-1.2
 CHECKPOINT_EVERY_S = 60
+# Measured on the live prompt: Haiku 5.5 without thinking ~1 s to first token but it followed the teaching rules
+# badly; Sonnet 5.5 without thinking ~1.2 s and follows them.
+VOICE_MODEL = "claude-sonnet-5-5"
 LLM_TIMEOUT_S = 25  # the first, cache-writing call takes 5-9 s; the 10 s default made it time out and retry
 CONTINUE_AFTER_S = 2.0  # silence after a mid-slide stop before the agent nudges the tutor on
 
 
 class VoiceLLM(anthropic.LLM):
-    """The voice brain without thinking: measured live, replies start in ~1 s instead of ~3 s (Haiku 5.5 thinks by
-    default; disabling it is allowed at its default effort)."""
+    """The voice brain without thinking (thinking adds ~2 s before every reply), one tool call at a time."""
 
-    EXTRA = {"thinking": {"type": "disabled"}}
+    EXTRA = {"thinking": {"type": "between_tools"}}  # Sonnet 5.5: thinking off (disabled is a 400 there)
 
     def __init__(self, **kw):
         # one tool call at a time: parallel slide_step calls (live: steps 1, 3, 2 at once) break the pacing
@@ -217,7 +219,7 @@ async def entrypoint(ctx: JobContext) -> None:
 
     session = AgentSession(
         stt=elevenlabs.STT(model="scribe_v2_realtime", language_code="en"),  # ignore nearby non-English chatter
-        llm=VoiceLLM(model="claude-haiku-5-5", caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
+        llm=VoiceLLM(model=VOICE_MODEL, caching="ephemeral", max_tokens=VOICE_MAX_TOKENS),
         conn_options=SessionConnectOptions(llm_conn_options=APIConnectOptions(timeout=LLM_TIMEOUT_S)),
         tts=elevenlabs.TTS(
             voice_id=tctx["tutor"]["voice_id"], model="eleven_flash_v2_5",

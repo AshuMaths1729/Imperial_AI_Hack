@@ -109,17 +109,20 @@ def test_rules_stay_short_for_the_voice_model():
 def test_voice_llm_makes_one_tool_call_at_a_time():
     # live: three slide_step calls fired at once (steps 1, 3, 2) and broke the pacing
     import agent
-    assert agent.VoiceLLM(model="claude-haiku-5-5")._opts.parallel_tool_calls is False
+    assert agent.VoiceLLM(model=agent.VOICE_MODEL)._opts.parallel_tool_calls is False
 
 
 def test_rules_forbid_narrating_the_machinery():
     from prompting import RULES
     assert "never mention slides, steps or tools" in RULES.lower()
+    assert RULES.lower().index("never mention slides") < RULES.lower().index("question first")  # stated first
 
 
 def test_voice_llm_answers_without_thinking_and_the_first_call_has_room():
     # measured live: Haiku 5.5's default thinking made each reply start ~3 s late (~1 s without); the first,
     # cache-writing call takes 5-9 s and hit the 10 s default timeout
     import agent
-    assert agent.VoiceLLM.EXTRA["thinking"] == {"type": "disabled"}
+    # Haiku without thinking was fast (~1 s) but followed the teaching rules badly live; Sonnet 5.5 without
+    # thinking measured ~1.2 s to first token on the same prompt (plan bar: switch if under ~1.5 s)
+    assert agent.VOICE_MODEL == "claude-sonnet-5-5" and agent.VoiceLLM.EXTRA["thinking"] == {"type": "between_tools"}
     assert agent.LLM_TIMEOUT_S >= 20
