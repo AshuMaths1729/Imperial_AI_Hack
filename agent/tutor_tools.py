@@ -89,10 +89,14 @@ class TutorTools:
                 errors.append(f"board unreachable: {e}")
         if not errors:
             lines = [op["id"] for op in valid if op["op"] in ("write_math", "write_text") and op.get("id")]
-            # v3.1 F6: the board writes at speaking pace; the explanation comes after, with the laser on each line
+            # v3.2 G6: one line per write, explained with the laser before the next; slides again when done
+            then = ' When the working is done, show_tab("slides").'
             if len(lines) > 1:
-                return (f"ok: drew {', '.join(ids)}. Now explain it line by line, tagging each line as you reach it "
-                        f"([[{lines[0]}]] ...).")
+                return (f"ok: drew {', '.join(ids)}. Explain them line by line, tagging each as you reach it "
+                        f"([[{lines[0]}]] ...); from now on write one line per board_write.{then}")
+            if lines:
+                return (f"ok: drew {', '.join(ids)}. Explain this line now, starting with [[{lines[0]}]] and tagging its "
+                        f"parts; then board_write the next line.{then}")
             return f"ok: drew {', '.join(ids)}"
         if ids:
             return f"partial: drew {', '.join(ids)}; failed: {'; '.join(errors)}"
